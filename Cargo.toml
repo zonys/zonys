@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "jail",
+    "jail-sys",
+    "nv-sys",
+    "zfs-sys",
+    "zonys-cli",
+    "zonys-core",
+]

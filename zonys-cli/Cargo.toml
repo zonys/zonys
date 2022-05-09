@@ -1,0 +1,9 @@
+[package]
+name = "zonys-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "3", features = ["derive"] }
+serde_yaml = "0.8"
+zonys-core = { path = "../zonys-core" }
