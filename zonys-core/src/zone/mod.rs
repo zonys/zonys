@@ -311,9 +311,9 @@ impl Zone {
 
         file_system.destroy()?;
 
-        /*ExecuteStopAfterZoneExecutionInstructionIterator::new(&configuration)
-            .map(|instruction| executor.execute_instruction(&mut context, &instruction))
-            .collect::<Result<(), _>>()?;*/
+        ExecuteDestroyAfterZoneExecutionInstructionIterator::new(&configuration)
+            .map(|instruction| executor.execute_parent(&mut context, &instruction))
+            .collect::<Result<(), _>>().map_err(|e| ExecuteZoneError::Parent(e))?;
 
         Ok(())
     }
