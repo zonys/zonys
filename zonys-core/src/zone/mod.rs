@@ -59,9 +59,13 @@ impl Zone {
         }
     }
 
+    fn jail_name(&self) -> String {
+        self.identifier().uuid().to_string()
+    }
+
     fn jail(&self) -> Result<Option<Jail>, TryIntoJailIdError> {
         Ok(Option::<JailId>::try_from(JailName::new(
-            self.identifier().uuid().to_hyphenated_ref().to_string(),
+            self.jail_name(),
         ))?
         .map(Jail::open)
         .flatten())
@@ -70,7 +74,7 @@ impl Zone {
     fn jail_parameters(&self) -> Vec<JailParameter> {
         vec!{
             JailParameter::new("persist", "true"),
-            JailParameter::new("name", self.identifier().to_string()),
+            JailParameter::new("name", self.jail_name()),
             JailParameter::new("path", self.root_path().display().to_string()),
         }
     }
