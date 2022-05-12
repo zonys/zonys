@@ -6,11 +6,11 @@ use zfs::file_system::ChildIterator;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct NamespaceZoneIterator {
-    iterator: Option<ChildIterator>,
+    iterator: ChildIterator,
 }
 
 impl NamespaceZoneIterator {
-    pub(super) fn new(iterator: Option<ChildIterator>) -> Self {
+    pub(super) fn new(iterator: ChildIterator) -> Self {
         Self { iterator }
     }
 }
@@ -20,12 +20,7 @@ impl Iterator for NamespaceZoneIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let iterator = match &mut self.iterator {
-                None => return None,
-                Some(i) => i,
-            };
-
-            let file_system = match iterator.next() {
+            let file_system = match self.iterator.next() {
                 None => return None,
                 Some(f) => f,
             };

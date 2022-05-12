@@ -18,10 +18,6 @@ use zfs::file_system::{ChildIterator, FileSystem};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const NAMESPACE_ZONES_PATH_NAME: &str = "zone";
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 struct NamespaceHandle {
     identifier: NamespaceIdentifier,
     file_system: FileSystem,
@@ -139,17 +135,7 @@ impl NamespaceZones {
 
 impl NamespaceZones {
     pub fn iter(&self) -> Result<NamespaceZoneIterator, OpenNamespaceZoneIteratorError> {
-        match self
-            .handle
-            .file_system
-            .children()
-            .open(NAMESPACE_ZONES_PATH_NAME)?
-        {
-            None => Ok(NamespaceZoneIterator::new(None)),
-            Some(file_system) => Ok(NamespaceZoneIterator::new(Some(
-                file_system.children().iter()?,
-            ))),
-        }
+        Ok(NamespaceZoneIterator::new(self.handle.file_system.children().iter()?))
     }
 
     pub fn create(
