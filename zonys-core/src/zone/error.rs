@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::ExitStatusError;
 use std::str::FromStr;
 use std::string::ToString;
-use jail::{DestroyJailError, TryIntoJailIdError, CreateJailError};
+use jail::{DestroyJailError, TryIntoJailIdError, CreateJailError, ExecuteJailError};
 use uuid::Uuid;
 use zfs::file_system::{ChildIterator, FileSystem};
 use crate::namespace::ParseNamespaceIdentifierError;
@@ -62,19 +62,40 @@ impl From<ExitStatusError> for ExecuteParentZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum ExecuteChildZoneError {}
+pub enum ExecuteChildZoneError {
+    ExecuteJailError(ExecuteJailError),
+    TemplateError(template::Error),
+}
 
 impl error::Error for ExecuteChildZoneError {}
 
 impl Debug for ExecuteChildZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        todo!()
+        match self {
+            Self::ExecuteJailError(error) => Debug::fmt(error, formatter),
+            Self::TemplateError(error) => Debug::fmt(error, formatter),
+        }
     }
 }
 
 impl Display for ExecuteChildZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        todo!()
+        match self {
+            Self::ExecuteJailError(error) => Display::fmt(error, formatter),
+            Self::TemplateError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<ExecuteJailError> for ExecuteChildZoneError {
+    fn from(error: ExecuteJailError) -> Self {
+        Self::ExecuteJailError(error)
+    }
+}
+
+impl From<template::Error> for ExecuteChildZoneError {
+    fn from(error: template::Error) -> Self {
+        Self::TemplateError(error)
     }
 }
 

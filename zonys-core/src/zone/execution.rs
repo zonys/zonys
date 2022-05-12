@@ -930,7 +930,17 @@ impl ZoneExecutor {
         instruction: &ZoneChildExecutionInstruction,
         jail: &mut Jail,
     ) -> Result<(), ExecuteChildZoneError> {
-        todo!()
+        jail.execute(
+            &self.template_engine
+                .render(context.variables(), instruction.program())?,
+            &instruction
+                .arguments()
+                .iter()
+                .map(|a| self.template_engine.render(context.variables(), a))
+                .collect::<Result<Vec<_>, _>>()?,
+        )?;
+
+        Ok(())
     }
 }
 
