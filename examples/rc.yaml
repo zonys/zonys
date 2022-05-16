@@ -33,6 +33,10 @@ execute:
           - "{{ zone.paths.root }}/base.txz"
           - "-C"
           - "{{ zone.paths.root }}"
+      - target: parent
+        program: /bin/rm
+        arguments:
+          - "{{ zone.paths.root }}/base.txz"
 
   start:
     on:
