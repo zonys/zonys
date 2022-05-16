@@ -1,16 +1,16 @@
-use std::error;
-use std::ffi::NulError;
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
-use std::num::TryFromIntError;
-
+use crate::ffi;
+use crate::ffi::{JAIL_ATTACH, JAIL_CREATE, JAIL_DYING, JAIL_GET_MASK, JAIL_SET_MASK, JAIL_UPDATE};
 use libc::_exit;
 use nix::errno::Errno;
 use nix::sys::wait::waitpid;
 use nix::unistd::{execv, fork, ForkResult};
-
-use crate::ffi;
-use crate::ffi::{JAIL_ATTACH, JAIL_CREATE, JAIL_DYING, JAIL_GET_MASK, JAIL_SET_MASK, JAIL_UPDATE};
+use std::error;
+use std::ffi::CString;
+use std::ffi::NulError;
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::iter::once;
+use std::num::TryFromIntError;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -338,8 +338,6 @@ impl From<NulError> for ExecuteJailError {
     }
 }
 
-use std::ffi::CString;
-
 pub fn jail_execute<T>(jid: usize, program: &str, arguments: &[T]) -> Result<(), ExecuteJailError>
 where
     T: AsRef<str>,
@@ -354,9 +352,9 @@ where
 
                 execv(
                     &CString::new(program)?,
-                    &arguments
-                        .iter()
-                        .map(|x| CString::new(x.as_ref()))
+                    &once(program)
+                        .chain(arguments.iter().map(|x| x.as_ref()))
+                        .map(CString::new)
                         .collect::<Result<Vec<CString>, _>>()?,
                 )?;
 
