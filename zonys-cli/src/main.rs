@@ -50,6 +50,9 @@ enum MainCommand {
     Down {
         uuid: ZoneIdentifierUuid,
     },
+    Reup {
+        uuid: ZoneIdentifierUuid,
+    },
     Status,
     List,
     Purge,
@@ -145,6 +148,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
                 ZoneStatus::NotRunning => {}
             }
+        }
+        MainCommand::Reup { uuid } => {
+            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+                .expect("Namespace not found")
+                .zones_mut()
+                .open(uuid)?
+                .expect("Zone not found");
+
+            match zone.status()? {
+                ZoneStatus::Running => {
+                    zone.stop()?;
+                }
+                ZoneStatus::NotRunning => {}
+            }
+
+            zone.start()?;
         }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
