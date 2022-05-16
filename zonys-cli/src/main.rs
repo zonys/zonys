@@ -35,6 +35,9 @@ enum MainCommand {
     Destroy {
         uuid: ZoneIdentifierUuid,
     },
+    Recreate {
+        uuid: ZoneIdentifierUuid,
+    },
     Start {
         uuid: ZoneIdentifierUuid,
     },
@@ -101,6 +104,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             None => {}
         },
+        MainCommand::Recreate { uuid } => {
+            let mut namespace =
+                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+
+            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+
+            let configuration = zone.configuration()?;
+
+            zone.destroy()?;
+
+            println!("{}", namespace.zones_mut().create(configuration)?);
+        }
         MainCommand::Start { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
             Some(mut namespace) => {
                 namespace
