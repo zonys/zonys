@@ -52,12 +52,6 @@ impl Zone {
 }
 
 impl Zone {
-    fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
-        Ok(from_reader(&mut BufReader::new(File::open(
-            self.configuration_path(),
-        )?))?)
-    }
-
     fn file_system(&self) -> Result<FileSystem, zfs::Error> {
         match FileSystem::open(&self.identifier.to_string()) {
             Err(e) => Err(e.into()),
@@ -126,6 +120,12 @@ impl Zone {
 
     pub fn lockfile_path(&self) -> PathBuf {
         self.path().join(ZONE_LOCKFILE_PATH_NAME)
+    }
+
+    pub fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
+        Ok(from_reader(&mut BufReader::new(File::open(
+            self.configuration_path(),
+        )?))?)
     }
 
     pub fn status(&self) -> Result<ZoneStatus, RetrieveZoneStatusError> {
