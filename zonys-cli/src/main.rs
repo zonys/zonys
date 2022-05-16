@@ -57,6 +57,9 @@ enum MainCommand {
         #[clap(short, long)]
         stdin: bool,
     },
+    Undeploy {
+        uuid: ZoneIdentifierUuid,
+    },
     Status,
     List,
     Purge,
@@ -186,8 +189,28 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let zone_identifier = namespace.zones_mut().create(configuration)?;
 
-            let mut zone = namespace.zones_mut().open(*zone_identifier.uuid())?.expect("Zone not found");
+            let mut zone = namespace
+                .zones_mut()
+                .open(*zone_identifier.uuid())?
+                .expect("Zone not found");
+
             zone.start()?;
+        }
+        MainCommand::Undeploy { uuid } => {
+            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+                .expect("Namespace not found")
+                .zones_mut()
+                .open(uuid)?
+                .expect("Zone not found");
+
+            match zone.status()? {
+                ZoneStatus::Running => {
+                    zone.stop()?;
+                }
+                ZoneStatus::NotRunning => {}
+            }
+
+            zone.destroy()?;
         }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
