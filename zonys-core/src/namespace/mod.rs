@@ -135,7 +135,9 @@ impl NamespaceZones {
 
 impl NamespaceZones {
     pub fn iter(&self) -> Result<NamespaceZoneIterator, OpenNamespaceZoneIteratorError> {
-        Ok(NamespaceZoneIterator::new(self.handle.file_system.children().iter()?))
+        Ok(NamespaceZoneIterator::new(
+            self.handle.file_system.children().iter()?,
+        ))
     }
 
     pub fn create(

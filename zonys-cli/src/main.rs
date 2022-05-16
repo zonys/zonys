@@ -126,12 +126,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .expect("Zone not found");
 
             match zone.status()? {
-                ZoneStatus::Running => {},
+                ZoneStatus::Running => {}
                 ZoneStatus::NotRunning => {
                     zone.start()?;
-                },
+                }
             }
-        },
+        }
         MainCommand::Down { uuid } => {
             let mut zone = Namespace::open(&arguments.namespace_identifier)?
                 .expect("Namespace not found")
@@ -142,10 +142,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             match zone.status()? {
                 ZoneStatus::Running => {
                     zone.stop()?;
-                },
+                }
                 ZoneStatus::NotRunning => {}
             }
-        },
+        }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {

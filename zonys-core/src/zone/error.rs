@@ -1,3 +1,6 @@
+use crate::namespace::ParseNamespaceIdentifierError;
+use crate::template;
+use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -6,11 +9,8 @@ use std::path::PathBuf;
 use std::process::ExitStatusError;
 use std::str::FromStr;
 use std::string::ToString;
-use jail::{DestroyJailError, TryIntoJailIdError, CreateJailError, ExecuteJailError};
 use uuid::Uuid;
 use zfs::file_system::{ChildIterator, FileSystem};
-use crate::namespace::ParseNamespaceIdentifierError;
-use crate::template;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -668,7 +668,7 @@ impl error::Error for RetrieveZoneStatusError {}
 impl Debug for RetrieveZoneStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter)
+            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -676,7 +676,7 @@ impl Debug for RetrieveZoneStatusError {
 impl Display for RetrieveZoneStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TryIntoJailIdError(error) => Display::fmt(error, formatter)
+            Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
         }
     }
 }

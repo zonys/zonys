@@ -1,11 +1,11 @@
 use super::error::{ExecuteChildZoneError, ExecuteParentZoneError, ExecuteZoneError};
 use crate::template::{TemplateEngine, TemplateObject, TemplateValue};
 use crate::zone::configuration::*;
+use ::jail::Jail;
 use std::iter::empty;
 use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
-use ::jail::{Jail};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -545,9 +545,10 @@ impl ExecuteCreateBeforeZoneExecutionInstructionIterator {
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
         match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
-                    match jail
+            ZoneConfiguration::Version1(version1) => {
+                match version1.r#type() {
+                    Version1ZoneConfigurationType::Jail(jail) => {
+                        match jail
                         .execute()
                         .as_ref()
                         .map(|e| e.create().as_ref())
@@ -561,8 +562,9 @@ impl ExecuteCreateBeforeZoneExecutionInstructionIterator {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
                     }
+                    }
                 }
-            },
+            }
         }
     }
 }
@@ -634,9 +636,10 @@ impl ExecuteStartBeforeZoneExecutionInstructionIterator {
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
         match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
-                    match jail
+            ZoneConfiguration::Version1(version1) => {
+                match version1.r#type() {
+                    Version1ZoneConfigurationType::Jail(jail) => {
+                        match jail
                         .execute()
                         .as_ref()
                         .map(|e| e.start().as_ref())
@@ -650,8 +653,9 @@ impl ExecuteStartBeforeZoneExecutionInstructionIterator {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
                     }
+                    }
                 }
-            },
+            }
         }
     }
 }
@@ -790,10 +794,13 @@ impl ExecuteStopAfterZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.after().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(|e| match e {
-                            Version1AfterStopExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentExecutionInstruction::from(parent),
-                        }))
-                    {
+                        .map(|b| {
+                            b.inner().iter().map(|e| match e {
+                                Version1AfterStopExecuteJailZoneConfigurationEntry::Parent(
+                                    parent,
+                                ) => ZoneParentExecutionInstruction::from(parent),
+                            })
+                        }) {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
                     }
@@ -870,9 +877,10 @@ impl ExecuteDestroyAfterZoneExecutionInstructionIterator {
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
         match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
-                    match jail
+            ZoneConfiguration::Version1(version1) => {
+                match version1.r#type() {
+                    Version1ZoneConfigurationType::Jail(jail) => {
+                        match jail
                         .execute()
                         .as_ref()
                         .map(|e| e.destroy().as_ref())
@@ -886,8 +894,9 @@ impl ExecuteDestroyAfterZoneExecutionInstructionIterator {
                         Some(iter) => Box::new(iter),
                         None => Box::new(empty()),
                     }
+                    }
                 }
-            },
+            }
         }
     }
 }
@@ -931,7 +940,8 @@ impl ZoneExecutor {
         jail: &mut Jail,
     ) -> Result<(), ExecuteChildZoneError> {
         jail.execute(
-            &self.template_engine
+            &self
+                .template_engine
                 .render(context.variables(), instruction.program())?,
             &instruction
                 .arguments()

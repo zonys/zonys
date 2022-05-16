@@ -23,7 +23,10 @@ pub struct Version1JailZoneConfiguration {
 }
 
 impl Version1JailZoneConfiguration {
-    pub fn new(execute: Option<Version1ExecuteJailZoneConfiguration>, network: Option<Version1NetworkJailZoneConfiguration>) -> Self {
+    pub fn new(
+        execute: Option<Version1ExecuteJailZoneConfiguration>,
+        network: Option<Version1NetworkJailZoneConfiguration>,
+    ) -> Self {
         Self { execute, network }
     }
 

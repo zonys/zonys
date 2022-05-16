@@ -13,6 +13,7 @@ use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateVa
 use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
 use execution::*;
 use liquid::{ObjectView, Parser};
+use serde_yaml::{from_reader, to_writer};
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -24,7 +25,6 @@ use std::process::Command;
 use std::str::FromStr;
 use uuid::Uuid;
 use zfs::file_system::{ChildIterator, FileSystem};
-use serde_yaml::{from_reader, to_writer};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -53,9 +53,9 @@ impl Zone {
 
 impl Zone {
     fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
-        Ok(from_reader(
-            &mut BufReader::new(File::open(self.configuration_path())?),
-        )?)
+        Ok(from_reader(&mut BufReader::new(File::open(
+            self.configuration_path(),
+        )?))?)
     }
 
     fn file_system(&self) -> Result<FileSystem, zfs::Error> {
@@ -71,19 +71,17 @@ impl Zone {
     }
 
     fn jail(&self) -> Result<Option<Jail>, TryIntoJailIdError> {
-        Ok(Option::<JailId>::try_from(JailName::new(
-            self.jail_name(),
-        ))?
-        .map(Jail::open)
-        .flatten())
+        Ok(Option::<JailId>::try_from(JailName::new(self.jail_name()))?
+            .map(Jail::open)
+            .flatten())
     }
 
     fn jail_parameters(&self) -> Vec<JailParameter> {
-        vec!{
+        vec![
             JailParameter::new("persist", "true"),
             JailParameter::new("name", self.jail_name()),
             JailParameter::new("path", self.root_path().display().to_string()),
-        }
+        ]
     }
 
     fn context_variables(&self) -> TemplateObject {
@@ -131,7 +129,11 @@ impl Zone {
     }
 
     pub fn status(&self) -> Result<ZoneStatus, RetrieveZoneStatusError> {
-        if self.jail().map_err(RetrieveZoneStatusError::TryIntoJailIdError)?.is_some() {
+        if self
+            .jail()
+            .map_err(RetrieveZoneStatusError::TryIntoJailIdError)?
+            .is_some()
+        {
             Ok(ZoneStatus::Running)
         } else {
             Ok(ZoneStatus::NotRunning)
@@ -181,7 +183,8 @@ impl Zone {
 
         ExecuteCreateBeforeZoneExecutionInstructionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>().map_err(|e| ExecuteZoneError::Parent(e))?;
+            .collect::<Result<(), _>>()
+            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         FileSystem::create(&zone.identifier().to_string())?;
         let mut file_system = FileSystem::open(&&zone.identifier().to_string())?
@@ -190,10 +193,7 @@ impl Zone {
 
         create_dir(zone.root_path())?;
         let configuration_file = File::create(zone.configuration_path())?;
-        to_writer(
-            &mut BufWriter::new(configuration_file),
-            &configuration,
-        )?;
+        to_writer(&mut BufWriter::new(configuration_file), &configuration)?;
 
         let mut jail = Jail::create(zone.jail_parameters())?;
 
@@ -235,7 +235,8 @@ impl Zone {
 
         ExecuteStartBeforeZoneExecutionInstructionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>().map_err(|e| ExecuteZoneError::Parent(e))?;
+            .collect::<Result<(), _>>()
+            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
@@ -285,7 +286,8 @@ impl Zone {
 
         ExecuteStopAfterZoneExecutionInstructionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>().map_err(|e| ExecuteZoneError::Parent(e))?;
+            .collect::<Result<(), _>>()
+            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         Ok(())
     }
@@ -332,7 +334,8 @@ impl Zone {
 
         ExecuteDestroyAfterZoneExecutionInstructionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>().map_err(|e| ExecuteZoneError::Parent(e))?;
+            .collect::<Result<(), _>>()
+            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         Ok(())
     }

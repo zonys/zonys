@@ -250,7 +250,10 @@ impl Jail {
             .map(|x| x.try_into())
             .collect::<Result<Vec<Jailparam>, _>>()?;
 
-        Ok(Self::new(JailId::new(jailparam_set(&mut params, &[JailFlag::Create])?)))
+        Ok(Self::new(JailId::new(jailparam_set(
+            &mut params,
+            &[JailFlag::Create],
+        )?)))
     }
 
     pub fn attach(&self) -> Result<(), AttachJailError> {
