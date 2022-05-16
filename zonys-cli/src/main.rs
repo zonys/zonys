@@ -53,6 +53,10 @@ enum MainCommand {
     Reup {
         uuid: ZoneIdentifierUuid,
     },
+    Deploy {
+        #[clap(short, long)]
+        stdin: bool,
+    },
     Status,
     List,
     Purge,
@@ -163,6 +167,26 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 ZoneStatus::NotRunning => {}
             }
 
+            zone.start()?;
+        }
+        MainCommand::Deploy { stdin } => {
+            let configuration = if stdin {
+                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            } else {
+                ZoneConfiguration::default()
+            };
+
+            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+                Some(n) => n,
+                None => {
+                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
+                }
+            };
+
+            let zone_identifier = namespace.zones_mut().create(configuration)?;
+
+            let mut zone = namespace.zones_mut().open(*zone_identifier.uuid())?.expect("Zone not found");
             zone.start()?;
         }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
