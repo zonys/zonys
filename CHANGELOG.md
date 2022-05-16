@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+- Add deploy command
+- Add down command
+- Add recreate command
+- Add redeploy command
+- Add reup command
+- Add undeploy command
+- Add up command
+
 ## 0.2.0
 - Add base.txz removal to base and rc configuration examples
 - Add jail execution
