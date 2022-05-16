@@ -41,6 +41,9 @@ enum MainCommand {
     Stop {
         uuid: ZoneIdentifierUuid,
     },
+    Restart {
+        uuid: ZoneIdentifierUuid,
+    },
     Status,
     List,
     Purge,
@@ -52,84 +55,89 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let arguments = MainArguments::parse();
 
     match arguments.command {
-            MainCommand::Create { stdin } => {
-                let configuration = if stdin {
-                    from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
-                } else {
-                    ZoneConfiguration::default()
-                };
+        MainCommand::Create { stdin } => {
+            let configuration = if stdin {
+                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            } else {
+                ZoneConfiguration::default()
+            };
 
-                let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
-                    Some(n) => n,
-                    None => {
-                        Namespace::create(&arguments.namespace_identifier)?;
-                        Namespace::open(arguments.namespace_identifier)?
-                            .expect("Namespace not found")
-                    }
-                };
+            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+                Some(n) => n,
+                None => {
+                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
+                }
+            };
 
-                println!("{}", namespace.zones_mut().create(configuration)?);
+            println!("{}", namespace.zones_mut().create(configuration)?);
+        }
+        MainCommand::Destroy { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(mut namespace) => {
+                namespace
+                    .zones_mut()
+                    .open(uuid)?
+                    .expect("Zone not found")
+                    .destroy()?;
             }
-            MainCommand::Destroy { uuid } => {
-                match Namespace::open(&arguments.namespace_identifier)? {
-                    Some(mut namespace) => {
-                        namespace
-                            .zones_mut()
-                            .open(uuid)?
-                            .expect("Zone not found")
-                            .destroy()?;
-                    }
-                    None => {}
+            None => {}
+        },
+        MainCommand::Start { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(mut namespace) => {
+                namespace
+                    .zones_mut()
+                    .open(uuid)?
+                    .expect("Zone not found")
+                    .start()?;
+            }
+            None => {}
+        },
+        MainCommand::Stop { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(mut namespace) => {
+                namespace
+                    .zones_mut()
+                    .open(uuid)?
+                    .expect("Zone not found")
+                    .stop()?;
+            }
+            None => {}
+        },
+        MainCommand::Restart { uuid } => {
+            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+                .expect("Namespace not found")
+                .zones_mut()
+                .open(uuid)?
+                .expect("Zone not found");
+
+            zone.stop()?;
+            zone.start()?;
+        }
+        MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(namespace) => {
+                for zone in namespace.zones().iter()? {
+                    println!("{:?}", zone?.identifier().uuid());
                 }
             }
-            MainCommand::Start { uuid } => {
-                match Namespace::open(&arguments.namespace_identifier)? {
-                    Some(mut namespace) => {
-                        namespace
-                            .zones_mut()
-                            .open(uuid)?
-                            .expect("Zone not found")
-                            .start()?;
-                    }
-                    None => {}
+            None => {}
+        },
+        MainCommand::List => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(namespace) => {
+                for zone in namespace.zones().iter()? {
+                    println!("{:?}", zone?.identifier().uuid());
                 }
             }
-            MainCommand::Stop { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
-                Some(mut namespace) => {
-                    namespace
-                        .zones_mut()
-                        .open(uuid)?
-                        .expect("Zone not found")
-                        .stop()?;
+            None => {}
+        },
+        MainCommand::Purge => match Namespace::open(&arguments.namespace_identifier)? {
+            Some(namespace) => {
+                for zone in namespace.zones().iter()? {
+                    let zone = zone?;
+                    println!("{:?}", zone.identifier().uuid());
+                    zone.destroy()?;
                 }
-                None => {}
-            },
-            MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    for zone in namespace.zones().iter()? {
-                        println!("{:?}", zone?.identifier().uuid());
-                    }
-                }
-                None => {}
-            },
-            MainCommand::List => match Namespace::open(&arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    for zone in namespace.zones().iter()? {
-                        println!("{:?}", zone?.identifier().uuid());
-                    }
-                }
-                None => {}
-            },
-            MainCommand::Purge => match Namespace::open(&arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    for zone in namespace.zones().iter()? {
-                        let zone = zone?;
-                        println!("{:?}", zone.identifier().uuid());
-                        zone.destroy()?;
-                    }
-                }
-                None => {}
-            },
+            }
+            None => {}
+        },
     };
 
     Ok(())
