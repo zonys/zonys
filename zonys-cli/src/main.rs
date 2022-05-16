@@ -8,7 +8,7 @@ use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, Stdin};
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
-use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid};
+use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid, ZoneStatus};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -42,6 +42,9 @@ enum MainCommand {
         uuid: ZoneIdentifierUuid,
     },
     Restart {
+        uuid: ZoneIdentifierUuid,
+    },
+    Up {
         uuid: ZoneIdentifierUuid,
     },
     Status,
@@ -112,6 +115,20 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             zone.stop()?;
             zone.start()?;
         }
+        MainCommand::Up { uuid } => {
+            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+                .expect("Namespace not found")
+                .zones_mut()
+                .open(uuid)?
+                .expect("Zone not found");
+
+            match zone.status()? {
+                ZoneStatus::Running => {},
+                ZoneStatus::NotRunning => {
+                    zone.start()?;
+                },
+            }
+        },
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {
