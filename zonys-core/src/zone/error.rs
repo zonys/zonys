@@ -659,13 +659,13 @@ impl From<serde_yaml::Error> for OpenZoneConfigurationError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum RetrieveZoneStatusError {
+pub enum RetrieveZoneRunningStatusError {
     TryIntoJailIdError(TryIntoJailIdError),
 }
 
-impl error::Error for RetrieveZoneStatusError {}
+impl error::Error for RetrieveZoneRunningStatusError {}
 
-impl Debug for RetrieveZoneStatusError {
+impl Debug for RetrieveZoneRunningStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
@@ -673,7 +673,7 @@ impl Debug for RetrieveZoneStatusError {
     }
 }
 
-impl Display for RetrieveZoneStatusError {
+impl Display for RetrieveZoneRunningStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
@@ -681,7 +681,7 @@ impl Display for RetrieveZoneStatusError {
     }
 }
 
-impl From<TryIntoJailIdError> for RetrieveZoneStatusError {
+impl From<TryIntoJailIdError> for RetrieveZoneRunningStatusError {
     fn from(error: TryIntoJailIdError) -> Self {
         Self::TryIntoJailIdError(error)
     }

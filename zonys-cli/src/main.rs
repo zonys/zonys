@@ -8,7 +8,7 @@ use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, Stdin};
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
-use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid, ZoneStatus};
+use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -153,9 +153,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .open(uuid)?
                 .expect("Zone not found");
 
-            match zone.status()? {
-                ZoneStatus::Running => {}
-                ZoneStatus::NotRunning => {
+            match zone.is_running()? {
+                true => {}
+                false => {
                     zone.start()?;
                 }
             }
@@ -167,11 +167,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .open(uuid)?
                 .expect("Zone not found");
 
-            match zone.status()? {
-                ZoneStatus::Running => {
+            match zone.is_running()? {
+                true => {
                     zone.stop()?;
                 }
-                ZoneStatus::NotRunning => {}
+                false => {}
             }
         }
         MainCommand::Reup { uuid } => {
@@ -181,11 +181,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .open(uuid)?
                 .expect("Zone not found");
 
-            match zone.status()? {
-                ZoneStatus::Running => {
+            match zone.is_running()? {
+                true => {
                     zone.stop()?;
                 }
-                ZoneStatus::NotRunning => {}
+                false => {}
             }
 
             zone.start()?;
@@ -223,11 +223,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .open(uuid)?
                 .expect("Zone not found");
 
-            match zone.status()? {
-                ZoneStatus::Running => {
+            match zone.is_running()? {
+                true => {
                     zone.stop()?;
                 }
-                ZoneStatus::NotRunning => {}
+                false => {}
             }
 
             zone.destroy()?;
@@ -240,11 +240,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let configuration = zone.configuration()?;
 
-            match zone.status()? {
-                ZoneStatus::Running => {
+            match zone.is_running()? {
+                true => {
                     zone.stop()?;
                 }
-                ZoneStatus::NotRunning => {}
+                false => {}
             }
 
             zone.destroy()?;

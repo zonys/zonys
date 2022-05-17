@@ -34,13 +34,6 @@ const ZONE_LOCKFILE_PATH_NAME: &str = "lock";
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum ZoneStatus {
-    Running,
-    NotRunning,
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 pub struct Zone {
     identifier: ZoneIdentifier,
 }
@@ -128,16 +121,11 @@ impl Zone {
         )?))?)
     }
 
-    pub fn status(&self) -> Result<ZoneStatus, RetrieveZoneStatusError> {
-        if self
+    pub fn is_running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
+        Ok(self
             .jail()
-            .map_err(RetrieveZoneStatusError::TryIntoJailIdError)?
-            .is_some()
-        {
-            Ok(ZoneStatus::Running)
-        } else {
-            Ok(ZoneStatus::NotRunning)
-        }
+            .map_err(RetrieveZoneRunningStatusError::TryIntoJailIdError)?
+            .is_some())
     }
 }
 
