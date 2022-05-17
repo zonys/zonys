@@ -89,6 +89,10 @@ impl Zone {
 
         zone
     }
+
+    fn configuration_file(&self) -> Result<File, io::Error> {
+        Ok(File::open(self.configuration_path())?)
+    }
 }
 
 impl Zone {
@@ -116,9 +120,9 @@ impl Zone {
     }
 
     pub fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
-        Ok(from_reader(&mut BufReader::new(File::open(
-            self.configuration_path(),
-        )?))?)
+        Ok(from_reader(&mut BufReader::new(
+            self.configuration_file()?,
+        ))?)
     }
 
     pub fn is_running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
