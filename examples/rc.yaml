@@ -8,7 +8,7 @@ variables:
     version:
       architecture: amd64
       major: 13
-      minor: 0
+      minor: 1
       channel: RELEASE
     url:
       scheme: https
