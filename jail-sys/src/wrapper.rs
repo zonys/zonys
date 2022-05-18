@@ -3,7 +3,7 @@ use crate::ffi::{JAIL_ATTACH, JAIL_CREATE, JAIL_DYING, JAIL_GET_MASK, JAIL_SET_M
 use libc::_exit;
 use nix::errno::Errno;
 use nix::sys::wait::waitpid;
-use nix::unistd::{execv, fork, ForkResult};
+use nix::unistd::{execve, fork, ForkResult};
 use std::error;
 use std::ffi::CString;
 use std::ffi::NulError;
@@ -350,12 +350,13 @@ where
             unsafe {
                 jail_attach(jid)?;
 
-                execv(
+                execve(
                     &CString::new(program)?,
                     &once(program)
                         .chain(arguments.iter().map(|x| x.as_ref()))
                         .map(CString::new)
                         .collect::<Result<Vec<CString>, _>>()?,
+                    &Vec::<CString>::new(),
                 )?;
 
                 libc::_exit(0);
