@@ -1,6 +1,7 @@
 use crate::namespace::ParseNamespaceIdentifierError;
 use crate::template;
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
+use nix::errno::Errno;
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -148,6 +149,8 @@ pub enum CreateZoneError {
     YamlError(serde_yaml::Error),
     CreateJailError(CreateJailError),
     DestroyJailError(DestroyJailError),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
 }
 
 impl error::Error for CreateZoneError {}
@@ -162,6 +165,8 @@ impl Debug for CreateZoneError {
             Self::YamlError(error) => Debug::fmt(error, formatter),
             Self::CreateJailError(error) => Debug::fmt(error, formatter),
             Self::DestroyJailError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -176,6 +181,8 @@ impl Display for CreateZoneError {
             Self::YamlError(error) => Display::fmt(error, formatter),
             Self::CreateJailError(error) => Display::fmt(error, formatter),
             Self::DestroyJailError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -216,6 +223,18 @@ impl From<DestroyJailError> for CreateZoneError {
     }
 }
 
+impl From<LockZoneError> for CreateZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for CreateZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum StartZoneError {
@@ -224,6 +243,8 @@ pub enum StartZoneError {
     OpenZoneConfigurationError(OpenZoneConfigurationError),
     ExecuteZoneError(ExecuteZoneError),
     CreateJailError(CreateJailError),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
 }
 
 impl error::Error for StartZoneError {}
@@ -236,6 +257,8 @@ impl Debug for StartZoneError {
             Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
             Self::CreateJailError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -248,6 +271,8 @@ impl Display for StartZoneError {
             Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Display::fmt(error, formatter),
             Self::CreateJailError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -276,6 +301,18 @@ impl From<CreateJailError> for StartZoneError {
     }
 }
 
+impl From<LockZoneError> for StartZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for StartZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum StopZoneError {
@@ -284,6 +321,8 @@ pub enum StopZoneError {
     DestroyJailError(DestroyJailError),
     OpenZoneConfigurationError(OpenZoneConfigurationError),
     ExecuteZoneError(ExecuteZoneError),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
 }
 
 impl error::Error for StopZoneError {}
@@ -296,6 +335,8 @@ impl Debug for StopZoneError {
             Self::DestroyJailError(error) => Debug::fmt(error, formatter),
             Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -308,6 +349,8 @@ impl Display for StopZoneError {
             Self::DestroyJailError(error) => Display::fmt(error, formatter),
             Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -336,6 +379,18 @@ impl From<ExecuteZoneError> for StopZoneError {
     }
 }
 
+impl From<LockZoneError> for StopZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for StopZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum DestroyZoneError {
@@ -346,6 +401,9 @@ pub enum DestroyZoneError {
     IsRunning,
     CreateJailError(CreateJailError),
     DestroyJailError(DestroyJailError),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
+    IoError(io::Error),
 }
 
 impl error::Error for DestroyZoneError {}
@@ -360,6 +418,9 @@ impl Debug for DestroyZoneError {
             Self::IsRunning => write!(formatter, "Zone is running"),
             Self::CreateJailError(error) => Debug::fmt(error, formatter),
             Self::DestroyJailError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::IoError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -374,6 +435,9 @@ impl Display for DestroyZoneError {
             Self::IsRunning => write!(formatter, "Zone is running"),
             Self::CreateJailError(error) => Display::fmt(error, formatter),
             Self::DestroyJailError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::IoError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -411,6 +475,24 @@ impl From<CreateJailError> for DestroyZoneError {
 impl From<DestroyJailError> for DestroyZoneError {
     fn from(error: DestroyJailError) -> Self {
         Self::DestroyJailError(error)
+    }
+}
+
+impl From<LockZoneError> for DestroyZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for DestroyZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
+impl From<io::Error> for DestroyZoneError {
+    fn from(error: io::Error) -> Self {
+        Self::IoError(error)
     }
 }
 
@@ -684,5 +766,89 @@ impl Display for RetrieveZoneRunningStatusError {
 impl From<TryIntoJailIdError> for RetrieveZoneRunningStatusError {
     fn from(error: TryIntoJailIdError) -> Self {
         Self::TryIntoJailIdError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum LockZoneError {
+    Errno(Errno),
+    IoError(io::Error),
+    AlreadyLocked,
+}
+
+impl error::Error for LockZoneError {}
+
+impl Debug for LockZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Errno(errno) => Debug::fmt(errno, formatter),
+            Self::IoError(error) => Debug::fmt(error, formatter),
+            Self::AlreadyLocked => write!(formatter, "Zone is already locked"),
+        }
+    }
+}
+
+impl Display for LockZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Errno(errno) => Display::fmt(errno, formatter),
+            Self::IoError(error) => Display::fmt(error, formatter),
+            Self::AlreadyLocked => write!(formatter, "Zone is already locked"),
+        }
+    }
+}
+
+impl From<Errno> for LockZoneError {
+    fn from(errno: Errno) -> Self {
+        Self::Errno(errno)
+    }
+}
+
+impl From<io::Error> for LockZoneError {
+    fn from(error: io::Error) -> Self {
+        Self::IoError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum UnlockZoneError {
+    Errno(Errno),
+    IoError(io::Error),
+    NotLocked,
+}
+
+impl error::Error for UnlockZoneError {}
+
+impl Debug for UnlockZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Errno(errno) => Debug::fmt(errno, formatter),
+            Self::IoError(error) => Debug::fmt(error, formatter),
+            Self::NotLocked => write!(formatter, "Zone is not locked"),
+        }
+    }
+}
+
+impl Display for UnlockZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::Errno(errno) => Display::fmt(errno, formatter),
+            Self::IoError(error) => Display::fmt(error, formatter),
+            Self::NotLocked => write!(formatter, "Zone is not locked"),
+        }
+    }
+}
+
+impl From<Errno> for UnlockZoneError {
+    fn from(errno: Errno) -> Self {
+        Self::Errno(errno)
+    }
+}
+
+impl From<io::Error> for UnlockZoneError {
+    fn from(error: io::Error) -> Self {
+        Self::IoError(error)
     }
 }

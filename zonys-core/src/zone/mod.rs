@@ -10,16 +10,20 @@ pub use identifier::*;
 
 use crate::namespace::{Namespace, NamespaceIdentifier};
 use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
+use crate::utility::try_catch;
 use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
 use execution::*;
 use liquid::{ObjectView, Parser};
+use nix::errno::Errno;
+use nix::fcntl::{flock, FlockArg};
 use serde_yaml::{from_reader, to_writer};
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::fs::{create_dir, File};
+use std::fs::{remove_file, File};
 use std::io;
 use std::io::{BufReader, BufWriter};
+use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -28,19 +32,22 @@ use zfs::file_system::{ChildIterator, FileSystem};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const ZONE_ROOT_PATH_NAME: &str = "root";
-const ZONE_CONFIGURATION_PATH_NAME: &str = "configuration";
-const ZONE_LOCKFILE_PATH_NAME: &str = "lock";
+pub const ZONE_CONFIGURATION_PATH_EXTENSION: &str = "yaml";
+pub const ZONE_LOCK_PATH_EXTENSION: &str = "lock";
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct Zone {
     identifier: ZoneIdentifier,
+    lock_file: Option<File>,
 }
 
 impl Zone {
-    fn new(identifier: ZoneIdentifier) -> Self {
-        Self { identifier }
+    fn new(identifier: ZoneIdentifier, lock_file: Option<File>) -> Self {
+        Self {
+            identifier,
+            lock_file,
+        }
     }
 }
 
@@ -90,8 +97,34 @@ impl Zone {
         zone
     }
 
-    fn configuration_file(&self) -> Result<File, io::Error> {
-        Ok(File::open(self.configuration_path())?)
+    fn lock(&mut self) -> Result<(), LockZoneError> {
+        if self.lock_file.is_some() {
+            return Err(LockZoneError::AlreadyLocked);
+        }
+
+        let file = File::create(self.lock_path())?;
+        let raw_fd = file.as_raw_fd();
+        self.lock_file = Some(file);
+
+        match flock(raw_fd, FlockArg::LockExclusiveNonblock) {
+            Err(Errno::EAGAIN) => Err(LockZoneError::AlreadyLocked),
+            Err(e) => Err(e.into()),
+            Ok(()) => Ok(()),
+        }
+    }
+
+    fn unlock(&mut self) -> Result<(), UnlockZoneError> {
+        match &self.lock_file {
+            None => return Err(UnlockZoneError::NotLocked),
+            Some(file) => {
+                flock(file.as_raw_fd(), FlockArg::UnlockNonblock)?;
+            }
+        };
+
+        self.lock_file = None;
+        remove_file(&self.lock_path())?;
+
+        Ok(())
     }
 }
 
@@ -100,29 +133,46 @@ impl Zone {
         &self.identifier
     }
 
-    pub fn path(&self) -> PathBuf {
+    pub fn root_path(&self) -> PathBuf {
         let mut path = PathBuf::from("/");
         path.push(self.identifier.to_string());
 
         path
     }
 
-    pub fn root_path(&self) -> PathBuf {
-        self.path().join(ZONE_ROOT_PATH_NAME)
-    }
-
     pub fn configuration_path(&self) -> PathBuf {
-        self.path().join(ZONE_CONFIGURATION_PATH_NAME)
+        self.root_path()
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/"))
+            .join(format!(
+                "{}.{}",
+                self.identifier.uuid(),
+                ZONE_CONFIGURATION_PATH_EXTENSION
+            ))
     }
 
-    pub fn lockfile_path(&self) -> PathBuf {
-        self.path().join(ZONE_LOCKFILE_PATH_NAME)
+    pub fn lock_path(&self) -> PathBuf {
+        self.root_path()
+            .parent()
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/"))
+            .join(format!(
+                "{}.{}",
+                self.identifier.uuid(),
+                ZONE_LOCK_PATH_EXTENSION
+            ))
     }
 
     pub fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
-        Ok(from_reader(&mut BufReader::new(
-            self.configuration_file()?,
-        ))?)
+        let configuration_path = self.configuration_path();
+        if configuration_path.exists() {
+            Ok(from_reader(&mut BufReader::new(File::open(
+                configuration_path,
+            )?))?)
+        } else {
+            Ok(ZoneConfiguration::default())
+        }
     }
 
     pub fn is_running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
@@ -134,30 +184,10 @@ impl Zone {
 }
 
 impl Zone {
-    pub fn open<'a, T>(identifier: T) -> Result<Option<Self>, OpenZoneError>
-    where
-        T: Into<Cow<'a, ZoneIdentifier>>,
-    {
-        let identifier = identifier.into();
+    fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
+        let configuration_file = File::create(self.configuration_path())?;
+        to_writer(&mut BufWriter::new(configuration_file), &configuration)?;
 
-        match FileSystem::open(&identifier.to_string()) {
-            Err(e) => Err(e.into()),
-            Ok(None) => Ok(None),
-            Ok(Some(_)) => Ok(Some(Self::new(identifier.into_owned()))),
-        }
-    }
-
-    pub fn create<'a, T>(
-        namespace_identifier: T,
-        configuration: ZoneConfiguration,
-    ) -> Result<ZoneIdentifier, CreateZoneError>
-    where
-        T: Into<Cow<'a, NamespaceIdentifier>>,
-    {
-        let zone = Self::new(ZoneIdentifier::new(
-            namespace_identifier.into().into_owned(),
-            Uuid::new_v4(),
-        ));
         let executor = ZoneExecutor::default();
 
         let mut context = ZoneExecutionContext::default();
@@ -170,7 +200,7 @@ impl Zone {
         });
         context.variables_mut().insert(
             "zone".into(),
-            TemplateValue::Object(zone.context_variables()),
+            TemplateValue::Object(self.context_variables()),
         );
 
         ExecuteCreateBeforeZoneExecutionInstructionIterator::new(&configuration)
@@ -178,16 +208,12 @@ impl Zone {
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
-        FileSystem::create(&zone.identifier().to_string())?;
-        let mut file_system = FileSystem::open(&&zone.identifier().to_string())?
+        FileSystem::create(&self.identifier().to_string())?;
+        let mut file_system = FileSystem::open(&&self.identifier().to_string())?
             .ok_or(CreateZoneError::FileSystemNotExisting)?;
         file_system.mount()?;
 
-        create_dir(zone.root_path())?;
-        let configuration_file = File::create(zone.configuration_path())?;
-        to_writer(&mut BufWriter::new(configuration_file), &configuration)?;
-
-        let mut jail = Jail::create(zone.jail_parameters())?;
+        let mut jail = Jail::create(self.jail_parameters())?;
 
         ExecuteCreateOnZoneExecutionInstructionIterator::new(&configuration)
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
@@ -199,12 +225,10 @@ impl Zone {
 
         jail.destroy()?;
 
-        Ok(zone.identifier)
+        Ok(())
     }
-}
 
-impl Zone {
-    pub fn start(&mut self) -> Result<(), StartZoneError> {
+    fn handle_start(&mut self) -> Result<(), StartZoneError> {
         if self.jail()?.is_some() {
             return Err(StartZoneError::AlreadyRunning);
         }
@@ -243,7 +267,7 @@ impl Zone {
         Ok(())
     }
 
-    pub fn stop(&mut self) -> Result<(), StopZoneError> {
+    fn handle_stop(&mut self) -> Result<(), StopZoneError> {
         let mut jail = match self.jail() {
             Ok(Some(j)) => j,
             Ok(None) => return Err(StopZoneError::NotRunning),
@@ -284,7 +308,7 @@ impl Zone {
         Ok(())
     }
 
-    pub fn destroy(self) -> Result<(), DestroyZoneError> {
+    fn handle_destroy(&mut self) -> Result<(), DestroyZoneError> {
         if self.jail()?.is_some() {
             return Err(DestroyZoneError::IsRunning);
         }
@@ -329,6 +353,102 @@ impl Zone {
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
+        let configuration_path = self.configuration_path();
+        if configuration_path.exists() {
+            remove_file(configuration_path)?;
+        }
+
+        let lock_path = self.lock_path();
+        if lock_path.exists() {
+            remove_file(lock_path)?;
+        }
+
         Ok(())
+    }
+}
+
+impl Zone {
+    pub fn open<'a, T>(identifier: T) -> Result<Option<Self>, OpenZoneError>
+    where
+        T: Into<Cow<'a, ZoneIdentifier>>,
+    {
+        let identifier = identifier.into();
+
+        match FileSystem::open(&identifier.to_string()) {
+            Err(e) => Err(e.into()),
+            Ok(None) => Ok(None),
+            Ok(Some(_)) => Ok(Some(Self::new(identifier.into_owned(), None))),
+        }
+    }
+
+    pub fn create<'a, T>(
+        namespace_identifier: T,
+        configuration: ZoneConfiguration,
+    ) -> Result<ZoneIdentifier, CreateZoneError>
+    where
+        T: Into<Cow<'a, NamespaceIdentifier>>,
+    {
+        let mut zone = Self::new(
+            ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
+            None,
+        );
+
+        zone.lock()?;
+        let result = zone.handle_create(configuration);
+        zone.unlock()?;
+
+        let error = match result {
+            Ok(()) => return Ok(zone.identifier),
+            Err(e) => e,
+        };
+
+        let configuration_path = zone.configuration_path();
+        if configuration_path.exists() {
+            remove_file(configuration_path)?;
+        }
+
+        let lock_path = zone.lock_path();
+        if lock_path.exists() {
+            remove_file(lock_path)?;
+        }
+
+        match FileSystem::open(&&zone.identifier().to_string())? {
+            Some(mut file_system) => {
+                if file_system.is_mounted()? {
+                    file_system.unmount_all()?;
+                }
+
+                file_system.destroy()?;
+            }
+            None => {}
+        };
+
+        Err(error)
+    }
+}
+
+impl Zone {
+    pub fn start(&mut self) -> Result<(), StartZoneError> {
+        self.lock()?;
+        let result = self.handle_start();
+        self.unlock()?;
+
+        result
+    }
+
+    pub fn stop(&mut self) -> Result<(), StopZoneError> {
+        self.lock()?;
+        let result = self.handle_stop();
+        self.unlock()?;
+
+        result
+    }
+
+    pub fn destroy(mut self) -> Result<(), DestroyZoneError> {
+        self.lock()?;
+        let result = self.handle_destroy();
+        self.unlock()?;
+
+        result
     }
 }
