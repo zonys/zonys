@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
-            println!("{}", namespace.zones_mut().create(configuration)?);
+            println!("{}", namespace.zones_mut().create(configuration)?.uuid());
         }
         MainCommand::Destroy { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
             Some(mut namespace) => {
