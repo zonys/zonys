@@ -121,8 +121,11 @@ impl Zone {
             }
         };
 
+        let lock_path = self.lock_path();
         self.lock_file = None;
-        remove_file(&self.lock_path())?;
+        if lock_path.exists() {
+            remove_file(&self.lock_path())?;
+        }
 
         Ok(())
     }
