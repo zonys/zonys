@@ -22,7 +22,7 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::fs::{remove_file, File};
 use std::io;
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -188,8 +188,9 @@ impl Zone {
 
 impl Zone {
     fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
-        let configuration_file = File::create(self.configuration_path())?;
-        to_writer(&mut BufWriter::new(configuration_file), &configuration)?;
+        let mut writer = &mut BufWriter::new(File::create(self.configuration_path())?);
+        to_writer(&mut writer, &configuration)?;
+        writer.flush()?;
 
         let executor = ZoneExecutor::default();
 
@@ -227,6 +228,14 @@ impl Zone {
             .collect::<Result<(), _>>()?;
 
         jail.destroy()?;
+
+        let start_after_create = match configuration {
+            ZoneConfiguration::Version1(version1) => version1.start_after_create().unwrap_or(false),
+        };
+
+        if start_after_create {
+            self.handle_start()?;
+        }
 
         Ok(())
     }
@@ -270,7 +279,7 @@ impl Zone {
         Ok(())
     }
 
-    fn handle_stop(&mut self) -> Result<(), StopZoneError> {
+    fn handle_stop(mut self) -> Result<Option<Self>, StopZoneError> {
         let mut jail = match self.jail() {
             Ok(Some(j)) => j,
             Ok(None) => return Err(StopZoneError::NotRunning),
@@ -308,10 +317,20 @@ impl Zone {
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
-        Ok(())
+        let destroy_after_stop = match configuration {
+            ZoneConfiguration::Version1(version1) => version1.destroy_after_stop().unwrap_or(false),
+        };
+
+        if destroy_after_stop {
+            self.handle_destroy()?;
+
+            Ok(None)
+        } else {
+            Ok(Some(self))
+        }
     }
 
-    fn handle_destroy(&mut self) -> Result<(), DestroyZoneError> {
+    fn handle_destroy(mut self) -> Result<(), DestroyZoneError> {
         if self.jail()?.is_some() {
             return Err(DestroyZoneError::IsRunning);
         }
@@ -439,19 +458,20 @@ impl Zone {
         result
     }
 
-    pub fn stop(&mut self) -> Result<(), StopZoneError> {
+    pub fn stop(mut self) -> Result<Option<Self>, StopZoneError> {
         self.lock()?;
-        let result = self.handle_stop();
-        self.unlock()?;
+        match self.handle_stop()? {
+            Some(mut zone) => {
+                zone.unlock()?;
 
-        result
+                Ok(Some(zone))
+            }
+            None => Ok(None),
+        }
     }
 
     pub fn destroy(mut self) -> Result<(), DestroyZoneError> {
         self.lock()?;
-        let result = self.handle_destroy();
-        self.unlock()?;
-
-        result
+        self.handle_destroy()
     }
 }

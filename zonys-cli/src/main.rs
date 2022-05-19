@@ -137,14 +137,26 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             None => {}
         },
         MainCommand::Restart { uuid } => {
-            let mut zone = Namespace::open(&arguments.namespace_identifier)?
-                .expect("Namespace not found")
-                .zones_mut()
-                .open(uuid)?
-                .expect("Zone not found");
+            let mut namespace =
+                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
 
-            zone.stop()?;
-            zone.start()?;
+            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+
+            let configuration = zone.configuration()?;
+
+            match zone.stop()? {
+                Some(mut zone) => zone.start()?,
+                None => {
+                    let identifier = namespace.zones_mut().create(configuration)?;
+
+                    let mut zone = namespace
+                        .zones_mut()
+                        .open(*identifier.uuid())?
+                        .expect("Zone not found");
+
+                    zone.start()?;
+                }
+            }
         }
         MainCommand::Up { uuid } => {
             let mut zone = Namespace::open(&arguments.namespace_identifier)?
@@ -161,7 +173,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Down { uuid } => {
-            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+            let zone = Namespace::open(&arguments.namespace_identifier)?
                 .expect("Namespace not found")
                 .zones_mut()
                 .open(uuid)?
@@ -175,20 +187,30 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Reup { uuid } => {
-            let mut zone = Namespace::open(&arguments.namespace_identifier)?
-                .expect("Namespace not found")
-                .zones_mut()
-                .open(uuid)?
-                .expect("Zone not found");
+            let mut namespace =
+                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
 
-            match zone.is_running()? {
-                true => {
-                    zone.stop()?;
+            let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+
+            let configuration = zone.configuration()?;
+
+            if zone.is_running()? {
+                match zone.stop()? {
+                    Some(mut zone) => zone.start()?,
+                    None => {
+                        let identifier = namespace.zones_mut().create(configuration)?;
+
+                        let mut zone = namespace
+                            .zones_mut()
+                            .open(*identifier.uuid())?
+                            .expect("Zone not found");
+
+                        zone.start()?;
+                    }
                 }
-                false => {}
+            } else {
+                zone.start()?;
             }
-
-            zone.start()?;
         }
         MainCommand::Deploy { stdin } => {
             let configuration = if stdin {
@@ -217,37 +239,37 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             println!("{}", zone_identifier);
         }
         MainCommand::Undeploy { uuid } => {
-            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+            let zone = Namespace::open(&arguments.namespace_identifier)?
                 .expect("Namespace not found")
                 .zones_mut()
                 .open(uuid)?
                 .expect("Zone not found");
 
-            match zone.is_running()? {
-                true => {
-                    zone.stop()?;
-                }
-                false => {}
+            if zone.is_running()? {
+                match zone.stop()? {
+                    Some(zone) => zone.destroy()?,
+                    None => {}
+                };
+            } else {
+                zone.destroy()?;
             }
-
-            zone.destroy()?;
         }
         MainCommand::Redeploy { uuid } => {
             let mut namespace =
                 Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
 
-            let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
             let configuration = zone.configuration()?;
 
-            match zone.is_running()? {
-                true => {
-                    zone.stop()?;
-                }
-                false => {}
+            if zone.is_running()? {
+                match zone.stop()? {
+                    Some(zone) => zone.destroy()?,
+                    None => {}
+                };
+            } else {
+                zone.destroy()?;
             }
-
-            zone.destroy()?;
 
             let zone_identifier = namespace.zones_mut().create(configuration)?;
 

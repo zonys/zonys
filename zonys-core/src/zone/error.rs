@@ -151,6 +151,7 @@ pub enum CreateZoneError {
     DestroyJailError(DestroyJailError),
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
+    StartZoneError(StartZoneError),
 }
 
 impl error::Error for CreateZoneError {}
@@ -167,6 +168,7 @@ impl Debug for CreateZoneError {
             Self::DestroyJailError(error) => Debug::fmt(error, formatter),
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::StartZoneError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -183,6 +185,7 @@ impl Display for CreateZoneError {
             Self::DestroyJailError(error) => Display::fmt(error, formatter),
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::StartZoneError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -232,6 +235,12 @@ impl From<LockZoneError> for CreateZoneError {
 impl From<UnlockZoneError> for CreateZoneError {
     fn from(error: UnlockZoneError) -> Self {
         Self::UnlockZoneError(error)
+    }
+}
+
+impl From<StartZoneError> for CreateZoneError {
+    fn from(error: StartZoneError) -> Self {
+        Self::StartZoneError(error)
     }
 }
 
@@ -323,6 +332,7 @@ pub enum StopZoneError {
     ExecuteZoneError(ExecuteZoneError),
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
+    DestroyZoneError(DestroyZoneError),
 }
 
 impl error::Error for StopZoneError {}
@@ -337,6 +347,7 @@ impl Debug for StopZoneError {
             Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::DestroyZoneError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -351,6 +362,7 @@ impl Display for StopZoneError {
             Self::ExecuteZoneError(error) => Display::fmt(error, formatter),
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::DestroyZoneError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -388,6 +400,12 @@ impl From<LockZoneError> for StopZoneError {
 impl From<UnlockZoneError> for StopZoneError {
     fn from(error: UnlockZoneError) -> Self {
         Self::UnlockZoneError(error)
+    }
+}
+
+impl From<DestroyZoneError> for StopZoneError {
+    fn from(error: DestroyZoneError) -> Self {
+        Self::DestroyZoneError(error)
     }
 }
 

@@ -29,11 +29,23 @@ pub struct Version1ZoneConfiguration {
     variables: Option<TemplateObject>,
     #[serde(flatten)]
     r#type: Version1ZoneConfigurationType,
+    start_after_create: Option<bool>,
+    destroy_after_stop: Option<bool>,
 }
 
 impl Version1ZoneConfiguration {
-    pub fn new(variables: Option<TemplateObject>, r#type: Version1ZoneConfigurationType) -> Self {
-        Self { variables, r#type }
+    pub fn new(
+        variables: Option<TemplateObject>,
+        r#type: Version1ZoneConfigurationType,
+        start_after_create: Option<bool>,
+        destroy_after_stop: Option<bool>,
+    ) -> Self {
+        Self {
+            variables,
+            r#type,
+            start_after_create,
+            destroy_after_stop,
+        }
     }
 
     pub fn variables(&self) -> &Option<TemplateObject> {
@@ -58,5 +70,29 @@ impl Version1ZoneConfiguration {
 
     pub fn set_type(&mut self, r#type: Version1ZoneConfigurationType) {
         self.r#type = r#type
+    }
+
+    pub fn start_after_create(&self) -> &Option<bool> {
+        &self.start_after_create
+    }
+
+    pub fn start_after_create_mut(&mut self) -> &mut Option<bool> {
+        &mut self.start_after_create
+    }
+
+    pub fn set_start_after_create(&mut self, start_after_create: Option<bool>) {
+        self.start_after_create = start_after_create
+    }
+
+    pub fn destroy_after_stop(&self) -> &Option<bool> {
+        &self.destroy_after_stop
+    }
+
+    pub fn destroy_after_stop_mut(&mut self) -> &mut Option<bool> {
+        &mut self.destroy_after_stop
+    }
+
+    pub fn set_destroy_after_stop(&mut self, destroy_after_stop: Option<bool>) {
+        self.destroy_after_stop = destroy_after_stop
     }
 }
