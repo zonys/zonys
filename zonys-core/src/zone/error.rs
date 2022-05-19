@@ -870,3 +870,63 @@ impl From<io::Error> for UnlockZoneError {
         Self::IoError(error)
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum SendZoneError {
+    ZfsError(zfs::Error),
+}
+
+impl error::Error for SendZoneError {}
+
+impl Debug for SendZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for SendZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<zfs::Error> for SendZoneError {
+    fn from(error: zfs::Error) -> Self {
+        Self::ZfsError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum ReceiveZoneError {
+    ZfsError(zfs::Error),
+}
+
+impl error::Error for ReceiveZoneError {}
+
+impl Debug for ReceiveZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for ReceiveZoneError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<zfs::Error> for ReceiveZoneError {
+    fn from(error: zfs::Error) -> Self {
+        Self::ZfsError(error)
+    }
+}

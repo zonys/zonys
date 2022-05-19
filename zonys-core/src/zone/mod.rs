@@ -2,9 +2,11 @@ pub mod configuration;
 pub mod error;
 mod execution;
 pub mod identifier;
+pub mod transmission;
 pub use configuration::*;
 pub use error::*;
 pub use identifier::*;
+pub use transmission::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -24,6 +26,7 @@ use std::fs::{remove_file, File};
 use std::io;
 use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::io::AsRawFd;
+use std::os::unix::prelude::RawFd;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str::FromStr;
@@ -473,5 +476,24 @@ impl Zone {
     pub fn destroy(mut self) -> Result<(), DestroyZoneError> {
         self.lock()?;
         self.handle_destroy()
+    }
+
+    pub fn send(&mut self, _fd: RawFd) -> Result<(), SendZoneError> {
+        Ok(())
+    }
+
+    pub fn receive<'a, T>(
+        namespace_identifier: T,
+        _fd: RawFd,
+    ) -> Result<ZoneIdentifier, SendZoneError>
+    where
+        T: Into<Cow<'a, NamespaceIdentifier>>,
+    {
+        let mut zone = Self::new(
+            ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
+            None,
+        );
+
+        Ok(zone.identifier)
     }
 }
