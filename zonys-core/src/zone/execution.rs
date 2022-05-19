@@ -1,9 +1,8 @@
 use super::error::{ExecuteChildZoneError, ExecuteParentZoneError, ExecuteZoneError};
-use crate::template::{TemplateEngine, TemplateObject, TemplateValue};
+use crate::template::{TemplateEngine, TemplateObject};
 use crate::zone::configuration::*;
 use ::jail::Jail;
 use std::iter::empty;
-use std::path::Path;
 use std::process::Command;
 use std::process::Stdio;
 

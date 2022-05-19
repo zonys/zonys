@@ -1,6 +1,6 @@
 pub mod configuration;
 pub mod error;
-mod execution;
+pub mod execution;
 pub mod identifier;
 pub mod transmission;
 pub use configuration::*;
@@ -10,28 +10,21 @@ pub use transmission::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::namespace::{Namespace, NamespaceIdentifier};
-use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
-use crate::utility::try_catch;
+use crate::namespace::NamespaceIdentifier;
+use crate::template::{TemplateObject, TemplateScalar, TemplateValue};
 use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
 use execution::*;
-use liquid::{ObjectView, Parser};
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
 use serde_yaml::{from_reader, to_writer};
 use std::borrow::Cow;
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
 use std::fs::{remove_file, File};
-use std::io;
 use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::io::AsRawFd;
 use std::os::unix::prelude::RawFd;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::str::FromStr;
+use std::path::PathBuf;
 use uuid::Uuid;
-use zfs::file_system::{ChildIterator, FileSystem};
+use zfs::file_system::FileSystem;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -282,7 +275,7 @@ impl Zone {
         Ok(())
     }
 
-    fn handle_stop(mut self) -> Result<Option<Self>, StopZoneError> {
+    fn handle_stop(self) -> Result<Option<Self>, StopZoneError> {
         let mut jail = match self.jail() {
             Ok(Some(j)) => j,
             Ok(None) => return Err(StopZoneError::NotRunning),
@@ -333,7 +326,7 @@ impl Zone {
         }
     }
 
-    fn handle_destroy(mut self) -> Result<(), DestroyZoneError> {
+    fn handle_destroy(self) -> Result<(), DestroyZoneError> {
         if self.jail()?.is_some() {
             return Err(DestroyZoneError::IsRunning);
         }
@@ -489,7 +482,7 @@ impl Zone {
     where
         T: Into<Cow<'a, NamespaceIdentifier>>,
     {
-        let mut zone = Self::new(
+        let zone = Self::new(
             ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
             None,
         );

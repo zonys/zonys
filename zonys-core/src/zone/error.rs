@@ -6,12 +6,7 @@ use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
-use std::path::PathBuf;
 use std::process::ExitStatusError;
-use std::str::FromStr;
-use std::string::ToString;
-use uuid::Uuid;
-use zfs::file_system::{ChildIterator, FileSystem};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

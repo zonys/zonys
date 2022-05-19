@@ -13,49 +13,13 @@ use crate::zone::{
 };
 use std::borrow::Cow;
 use std::rc::Rc;
-use std::str::FromStr;
-use zfs::file_system::{ChildIterator, FileSystem};
+use zfs::file_system::FileSystem;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct NamespaceHandle {
     identifier: NamespaceIdentifier,
     file_system: FileSystem,
-}
-
-impl NamespaceHandle {
-    fn new(identifier: NamespaceIdentifier, file_system: FileSystem) -> Self {
-        Self {
-            identifier,
-            file_system,
-        }
-    }
-}
-
-impl NamespaceHandle {
-    fn identifier(&self) -> &NamespaceIdentifier {
-        &self.identifier
-    }
-
-    fn identifier_mut(&mut self) -> &mut NamespaceIdentifier {
-        &mut self.identifier
-    }
-
-    fn set_identifier(&mut self, identifier: NamespaceIdentifier) {
-        self.identifier = identifier
-    }
-
-    fn file_system(&self) -> &FileSystem {
-        &self.file_system
-    }
-
-    fn file_system_mut(&mut self) -> &mut FileSystem {
-        &mut self.file_system
-    }
-
-    fn set_file_system(&mut self, file_system: FileSystem) {
-        self.file_system = file_system
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,7 +40,7 @@ impl Namespace {
 
 impl Namespace {
     pub fn identifier(&self) -> &NamespaceIdentifier {
-        &self.handle.identifier()
+        &self.handle.identifier
     }
 
     pub fn zones(&self) -> &NamespaceZones {
@@ -97,10 +61,10 @@ impl Namespace {
 
         match FileSystem::open(&identifier.to_string())? {
             None => Ok(None),
-            Some(file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle::new(
-                identifier.into_owned(),
+            Some(file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle {
+                identifier: identifier.into_owned(),
                 file_system,
-            ))))),
+            })))),
         }
     }
 
@@ -144,10 +108,10 @@ impl NamespaceZones {
         &mut self,
         configuration: ZoneConfiguration,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
-        Zone::create(self.handle.identifier(), configuration)
+        Zone::create(&self.handle.identifier, configuration)
     }
 
     pub fn open(&self, uuid: ZoneIdentifierUuid) -> Result<Option<Zone>, OpenZoneError> {
-        Zone::open(ZoneIdentifier::new(self.handle.identifier().clone(), uuid))
+        Zone::open(ZoneIdentifier::new(self.handle.identifier.clone(), uuid))
     }
 }

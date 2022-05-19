@@ -2,7 +2,6 @@ use super::error::ParseZoneIdentifierError;
 use crate::namespace::NamespaceIdentifier;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
-use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
