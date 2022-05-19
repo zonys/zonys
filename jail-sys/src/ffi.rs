@@ -1,14 +1,9 @@
-use std::error;
-use std::ffi::{CStr, CString, FromBytesWithNulError, IntoStringError, NulError};
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use libc::{c_void, memset};
+use std::ffi::{CStr, CString, IntoStringError, NulError};
 use std::mem::{size_of, MaybeUninit};
 use std::num::TryFromIntError;
 use std::ptr::null_mut;
 use std::str::Utf8Error;
-
-use errno::errno;
-use libc::{c_char, c_int, c_void, free, memset};
 
 use crate::r#extern;
 
@@ -111,15 +106,15 @@ impl Drop for Jailparam {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn jail_setv(flags: i32, values: &[(&str, &str)]) -> i32 {
+pub fn jail_setv(_flags: i32, _values: &[(&str, &str)]) -> i32 {
     todo!()
 }
 
-pub fn jail_getv(flags: i32, values: &[(&str, &str)]) -> i32 {
+pub fn jail_getv(_flags: i32, _values: &[(&str, &str)]) -> i32 {
     todo!()
 }
 
-pub fn jailparam_all(values: &mut Vec<Jailparam>) -> i32 {
+pub fn jailparam_all(_values: &mut Vec<Jailparam>) -> i32 {
     todo!()
 }
 
@@ -133,6 +128,6 @@ pub fn jailparam_set(params: &mut [Jailparam], flags: i32) -> Result<i32, TryFro
     })
 }
 
-pub fn jailparam_get(params: &mut [&mut Jailparam], flags: i32) -> i32 {
+pub fn jailparam_get(_params: &mut [&mut Jailparam], _flags: i32) -> i32 {
     todo!()
 }

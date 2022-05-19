@@ -1,6 +1,5 @@
 use crate::ffi;
 use crate::ffi::{JAIL_ATTACH, JAIL_CREATE, JAIL_DYING, JAIL_GET_MASK, JAIL_SET_MASK, JAIL_UPDATE};
-use libc::_exit;
 use nix::errno::Errno;
 use nix::sys::wait::waitpid;
 use nix::unistd::{execve, fork, ForkResult};
