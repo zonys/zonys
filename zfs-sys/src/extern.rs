@@ -26,7 +26,6 @@ extern "C" {
     pub type zfs_share_op_t; // TODO
     pub type zpool_wait_activity_t; // TODO
     pub type diff_flags_t; // TODO
-    pub type recvflags_t; // TODO
     pub type renameflags_t; // TODO
     pub type mnttab; // TODO
     pub type vdev_state_t; // TODO
@@ -36,6 +35,7 @@ extern "C" {
     pub type pool_initialize_func_t;
     pub type pool_trim_func_t;
     pub type trimflags_t;
+    pub type avl_tree_t;
 }
 
 pub type ZfsIterF = unsafe extern "C" fn(param0: *mut zfs_handle_t, param1: *mut c_void) -> c_int;
@@ -63,6 +63,25 @@ pub struct sendflags_t {
     pub backup: bool,
     pub holds: bool,
     pub saved: bool,
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[repr(C)]
+pub struct recvflags_t {
+    pub verbose: bool,
+    pub isprefix: bool,
+    pub istail: bool,
+    pub dryrun: bool,
+    pub force: bool,
+    pub canmountoff: bool,
+    pub resumable: bool,
+    pub byteswap: bool,
+    pub nomount: bool,
+    pub holds: bool,
+    pub skipholds: bool,
+    pub domount: bool,
+    pub forceunmount: bool,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -453,7 +472,14 @@ extern "C" {
     /*_LIBZFS_H int zfs_receive(libzfs_handle_t *, const char *, nvlist_t *,
     recvflags_t *, int, avl_tree_t *);*/
 
-    //pub fn zfs_receive(param0: *mut libzfs_handle_t)
+    pub fn zfs_receive(
+        param0: *mut libzfs_handle_t,
+        param1: *const c_char,
+        param2: *mut nvlist_t,
+        param3: *mut recvflags_t,
+        param4: c_int,
+        param5: *mut avl_tree_t,
+    ) -> c_int;
 
     pub fn zfs_show_diffs(
         param0: *mut zfs_handle_t,

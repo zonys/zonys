@@ -1,6 +1,6 @@
 use crate::ffi;
 use crate::ffi::FfiError;
-use crate::r#extern::sendflags_t;
+use crate::r#extern::{avl_tree_t, recvflags_t, sendflags_t};
 use nv_sys::ffi::Nvlist;
 use std::error;
 use std::fmt;
@@ -173,6 +173,19 @@ pub fn zfs_send_one(
     param4: Option<&str>,
 ) -> Result<(), Error> {
     ffi::zfs_send_one(param0, param1, param2, param3, param4)?;
+
+    Ok(())
+}
+
+pub fn zfs_receive(
+    param0: &mut LibzfsHandle,
+    param1: &str,
+    param2: Option<&mut Nvlist>,
+    param3: &mut recvflags_t,
+    param4: i32,
+    param5: Option<&mut avl_tree_t>,
+) -> Result<(), Error> {
+    ffi::zfs_receive(param0, param1, param2, param3, param4, param5)?;
 
     Ok(())
 }

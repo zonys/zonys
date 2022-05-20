@@ -1,3 +1,10 @@
+use crate::r#extern;
+use crate::r#extern::{
+    avl_tree_t, libzfs_fini, libzfs_handle_t, recvflags_t, sendflags_t, zfs_close, zfs_handle_t,
+    zfs_type_t,
+};
+use libc::{c_int, c_void};
+use nv_sys::ffi::Nvlist;
 use std::error;
 use std::ffi::{CStr, CString, FromBytesWithNulError, IntoStringError, NulError};
 use std::fmt;
@@ -6,14 +13,6 @@ use std::num::TryFromIntError;
 use std::ptr::null_mut;
 use std::rc::Rc;
 use std::str::Utf8Error;
-
-use libc::{c_int, c_void};
-use nv_sys::ffi::Nvlist;
-
-use crate::r#extern;
-use crate::r#extern::{
-    libzfs_fini, libzfs_handle_t, sendflags_t, zfs_close, zfs_handle_t, zfs_type_t,
-};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -517,6 +516,34 @@ pub fn zfs_send_one(
             CString::new(param1)?.as_ptr(),
             param2,
             param3,
+            0usize as _,
+        )
+    })
+}
+
+pub fn zfs_receive(
+    param0: &mut LibzfsHandle,
+    param1: &str,
+    param2: Option<&mut Nvlist>,
+    param3: &mut recvflags_t,
+    param4: i32,
+    param5: Option<&mut avl_tree_t>,
+) -> Result<i32, Error> {
+    if param2.is_some() {
+        todo!()
+    }
+
+    if param5.is_some() {
+        todo!()
+    }
+
+    Ok(unsafe {
+        r#extern::zfs_receive(
+            param0.inner_libzfs_handle().handle(),
+            CString::new(param1)?.as_ptr(),
+            0usize as _,
+            param3,
+            param4,
             0usize as _,
         )
     })
