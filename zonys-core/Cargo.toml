@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+bindcode = "2.0.0-rc.1"
 jail = { path = "../jail" }
 liquid = { version = "0.26" }
 nix = { version = "0.24", features = ["fs"] }
