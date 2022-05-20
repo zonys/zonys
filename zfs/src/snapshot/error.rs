@@ -91,3 +91,63 @@ impl From<zfs_sys::Error> for ReadSnapshotNameError {
         Self::ZfsError(error)
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum SendSnapshotError {
+    ZfsError(zfs_sys::Error),
+}
+
+impl error::Error for SendSnapshotError {}
+
+impl Debug for SendSnapshotError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for SendSnapshotError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<zfs_sys::Error> for SendSnapshotError {
+    fn from(error: zfs_sys::Error) -> Self {
+        Self::ZfsError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum OpenSnapshotError {
+    ZfsError(zfs_sys::Error),
+}
+
+impl error::Error for OpenSnapshotError {}
+
+impl Debug for OpenSnapshotError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for OpenSnapshotError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::ZfsError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<zfs_sys::Error> for OpenSnapshotError {
+    fn from(error: zfs_sys::Error) -> Self {
+        Self::ZfsError(error)
+    }
+}

@@ -3,7 +3,7 @@ pub mod iterator;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::snapshot::error::CreateSnapshotError;
+use crate::snapshot::error::{CreateSnapshotError, OpenSnapshotError};
 use crate::snapshot::Snapshot;
 use crate::{Error, Zfs, SEPARATOR};
 use iterator::{
@@ -200,5 +200,9 @@ impl FileSystemSnapshots {
 
     pub fn create(&mut self, name: &str) -> Result<(), CreateSnapshotError> {
         Snapshot::create(&format!("{}@{}", zfs_get_name(&self.handle)?, name,))
+    }
+
+    pub fn open(&self, name: &str) -> Result<Option<Snapshot>, OpenSnapshotError> {
+        Snapshot::open(&format!("{}@{}", zfs_get_name(&self.handle)?, name,))
     }
 }
