@@ -1,12 +1,20 @@
-use std::vec::IntoIter;
+pub mod error;
+pub mod iterator;
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+use crate::snapshot::error::CreateSnapshotError;
+use crate::snapshot::Snapshot;
+use crate::{Error, Zfs, SEPARATOR};
+use iterator::{
+    AllFileSystemIterator, ChildFileSystemIterator, FileSystemSnapshotIterator,
+    RootFileSystemIterator,
+};
 use zfs_sys::{
     libzfs_init, zfs_create, zfs_dataset_exists, zfs_destroy, zfs_get_name, zfs_is_mounted,
-    zfs_iter_children, zfs_iter_root, zfs_mount, zfs_open, zfs_unmount, zfs_unmountall,
-    LibzfsHandle, ZfsHandle, ZfsType,
+    zfs_iter_children, zfs_iter_root, zfs_iter_snapshots, zfs_mount, zfs_open, zfs_unmount,
+    zfs_unmountall, LibzfsHandle, ZfsHandle, ZfsType,
 };
-
-use crate::{Error, Zfs, SEPARATOR};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -35,7 +43,7 @@ impl FileSystems {
         )?)
     }
 
-    pub fn roots(&self) -> Result<RootIterator, Error> {
+    pub fn roots(&self) -> Result<RootFileSystemIterator, Error> {
         let mut result = Vec::new();
 
         zfs_iter_root(&self.handle, |handle| {
@@ -43,101 +51,11 @@ impl FileSystems {
             true
         })?;
 
-        Ok(RootIterator::new(result.into_iter()))
+        Ok(RootFileSystemIterator::new(result.into_iter()))
     }
 
-    pub fn all(&self) -> Result<AllIterator, Error> {
-        Ok(AllIterator::default())
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub struct RootIterator {
-    iterator: IntoIter<FileSystem>,
-}
-
-impl RootIterator {
-    fn new(iterator: IntoIter<FileSystem>) -> Self {
-        Self { iterator }
-    }
-
-    pub fn empty() -> Self {
-        Self::new(Vec::new().into_iter())
-    }
-}
-
-impl Iterator for RootIterator {
-    type Item = FileSystem;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iterator.next()
-    }
-}
-
-impl Default for RootIterator {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub struct ChildIterator {
-    iterator: IntoIter<FileSystem>,
-}
-
-impl ChildIterator {
-    fn new(iterator: IntoIter<FileSystem>) -> Self {
-        Self { iterator }
-    }
-
-    pub fn empty() -> Self {
-        Self::new(Vec::new().into_iter())
-    }
-}
-
-impl Iterator for ChildIterator {
-    type Item = FileSystem;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iterator.next()
-    }
-}
-
-impl Default for ChildIterator {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub struct AllIterator {
-    iterator: IntoIter<FileSystem>,
-}
-
-impl AllIterator {
-    fn new(iterator: IntoIter<FileSystem>) -> Self {
-        Self { iterator }
-    }
-
-    pub fn empty() -> Self {
-        Self::new(Vec::new().into_iter())
-    }
-}
-
-impl Iterator for AllIterator {
-    type Item = FileSystem;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iterator.next()
-    }
-}
-
-impl Default for AllIterator {
-    fn default() -> Self {
-        Self::empty()
+    pub fn all(&self) -> Result<AllFileSystemIterator, Error> {
+        Ok(AllFileSystemIterator::default())
     }
 }
 
@@ -146,13 +64,15 @@ impl Default for AllIterator {
 pub struct FileSystem {
     handle: ZfsHandle,
     children: FileSystemChildren,
+    snapshots: FileSystemSnapshots,
 }
 
 impl FileSystem {
     pub(crate) fn new(handle: ZfsHandle) -> Self {
         Self {
             handle: handle.clone(),
-            children: FileSystemChildren::new(handle),
+            children: FileSystemChildren::new(handle.clone()),
+            snapshots: FileSystemSnapshots::new(handle),
         }
     }
 }
@@ -164,6 +84,14 @@ impl FileSystem {
 
     pub fn children_mut(&mut self) -> &mut FileSystemChildren {
         &mut self.children
+    }
+
+    pub fn snapshots(&self) -> &FileSystemSnapshots {
+        &self.snapshots
+    }
+
+    pub fn snapshots_mut(&mut self) -> &mut FileSystemSnapshots {
+        &mut self.snapshots
     }
 }
 
@@ -204,11 +132,11 @@ impl FileSystem {
         Zfs::new()?.file_systems().open(name)
     }
 
-    pub fn roots() -> Result<RootIterator, Error> {
+    pub fn roots() -> Result<RootFileSystemIterator, Error> {
         Zfs::new()?.file_systems().roots()
     }
 
-    pub fn all() -> Result<AllIterator, Error> {
+    pub fn all() -> Result<AllFileSystemIterator, Error> {
         Zfs::new()?.file_systems().all()
     }
 }
@@ -226,7 +154,7 @@ impl FileSystemChildren {
 }
 
 impl FileSystemChildren {
-    pub fn iter(&self) -> Result<ChildIterator, Error> {
+    pub fn iter(&self) -> Result<ChildFileSystemIterator, Error> {
         let mut result = Vec::new();
 
         zfs_iter_children(&self.handle, |handle| {
@@ -234,7 +162,7 @@ impl FileSystemChildren {
             true
         })?;
 
-        Ok(ChildIterator::new(result.into_iter()))
+        Ok(ChildFileSystemIterator::new(result.into_iter()))
     }
 
     pub fn open(&self, name: &str) -> Result<Option<FileSystem>, Error> {
@@ -243,5 +171,34 @@ impl FileSystemChildren {
         value.push_str(name);
 
         FileSystem::open(&value)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct FileSystemSnapshots {
+    handle: ZfsHandle,
+}
+
+impl FileSystemSnapshots {
+    fn new(handle: ZfsHandle) -> Self {
+        Self { handle }
+    }
+}
+
+impl FileSystemSnapshots {
+    pub fn iter(&self) -> Result<FileSystemSnapshotIterator, Error> {
+        let mut result = Vec::new();
+
+        zfs_iter_snapshots(&self.handle, |handle| {
+            result.push(Snapshot::new(handle));
+            true
+        })?;
+
+        Ok(FileSystemSnapshotIterator::new(result.into_iter()))
+    }
+
+    pub fn create(&mut self, name: &str) -> Result<(), CreateSnapshotError> {
+        Snapshot::create(&format!("{}@{}", zfs_get_name(&self.handle)?, name,))
     }
 }

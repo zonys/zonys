@@ -1,16 +1,16 @@
 use super::error::NextNamespaceZoneIteratorError;
 use crate::zone::{Zone, ZoneIdentifier};
 use std::str::FromStr;
-use zfs::file_system::ChildIterator;
+use zfs::file_system::iterator::ChildFileSystemIterator;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct NamespaceZoneIterator {
-    iterator: ChildIterator,
+    iterator: ChildFileSystemIterator,
 }
 
 impl NamespaceZoneIterator {
-    pub(super) fn new(iterator: ChildIterator) -> Self {
+    pub(super) fn new(iterator: ChildFileSystemIterator) -> Self {
         Self { iterator }
     }
 }
