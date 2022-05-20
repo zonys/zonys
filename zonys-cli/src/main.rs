@@ -6,7 +6,8 @@ use clap::{Parser, Subcommand};
 use serde_yaml::from_reader;
 use std::error;
 use std::fmt::Debug;
-use std::io::{stdin as io_stdin, Stdin};
+use std::io::{stdin as io_stdin, stdout, Stdin};
+use std::os::unix::io::AsRawFd;
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
 use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid};
 
@@ -64,6 +65,9 @@ enum MainCommand {
         uuid: ZoneIdentifierUuid,
     },
     Redeploy {
+        uuid: ZoneIdentifierUuid,
+    },
+    Send {
         uuid: ZoneIdentifierUuid,
     },
     Status,
@@ -281,6 +285,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             zone.start()?;
 
             println!("{}", zone_identifier);
+        }
+        MainCommand::Send { uuid } => {
+            let mut namespace =
+                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+
+            let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+
+            zone.send(stdout().as_raw_fd())?;
         }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
