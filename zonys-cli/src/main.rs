@@ -70,6 +70,10 @@ enum MainCommand {
     Send {
         uuid: ZoneIdentifierUuid,
     },
+    Run {
+        #[clap(short, long)]
+        stdin: bool,
+    },
     Status,
     List,
     Purge,
@@ -293,6 +297,32 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
             zone.send(stdout().as_raw_fd())?;
+        }
+        MainCommand::Run { stdin } => {
+            let mut configuration = if stdin {
+                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            } else {
+                ZoneConfiguration::default()
+            };
+
+            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+                Some(n) => n,
+                None => {
+                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
+                }
+            };
+
+            match configuration {
+                ZoneConfiguration::Version1(ref mut version1) => {
+                    version1.set_start_after_create(Some(true));
+                    version1.set_destroy_after_stop(Some(true));
+                }
+            }
+
+            let zone_identifier = namespace.zones_mut().create(configuration)?;
+
+            println!("{}", zone_identifier.uuid());
         }
         MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
             Some(namespace) => {
