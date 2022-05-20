@@ -1,11 +1,10 @@
+use crate::ffi;
+use crate::ffi::FfiError;
+use crate::r#extern::sendflags_t;
+use nv_sys::ffi::Nvlist;
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-
-use nv_sys::ffi::Nvlist;
-
-use crate::ffi;
-use crate::ffi::FfiError;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -162,6 +161,18 @@ pub fn zfs_snapshot(
     params: Option<&Nvlist>,
 ) -> Result<(), Error> {
     ffi::zfs_snapshot(handle, name, param0, params)?;
+
+    Ok(())
+}
+
+pub fn zfs_send_one(
+    param0: &mut ZfsHandle,
+    param1: &str,
+    param2: i32,
+    param3: &mut sendflags_t,
+    param4: Option<&str>,
+) -> Result<(), Error> {
+    ffi::zfs_send_one(param0, param1, param2, param3, param4)?;
 
     Ok(())
 }

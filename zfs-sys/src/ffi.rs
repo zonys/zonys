@@ -11,7 +11,9 @@ use libc::{c_int, c_void};
 use nv_sys::ffi::Nvlist;
 
 use crate::r#extern;
-use crate::r#extern::{libzfs_fini, libzfs_handle_t, zfs_close, zfs_handle_t, zfs_type_t};
+use crate::r#extern::{
+    libzfs_fini, libzfs_handle_t, sendflags_t, zfs_close, zfs_handle_t, zfs_type_t,
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -493,6 +495,28 @@ pub fn zfs_snapshot(
             param0.inner_libzfs_handle().handle(),
             CString::new(param1)?.as_ptr(),
             param2,
+            0usize as _,
+        )
+    })
+}
+
+pub fn zfs_send_one(
+    param0: &mut ZfsHandle,
+    param1: &str,
+    param2: i32,
+    param3: &mut sendflags_t,
+    param4: Option<&str>,
+) -> Result<i32, Error> {
+    if param4.is_some() {
+        todo!()
+    }
+
+    Ok(unsafe {
+        r#extern::zfs_send_one(
+            param0.inner_zfs_handle().handle,
+            CString::new(param1)?.as_ptr(),
+            param2,
+            param3,
             0usize as _,
         )
     })

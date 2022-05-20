@@ -27,6 +27,7 @@ extern "C" {
     pub type zpool_wait_activity_t; // TODO
     pub type diff_flags_t; // TODO
     pub type recvflags_t; // TODO
+    pub type renameflags_t; // TODO
     pub type mnttab; // TODO
     pub type vdev_state_t; // TODO
     pub type vdev_aux_t; // TODO
@@ -40,6 +41,29 @@ extern "C" {
 pub type ZfsIterF = unsafe extern "C" fn(param0: *mut zfs_handle_t, param1: *mut c_void) -> c_int;
 pub type ZpoolIterF =
     unsafe extern "C" fn(param0: *mut zpool_handle_t, param1: *mut c_void) -> c_int;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[repr(C)]
+pub struct sendflags_t {
+    pub verbosity: c_int,
+    pub replicate: bool,
+    pub skipmissing: bool,
+    pub doall: bool,
+    pub fromorigin: bool,
+    pub pad: bool,
+    pub props: bool,
+    pub dryrun: bool,
+    pub parsable: bool,
+    pub progress: bool,
+    pub largeblock: bool,
+    pub embed_data: bool,
+    pub compress: bool,
+    pub raw: bool,
+    pub backup: bool,
+    pub holds: bool,
+    pub saved: bool,
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -381,7 +405,56 @@ extern "C" {
         param2: bool,
     ) -> c_int;
 
+    pub fn zfs_rename(
+        param0: *mut zfs_handle_t,
+        param2: *const c_char,
+        flags: renameflags_t,
+    ) -> c_int;
+
+    /*
+    _LIBZFS_H int zfs_send(zfs_handle_t *, const char *, const char *,
+    sendflags_t *, int, snapfilter_cb_t, void *, nvlist_t **);*/
+
+    pub fn zfs_send_one(
+        param0: *mut zfs_handle_t,
+        param1: *const c_char,
+        param2: c_int,
+        param3: *mut sendflags_t,
+        param4: *const c_char,
+    ) -> c_int;
+
+    /*_LIBZFS_H int zfs_send_progress(zfs_handle_t *, int, uint64_t *, uint64_t *);
+    _LIBZFS_H int zfs_send_resume(libzfs_handle_t *, sendflags_t *, int outfd,
+    const char *);
+    _LIBZFS_H int zfs_send_saved(zfs_handle_t *, sendflags_t *, int, const char *);
+    _LIBZFS_H nvlist_t *zfs_send_resume_token_to_nvlist(libzfs_handle_t *hdl,
+    const char *token);
+
+    _LIBZFS_H int zfs_promote(zfs_handle_t *);
+    _LIBZFS_H int zfs_hold(zfs_handle_t *, const char *, const char *,
+    boolean_t, int);
+    _LIBZFS_H int zfs_hold_nvl(zfs_handle_t *, int, nvlist_t *);
+    _LIBZFS_H int zfs_release(zfs_handle_t *, const char *, const char *,
+    boolean_t);
+    _LIBZFS_H int zfs_get_holds(zfs_handle_t *, nvlist_t **);
+    _LIBZFS_H uint64_t zvol_volsize_to_reservation(zpool_handle_t *, uint64_t,
+    nvlist_t *);
+
+    typedef int (*zfs_userspace_cb_t)(void *arg, const char *domain,
+    uid_t rid, uint64_t space);
+
+    _LIBZFS_H int zfs_userspace(zfs_handle_t *, zfs_userquota_prop_t,
+    zfs_userspace_cb_t, void *);
+
+    _LIBZFS_H int zfs_get_fsacl(zfs_handle_t *, nvlist_t **);
+    _LIBZFS_H int zfs_set_fsacl(zfs_handle_t *, boolean_t, nvlist_t *);
+    */
+
+    /*_LIBZFS_H int zfs_receive(libzfs_handle_t *, const char *, nvlist_t *,
+    recvflags_t *, int, avl_tree_t *);*/
+
     //pub fn zfs_receive(param0: *mut libzfs_handle_t)
+
     pub fn zfs_show_diffs(
         param0: *mut zfs_handle_t,
         param1: c_int,
