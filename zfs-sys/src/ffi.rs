@@ -331,6 +331,52 @@ where
     Ok(())
 }
 
+pub fn zfs_iter_snapshots<T>(param0: &ZfsHandle, callback: T) -> Result<(), Error>
+where
+    T: FnMut(ZfsHandle) -> bool,
+{
+    struct UserData<'a, T>
+    where
+        T: FnMut(ZfsHandle) -> bool,
+    {
+        handle: &'a ZfsHandle,
+        callback: T,
+    }
+
+    extern "C" fn handler<'a, T>(param0: *mut r#extern::zfs_handle_t, param1: *mut c_void) -> c_int
+    where
+        T: FnMut(ZfsHandle) -> bool,
+    {
+        unsafe {
+            let user_data = param1 as *mut UserData<'a, T>;
+            ((*user_data).callback)(ZfsHandle::new(
+                (*user_data).handle.libzfs_handle.clone(),
+                Rc::new(InnerZfsHandle::new(param0)),
+            ));
+        }
+
+        0
+    }
+
+    let mut user_data = UserData {
+        handle: param0,
+        callback,
+    };
+
+    unsafe {
+        r#extern::zfs_iter_snapshots(
+            param0.inner_zfs_handle().handle(),
+            false,
+            handler::<T>,
+            &mut user_data as *mut _ as *mut c_void,
+            0,
+            0,
+        );
+    }
+
+    Ok(())
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn zfs_create(
@@ -430,4 +476,24 @@ pub fn zfs_unmount(
 
 pub fn zfs_unmountall(param0: &ZfsHandle, param1: i32) -> Result<i32, Error> {
     Ok(unsafe { r#extern::zfs_unmountall(param0.inner_zfs_handle().handle(), param1) })
+}
+
+pub fn zfs_snapshot(
+    param0: &mut LibzfsHandle,
+    param1: &str,
+    param2: bool,
+    param3: Option<&Nvlist>,
+) -> Result<i32, Error> {
+    if param3.is_some() {
+        todo!()
+    }
+
+    Ok(unsafe {
+        r#extern::zfs_snapshot(
+            param0.inner_libzfs_handle().handle(),
+            CString::new(param1)?.as_ptr(),
+            param2,
+            0usize as _,
+        )
+    })
 }

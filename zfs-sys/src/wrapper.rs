@@ -87,6 +87,13 @@ where
     Ok(ffi::zfs_iter_children(param0, callback)?)
 }
 
+pub fn zfs_iter_snapshots<T>(param0: &ZfsHandle, callback: T) -> Result<(), Error>
+where
+    T: FnMut(ZfsHandle) -> bool,
+{
+    Ok(ffi::zfs_iter_snapshots(param0, callback)?)
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub fn zfs_create(
@@ -144,6 +151,17 @@ pub fn zfs_unmount(param0: &mut ZfsHandle, param1: Option<&str>, param2: i32) ->
 
 pub fn zfs_unmountall(param0: &ZfsHandle, param1: i32) -> Result<(), Error> {
     ffi::zfs_unmountall(param0, param1)?;
+
+    Ok(())
+}
+
+pub fn zfs_snapshot(
+    handle: &mut LibzfsHandle,
+    name: &str,
+    param0: bool,
+    params: Option<&Nvlist>,
+) -> Result<(), Error> {
+    ffi::zfs_snapshot(handle, name, param0, params)?;
 
     Ok(())
 }

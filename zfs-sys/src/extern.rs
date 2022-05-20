@@ -235,8 +235,7 @@ extern "C" {
     _LIBZFS_H int zpool_upgrade(zpool_handle_t *, uint64_t);
     _LIBZFS_H int zpool_get_history(zpool_handle_t *, nvlist_t **, uint64_t *,
         boolean_t *);
-    _LIBZFS_H int zpool_events_next(libzfs_handle_t *, nvlist_t **, int *, unsigned,
-        int);
+    _LIBZFS_H int zpool_events_next(libzfs_handle_t *, nvlist_t **, int *, unsigt);
     _LIBZFS_H int zpool_events_clear(libzfs_handle_t *, int *);
     _LIBZFS_H int zpool_events_seek(libzfs_handle_t *, uint64_t, int);
     _LIBZFS_H void zpool_obj_to_path_ds(zpool_handle_t *, uint64_t, uint64_t,
@@ -304,7 +303,7 @@ extern "C" {
         param2: ZfsIterF,
         param3: *mut c_void,
     ) -> c_int;
-    pub fn ZfsIterFilesystems(
+    pub fn zfs_iter_filesystems(
         param0: *mut zfs_handle_t,
         param1: ZfsIterF,
         param2: *mut c_void,
