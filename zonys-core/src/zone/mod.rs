@@ -387,6 +387,23 @@ impl Zone {
 
         Ok(())
     }
+
+    fn handle_send(&mut self, file_descriptor: RawFd) -> Result<(), SendZoneError> {
+        let mut file_system = self.file_system()?;
+        let snapshot_name = Uuid::new_v4().to_string();
+
+        file_system.snapshots_mut().create(&snapshot_name)?;
+        let mut snapshot = match file_system.snapshots().open(&snapshot_name)? {
+            None => return Err(SendZoneError::SnapshotNotExisting),
+            Some(s) => s,
+        };
+
+        snapshot.send(file_descriptor)?;
+
+        snapshot.destroy()?;
+
+        Ok(())
+    }
 }
 
 impl Zone {
@@ -475,8 +492,12 @@ impl Zone {
         self.handle_destroy()
     }
 
-    pub fn send(&mut self, _fd: RawFd) -> Result<(), SendZoneError> {
-        Ok(())
+    pub fn send(&mut self, file_descriptor: RawFd) -> Result<(), SendZoneError> {
+        self.lock()?;
+        let result = self.handle_send(file_descriptor);
+        self.unlock()?;
+
+        result
     }
 
     pub fn receive<'a, T>(

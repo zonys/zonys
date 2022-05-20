@@ -7,7 +7,9 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::process::ExitStatusError;
-use zfs::snapshot::error::DestroySnapshotError;
+use zfs::snapshot::error::{
+    CreateSnapshotError, DestroySnapshotError, OpenSnapshotError, SendSnapshotError,
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -880,6 +882,13 @@ impl From<io::Error> for UnlockZoneError {
 
 pub enum SendZoneError {
     ZfsError(zfs::Error),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
+    CreateSnapshotError(CreateSnapshotError),
+    OpenSnapshotError(OpenSnapshotError),
+    SnapshotNotExisting,
+    SendSnapshotError(SendSnapshotError),
+    DestroySnapshotError(DestroySnapshotError),
 }
 
 impl error::Error for SendZoneError {}
@@ -888,6 +897,13 @@ impl Debug for SendZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::CreateSnapshotError(error) => Debug::fmt(error, formatter),
+            Self::OpenSnapshotError(error) => Debug::fmt(error, formatter),
+            Self::SnapshotNotExisting => write!(formatter, "Snapshot not existing"),
+            Self::SendSnapshotError(error) => Debug::fmt(error, formatter),
+            Self::DestroySnapshotError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -896,6 +912,13 @@ impl Display for SendZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::CreateSnapshotError(error) => Display::fmt(error, formatter),
+            Self::OpenSnapshotError(error) => Display::fmt(error, formatter),
+            Self::SnapshotNotExisting => write!(formatter, "Snapshot not existing"),
+            Self::SendSnapshotError(error) => Display::fmt(error, formatter),
+            Self::DestroySnapshotError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -903,6 +926,42 @@ impl Display for SendZoneError {
 impl From<zfs::Error> for SendZoneError {
     fn from(error: zfs::Error) -> Self {
         Self::ZfsError(error)
+    }
+}
+
+impl From<LockZoneError> for SendZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for SendZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
+impl From<CreateSnapshotError> for SendZoneError {
+    fn from(error: CreateSnapshotError) -> Self {
+        Self::CreateSnapshotError(error)
+    }
+}
+
+impl From<OpenSnapshotError> for SendZoneError {
+    fn from(error: OpenSnapshotError) -> Self {
+        Self::OpenSnapshotError(error)
+    }
+}
+
+impl From<SendSnapshotError> for SendZoneError {
+    fn from(error: SendSnapshotError) -> Self {
+        Self::SendSnapshotError(error)
+    }
+}
+
+impl From<DestroySnapshotError> for SendZoneError {
+    fn from(error: DestroySnapshotError) -> Self {
+        Self::DestroySnapshotError(error)
     }
 }
 
