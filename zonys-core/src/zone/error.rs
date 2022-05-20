@@ -7,6 +7,7 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::process::ExitStatusError;
+use zfs::snapshot::error::DestroySnapshotError;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -417,6 +418,7 @@ pub enum DestroyZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     IoError(io::Error),
+    DestroySnapshotError(DestroySnapshotError),
 }
 
 impl error::Error for DestroyZoneError {}
@@ -434,6 +436,7 @@ impl Debug for DestroyZoneError {
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
+            Self::DestroySnapshotError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -451,6 +454,7 @@ impl Display for DestroyZoneError {
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
+            Self::DestroySnapshotError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -506,6 +510,12 @@ impl From<UnlockZoneError> for DestroyZoneError {
 impl From<io::Error> for DestroyZoneError {
     fn from(error: io::Error) -> Self {
         Self::IoError(error)
+    }
+}
+
+impl From<DestroySnapshotError> for DestroyZoneError {
+    fn from(error: DestroySnapshotError) -> Self {
+        Self::DestroySnapshotError(error)
     }
 }
 

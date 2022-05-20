@@ -364,6 +364,10 @@ impl Zone {
             file_system.unmount_all()?;
         }
 
+        for snapshot in file_system.snapshots_mut().iter()? {
+            snapshot.destroy()?;
+        }
+
         file_system.destroy()?;
 
         ExecuteDestroyAfterZoneExecutionInstructionIterator::new(&configuration)
