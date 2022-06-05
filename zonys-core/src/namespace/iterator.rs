@@ -34,7 +34,7 @@ impl Iterator for NamespaceZoneIterator {
                 Ok(i) => i,
             };
 
-            match Zone::open(&zone_identifier) {
+            match Zone::open(zone_identifier) {
                 Err(e) => return Some(Err(e.into())),
                 Ok(Some(zone)) => return Some(Ok(zone)),
                 Ok(None) => {}

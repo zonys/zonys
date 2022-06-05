@@ -17,7 +17,6 @@ use execution::*;
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
 use serde_yaml::{from_reader, to_writer};
-use std::borrow::Cow;
 use std::fs::{remove_file, File};
 use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::io::AsRawFd;
@@ -402,12 +401,7 @@ impl Zone {
 }
 
 impl Zone {
-    pub fn open<'a, T>(identifier: T) -> Result<Option<Self>, OpenZoneError>
-    where
-        T: Into<Cow<'a, ZoneIdentifier>>,
-    {
-        let identifier = identifier.into().into_owned();
-
+    pub fn open(identifier: ZoneIdentifier) -> Result<Option<Self>, OpenZoneError> {
         match FileSystem::open(&FileSystemIdentifier::from(identifier.clone())) {
             Err(e) => Err(e.into()),
             Ok(None) => Ok(None),
@@ -415,15 +409,12 @@ impl Zone {
         }
     }
 
-    pub fn create<'a, T>(
-        namespace_identifier: T,
+    pub fn create(
+        namespace_identifier: NamespaceIdentifier,
         configuration: ZoneConfiguration,
-    ) -> Result<ZoneIdentifier, CreateZoneError>
-    where
-        T: Into<Cow<'a, NamespaceIdentifier>>,
-    {
+    ) -> Result<ZoneIdentifier, CreateZoneError> {
         let mut zone = Self::new(
-            ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
+            ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),
             None,
         );
 
@@ -496,15 +487,12 @@ impl Zone {
         result
     }
 
-    pub fn receive<'a, T>(
-        namespace_identifier: T,
+    pub fn receive(
+        namespace_identifier: NamespaceIdentifier,
         file_descriptor: RawFd,
-    ) -> Result<ZoneIdentifier, ReceiveZoneError>
-    where
-        T: Into<Cow<'a, NamespaceIdentifier>>,
-    {
+    ) -> Result<ZoneIdentifier, ReceiveZoneError> {
         let mut zone = Self::new(
-            ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
+            ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),
             None,
         );
         zone.lock()?;

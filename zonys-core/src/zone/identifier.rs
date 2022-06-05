@@ -2,7 +2,6 @@ use super::error::ParseZoneIdentifierError;
 use crate::namespace::NamespaceIdentifier;
 use crate::zone::error::ConvertZoneIdentifierFromFileSystemIdentifierError;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -90,18 +89,6 @@ impl FromStr for ZoneIdentifier {
             NamespaceIdentifier::from_str(&value)?,
             uuid,
         ))
-    }
-}
-
-impl<'a> From<&'a ZoneIdentifier> for Cow<'a, ZoneIdentifier> {
-    fn from(value: &'a ZoneIdentifier) -> Self {
-        Self::Borrowed(value)
-    }
-}
-
-impl<'a> From<ZoneIdentifier> for Cow<'a, ZoneIdentifier> {
-    fn from(value: ZoneIdentifier) -> Self {
-        Self::Owned(value)
     }
 }
 

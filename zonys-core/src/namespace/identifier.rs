@@ -1,6 +1,5 @@
 use super::error::ConvertNamespaceIdentifierFromStrError;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -56,18 +55,6 @@ impl NamespaceIdentifier {
 
     pub fn set_child_components(&mut self, child_components: Vec<NamespaceIdentifierComponent>) {
         self.child_components = child_components
-    }
-}
-
-impl<'a> From<&'a NamespaceIdentifier> for Cow<'a, NamespaceIdentifier> {
-    fn from(value: &'a NamespaceIdentifier) -> Self {
-        Self::Borrowed(value)
-    }
-}
-
-impl<'a> From<NamespaceIdentifier> for Cow<'a, NamespaceIdentifier> {
-    fn from(value: NamespaceIdentifier) -> Self {
-        Self::Owned(value)
     }
 }
 

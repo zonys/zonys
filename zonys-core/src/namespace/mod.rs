@@ -12,7 +12,6 @@ use crate::zone::{
     CreateZoneError, OpenZoneError, ReceiveZoneError, Zone, ZoneConfiguration, ZoneIdentifier,
     ZoneIdentifierUuid,
 };
-use std::borrow::Cow;
 use std::os::unix::prelude::RawFd;
 use std::rc::Rc;
 use zfs::file_system::identifier::FileSystemIdentifier;
@@ -56,30 +55,26 @@ impl Namespace {
 }
 
 impl Namespace {
-    pub fn open<'a, T>(identifier: T) -> Result<Option<Namespace>, OpenNamespaceError>
-    where
-        T: Into<Cow<'a, NamespaceIdentifier>>,
-    {
-        let identifier = identifier.into().into_owned();
+    pub fn open(
+        namespace_identifier: NamespaceIdentifier,
+    ) -> Result<Option<Namespace>, OpenNamespaceError> {
+        let file_system_identifier = FileSystemIdentifier::from(namespace_identifier.clone());
 
-        match FileSystem::open(&FileSystemIdentifier::from(identifier.clone()))? {
+        match FileSystem::open(&file_system_identifier)? {
             None => Ok(None),
             Some(file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle {
-                identifier: identifier,
+                identifier: namespace_identifier,
                 file_system,
             })))),
         }
     }
 
-    pub fn create<'a, T>(identifier: T) -> Result<(), CreateNamespaceError>
-    where
-        T: Into<Cow<'a, NamespaceIdentifier>>,
-    {
-        let identifier = FileSystemIdentifier::from(identifier.into().into_owned());
+    pub fn create(namespace_identifier: NamespaceIdentifier) -> Result<(), CreateNamespaceError> {
+        let file_system_identifier = FileSystemIdentifier::from(namespace_identifier);
 
-        FileSystem::create(&identifier)?;
-        let mut file_system =
-            FileSystem::open(&identifier)?.ok_or(CreateNamespaceError::FileSystemNotExisting)?;
+        FileSystem::create(&file_system_identifier)?;
+        let mut file_system = FileSystem::open(&file_system_identifier)?
+            .ok_or(CreateNamespaceError::FileSystemNotExisting)?;
         file_system.mount()?;
 
         Ok(())
@@ -109,7 +104,7 @@ impl NamespaceZones {
         &mut self,
         configuration: ZoneConfiguration,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
-        Zone::create(&self.handle.identifier, configuration)
+        Zone::create(self.handle.identifier.clone(), configuration)
     }
 
     pub fn open(&self, uuid: ZoneIdentifierUuid) -> Result<Option<Zone>, OpenZoneError> {
@@ -117,6 +112,6 @@ impl NamespaceZones {
     }
 
     pub fn receive(&mut self, file_descriptor: RawFd) -> Result<ZoneIdentifier, ReceiveZoneError> {
-        Zone::receive(&self.handle.identifier, file_descriptor)
+        Zone::receive(self.handle.identifier.clone(), file_descriptor)
     }
 }

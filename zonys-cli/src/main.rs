@@ -93,17 +93,17 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 ZoneConfiguration::default()
             };
 
-            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
                 None => {
-                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::create(arguments.namespace_identifier.clone())?;
                     Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
                 }
             };
 
             println!("{}", namespace.zones_mut().create(configuration)?.uuid());
         }
-        MainCommand::Destroy { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::Destroy { uuid } => match Namespace::open(arguments.namespace_identifier)? {
             Some(mut namespace) => {
                 namespace
                     .zones_mut()
@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         },
         MainCommand::Recreate { uuid } => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
@@ -125,7 +125,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             println!("{}", namespace.zones_mut().create(configuration)?);
         }
-        MainCommand::Start { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::Start { uuid } => match Namespace::open(arguments.namespace_identifier)? {
             Some(mut namespace) => {
                 namespace
                     .zones_mut()
@@ -135,7 +135,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             None => {}
         },
-        MainCommand::Stop { uuid } => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::Stop { uuid } => match Namespace::open(arguments.namespace_identifier)? {
             Some(mut namespace) => {
                 namespace
                     .zones_mut()
@@ -147,7 +147,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         },
         MainCommand::Restart { uuid } => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
@@ -168,7 +168,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Up { uuid } => {
-            let mut zone = Namespace::open(&arguments.namespace_identifier)?
+            let mut zone = Namespace::open(arguments.namespace_identifier)?
                 .expect("Namespace not found")
                 .zones_mut()
                 .open(uuid)?
@@ -182,7 +182,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Down { uuid } => {
-            let zone = Namespace::open(&arguments.namespace_identifier)?
+            let zone = Namespace::open(arguments.namespace_identifier)?
                 .expect("Namespace not found")
                 .zones_mut()
                 .open(uuid)?
@@ -197,7 +197,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
         MainCommand::Reup { uuid } => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
@@ -228,10 +228,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 ZoneConfiguration::default()
             };
 
-            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
                 None => {
-                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::create(arguments.namespace_identifier.clone())?;
                     Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
                 }
             };
@@ -248,7 +248,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             println!("{}", zone_identifier);
         }
         MainCommand::Undeploy { uuid } => {
-            let zone = Namespace::open(&arguments.namespace_identifier)?
+            let zone = Namespace::open(arguments.namespace_identifier)?
                 .expect("Namespace not found")
                 .zones_mut()
                 .open(uuid)?
@@ -265,7 +265,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
         MainCommand::Redeploy { uuid } => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
@@ -293,7 +293,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
         MainCommand::Send { uuid } => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
@@ -301,7 +301,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         }
         MainCommand::Receive => {
             let mut namespace =
-                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
             println!(
                 "{}",
@@ -318,10 +318,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 ZoneConfiguration::default()
             };
 
-            let mut namespace = match Namespace::open(&arguments.namespace_identifier)? {
+            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
                 None => {
-                    Namespace::create(&arguments.namespace_identifier)?;
+                    Namespace::create(arguments.namespace_identifier.clone())?;
                     Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
                 }
             };
@@ -337,7 +337,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             println!("{}", zone_identifier.uuid());
         }
-        MainCommand::Status => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::Status => match Namespace::open(arguments.namespace_identifier)? {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {
                     println!("{:?}", zone?.identifier().uuid());
@@ -345,7 +345,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             None => {}
         },
-        MainCommand::List => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::List => match Namespace::open(arguments.namespace_identifier)? {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {
                     println!("{:?}", zone?.identifier().uuid());
@@ -353,7 +353,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             None => {}
         },
-        MainCommand::Purge => match Namespace::open(&arguments.namespace_identifier)? {
+        MainCommand::Purge => match Namespace::open(arguments.namespace_identifier)? {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {
                     let zone = zone?;
