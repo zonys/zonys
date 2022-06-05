@@ -24,6 +24,7 @@ use std::os::unix::io::AsRawFd;
 use std::os::unix::prelude::RawFd;
 use std::path::PathBuf;
 use uuid::Uuid;
+use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,14 +49,6 @@ impl Zone {
 }
 
 impl Zone {
-    fn file_system(&self) -> Result<FileSystem, zfs::Error> {
-        match FileSystem::open(&self.identifier.to_string()) {
-            Err(e) => Err(e.into()),
-            Ok(None) => panic!(),
-            Ok(Some(f)) => Ok(f),
-        }
-    }
-
     fn jail_name(&self) -> String {
         self.identifier().uuid().to_string()
     }
@@ -208,8 +201,9 @@ impl Zone {
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
-        FileSystem::create(&self.identifier().to_string())?;
-        let mut file_system = FileSystem::open(&&self.identifier().to_string())?
+        let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
+        FileSystem::create(&file_system_identifier)?;
+        let mut file_system = FileSystem::open(&file_system_identifier)?
             .ok_or(CreateZoneError::FileSystemNotExisting)?;
         file_system.mount()?;
 
@@ -331,7 +325,9 @@ impl Zone {
             return Err(DestroyZoneError::IsRunning);
         }
 
-        let mut file_system = self.file_system()?;
+        let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
+        let mut file_system = FileSystem::open(&file_system_identifier)?
+            .ok_or(DestroyZoneError::FileSystemNotExisting)?;
         let configuration = self.configuration()?;
         let executor = ZoneExecutor::default();
 
@@ -360,12 +356,8 @@ impl Zone {
 
         jail.destroy()?;
 
-        if file_system.is_mounted()? {
+        if file_system.mount_status()?.is_mounted() {
             file_system.unmount_all()?;
-        }
-
-        for snapshot in file_system.snapshots_mut().iter()? {
-            snapshot.destroy()?;
         }
 
         file_system.destroy()?;
@@ -389,20 +381,23 @@ impl Zone {
     }
 
     fn handle_send(&mut self, file_descriptor: RawFd) -> Result<(), SendZoneError> {
-        let mut file_system = self.file_system()?;
-        let snapshot_name = Uuid::new_v4().to_string();
+        if self.jail()?.is_some() {
+            return Err(SendZoneError::ZoneIsRunning);
+        }
 
-        file_system.snapshots_mut().create(&snapshot_name)?;
-        let mut snapshot = match file_system.snapshots().open(&snapshot_name)? {
-            None => return Err(SendZoneError::SnapshotNotExisting),
-            Some(s) => s,
+        let mut file_system = match FileSystem::open(&self.identifier().clone().into())? {
+            None => return Err(SendZoneError::MissingFileSystem),
+            Some(f) => f,
         };
 
-        snapshot.send(file_descriptor)?;
+        Ok(file_system.send(file_descriptor)?)
+    }
 
-        snapshot.destroy()?;
-
-        Ok(())
+    fn handle_receive(&mut self, file_descriptor: RawFd) -> Result<(), ReceiveZoneError> {
+        Ok(FileSystem::receive(
+            self.identifier.clone().into(),
+            file_descriptor,
+        )?)
     }
 }
 
@@ -411,12 +406,12 @@ impl Zone {
     where
         T: Into<Cow<'a, ZoneIdentifier>>,
     {
-        let identifier = identifier.into();
+        let identifier = identifier.into().into_owned();
 
-        match FileSystem::open(&identifier.to_string()) {
+        match FileSystem::open(&FileSystemIdentifier::from(identifier.clone())) {
             Err(e) => Err(e.into()),
             Ok(None) => Ok(None),
-            Ok(Some(_)) => Ok(Some(Self::new(identifier.into_owned(), None))),
+            Ok(Some(_)) => Ok(Some(Self::new(identifier, None))),
         }
     }
 
@@ -451,9 +446,10 @@ impl Zone {
             remove_file(lock_path)?;
         }
 
-        match FileSystem::open(&&zone.identifier().to_string())? {
+        let file_system_identifier = FileSystemIdentifier::from(zone.identifier().clone());
+        match FileSystem::open(&file_system_identifier)? {
             Some(mut file_system) => {
-                if file_system.is_mounted()? {
+                if file_system.mount_status()?.is_mounted() {
                     file_system.unmount_all()?;
                 }
 
@@ -502,15 +498,20 @@ impl Zone {
 
     pub fn receive<'a, T>(
         namespace_identifier: T,
-        _fd: RawFd,
-    ) -> Result<ZoneIdentifier, SendZoneError>
+        file_descriptor: RawFd,
+    ) -> Result<ZoneIdentifier, ReceiveZoneError>
     where
         T: Into<Cow<'a, NamespaceIdentifier>>,
     {
-        let zone = Self::new(
+        let mut zone = Self::new(
             ZoneIdentifier::new(namespace_identifier.into().into_owned(), Uuid::new_v4()),
             None,
         );
+        zone.lock()?;
+        let result = zone.handle_receive(file_descriptor);
+        zone.unlock()?;
+
+        result?;
 
         Ok(zone.identifier)
     }

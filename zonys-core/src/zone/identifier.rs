@@ -1,10 +1,13 @@
 use super::error::ParseZoneIdentifierError;
 use crate::namespace::NamespaceIdentifier;
+use crate::zone::error::ConvertZoneIdentifierFromFileSystemIdentifierError;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use zfs::file_system::identifier::{FileSystemIdentifier, FileSystemIdentifierComponents};
+use zfs::pool::identifier::{PoolIdentifier, PoolIdentifierName};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -99,5 +102,43 @@ impl<'a> From<&'a ZoneIdentifier> for Cow<'a, ZoneIdentifier> {
 impl<'a> From<ZoneIdentifier> for Cow<'a, ZoneIdentifier> {
     fn from(value: ZoneIdentifier) -> Self {
         Self::Owned(value)
+    }
+}
+
+impl From<ZoneIdentifier> for FileSystemIdentifier {
+    fn from(identifier: ZoneIdentifier) -> Self {
+        let mut file_system_identifier =
+            FileSystemIdentifier::from(identifier.namespace_identifier);
+        file_system_identifier
+            .components_mut()
+            .push(identifier.uuid.to_string());
+
+        file_system_identifier
+    }
+}
+
+impl TryFrom<FileSystemIdentifier> for ZoneIdentifier {
+    type Error = ConvertZoneIdentifierFromFileSystemIdentifierError;
+
+    fn try_from(identifier: FileSystemIdentifier) -> Result<Self, Self::Error> {
+        let (pool_identifier, mut file_system_identifier_components): (
+            PoolIdentifier,
+            FileSystemIdentifierComponents,
+        ) = identifier.into();
+        let (pool_identifier_name,): (PoolIdentifierName,) = pool_identifier.into();
+
+        let zone_identifier = match file_system_identifier_components.pop() {
+            None => {
+                return Err(
+                    ConvertZoneIdentifierFromFileSystemIdentifierError::MissingZoneIdentifier,
+                )
+            }
+            Some(c) => ZoneIdentifierUuid::parse_str(&c)?,
+        };
+
+        Ok(Self::new(
+            NamespaceIdentifier::new(pool_identifier_name, file_system_identifier_components),
+            zone_identifier,
+        ))
     }
 }

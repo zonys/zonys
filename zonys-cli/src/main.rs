@@ -70,6 +70,7 @@ enum MainCommand {
     Send {
         uuid: ZoneIdentifierUuid,
     },
+    Receive,
     Run {
         #[clap(short, long)]
         stdin: bool,
@@ -297,6 +298,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
             zone.send(stdout().as_raw_fd())?;
+        }
+        MainCommand::Receive => {
+            let mut namespace =
+                Namespace::open(&arguments.namespace_identifier)?.expect("Namespace not found");
+
+            println!(
+                "{}",
+                namespace
+                    .zones_mut()
+                    .receive(io_stdin().as_raw_fd())?
+                    .uuid()
+            );
         }
         MainCommand::Run { stdin } => {
             let mut configuration = if stdin {

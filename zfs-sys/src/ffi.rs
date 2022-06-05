@@ -236,12 +236,13 @@ pub fn libzfs_errno(param0: &LibzfsHandle) -> i32 {
 
 pub fn libzfs_error_description(param0: &LibzfsHandle) -> Result<String, Error> {
     Ok(unsafe {
-        CStr::from_ptr(r#extern::libzfs_error_description(
-            param0.inner_libzfs_handle().handle(),
-        ))
-        .to_str()?
-    }
-    .to_string())
+        let input = r#extern::libzfs_error_description(param0.inner_libzfs_handle().handle());
+
+        match CStr::from_ptr(input).to_str() {
+            Ok(o) => o.to_string(),
+            Err(_) => CStr::from_ptr(input).to_string_lossy().into_owned(),
+        }
+    })
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -499,9 +500,55 @@ pub fn zfs_snapshot(
     })
 }
 
+pub fn zfs_send<T>(
+    zhp: &mut ZfsHandle,
+    fromsnap: Option<&str>,
+    tosnap: &str,
+    flags: &mut sendflags_t,
+    outfd: i32,
+    filter_func: Option<T>,
+    debugnvp: Option<&mut Nvlist>,
+) -> Result<i32, Error>
+where
+    T: FnMut(ZfsHandle) -> bool,
+{
+    if debugnvp.is_some() {
+        todo!()
+    }
+
+    if filter_func.is_some() {
+        todo!()
+    }
+
+    extern "C" fn handler<'a, T>(_param0: *mut r#extern::zfs_handle_t, _param1: *mut c_void) -> bool
+    where
+        T: FnMut(ZfsHandle) -> bool,
+    {
+        true
+    }
+
+    let fromsnap_value = CString::new(fromsnap.unwrap_or(""))?;
+
+    Ok(unsafe {
+        r#extern::zfs_send(
+            zhp.inner_zfs_handle().handle(),
+            match fromsnap {
+                Some(_) => fromsnap_value.as_ptr(),
+                None => 0usize as _,
+            },
+            CString::new(tosnap)?.as_ptr(),
+            flags,
+            outfd,
+            handler::<T>,
+            0usize as _,
+            0usize as _,
+        )
+    })
+}
+
 pub fn zfs_send_one(
     param0: &mut ZfsHandle,
-    param1: &str,
+    param1: Option<&str>,
     param2: i32,
     param3: &mut sendflags_t,
     param4: Option<&str>,
@@ -513,7 +560,10 @@ pub fn zfs_send_one(
     Ok(unsafe {
         r#extern::zfs_send_one(
             param0.inner_zfs_handle().handle,
-            CString::new(param1)?.as_ptr(),
+            match param1 {
+                None => 0usize as _,
+                Some(p) => CString::new(p)?.as_ptr(),
+            },
             param2,
             param3,
             0usize as _,

@@ -9,10 +9,13 @@ pub use iterator::*;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use crate::zone::{
-    CreateZoneError, OpenZoneError, Zone, ZoneConfiguration, ZoneIdentifier, ZoneIdentifierUuid,
+    CreateZoneError, OpenZoneError, ReceiveZoneError, Zone, ZoneConfiguration, ZoneIdentifier,
+    ZoneIdentifierUuid,
 };
 use std::borrow::Cow;
+use std::os::unix::prelude::RawFd;
 use std::rc::Rc;
+use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,12 +60,12 @@ impl Namespace {
     where
         T: Into<Cow<'a, NamespaceIdentifier>>,
     {
-        let identifier = identifier.into();
+        let identifier = identifier.into().into_owned();
 
-        match FileSystem::open(&identifier.to_string())? {
+        match FileSystem::open(&FileSystemIdentifier::from(identifier.clone()))? {
             None => Ok(None),
             Some(file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle {
-                identifier: identifier.into_owned(),
+                identifier: identifier,
                 file_system,
             })))),
         }
@@ -72,13 +75,11 @@ impl Namespace {
     where
         T: Into<Cow<'a, NamespaceIdentifier>>,
     {
-        let identifier = identifier.into();
+        let identifier = FileSystemIdentifier::from(identifier.into().into_owned());
 
-        let identifier_string = identifier.to_string();
-
-        FileSystem::create(&identifier_string)?;
-        let mut file_system = FileSystem::open(&identifier_string)?
-            .ok_or(CreateNamespaceError::FileSystemNotExisting)?;
+        FileSystem::create(&identifier)?;
+        let mut file_system =
+            FileSystem::open(&identifier)?.ok_or(CreateNamespaceError::FileSystemNotExisting)?;
         file_system.mount()?;
 
         Ok(())
@@ -113,5 +114,9 @@ impl NamespaceZones {
 
     pub fn open(&self, uuid: ZoneIdentifierUuid) -> Result<Option<Zone>, OpenZoneError> {
         Zone::open(ZoneIdentifier::new(self.handle.identifier.clone(), uuid))
+    }
+
+    pub fn receive(&mut self, file_descriptor: RawFd) -> Result<ZoneIdentifier, ReceiveZoneError> {
+        Zone::receive(&self.handle.identifier, file_descriptor)
     }
 }

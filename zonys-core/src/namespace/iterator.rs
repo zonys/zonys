@@ -1,6 +1,5 @@
 use super::error::NextNamespaceZoneIteratorError;
 use crate::zone::{Zone, ZoneIdentifier};
-use std::str::FromStr;
 use zfs::file_system::iterator::ChildFileSystemIterator;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,17 +24,17 @@ impl Iterator for NamespaceZoneIterator {
                 Some(f) => f,
             };
 
-            let file_system_name = match file_system.name() {
-                Err(e) => return Some(Err(e.into())),
-                Ok(n) => n,
-            };
-
-            let identifier = match ZoneIdentifier::from_str(&file_system_name) {
+            let file_system_identifier = match file_system.identifier() {
                 Err(e) => return Some(Err(e.into())),
                 Ok(i) => i,
             };
 
-            match Zone::open(&identifier) {
+            let zone_identifier = match ZoneIdentifier::try_from(file_system_identifier) {
+                Err(e) => return Some(Err(e.into())),
+                Ok(i) => i,
+            };
+
+            match Zone::open(&zone_identifier) {
                 Err(e) => return Some(Err(e.into())),
                 Ok(Some(zone)) => return Some(Ok(zone)),
                 Ok(None) => {}

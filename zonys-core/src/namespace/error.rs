@@ -1,36 +1,46 @@
-use crate::zone::{OpenZoneError, ParseZoneIdentifierError};
+use crate::zone::{ConvertZoneIdentifierFromFileSystemIdentifierError, OpenZoneError};
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use zfs::file_system::error::{
+    CreateFileSystemError, MountFileSystemError, OpenFileSystemChildIteratorError,
+    OpenFileSystemError, ReadFileSystemIdentifierError,
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum ParseNamespaceIdentifierError {}
+pub enum ConvertNamespaceIdentifierFromStrError {
+    MissingRootComponent,
+}
 
-impl Debug for ParseNamespaceIdentifierError {
+impl Debug for ConvertNamespaceIdentifierFromStrError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        write!(formatter, "")
+        match self {
+            Self::MissingRootComponent => write!(formatter, "Root component is missing"),
+        }
     }
 }
 
-impl error::Error for ParseNamespaceIdentifierError {}
+impl error::Error for ConvertNamespaceIdentifierFromStrError {}
 
-impl Display for ParseNamespaceIdentifierError {
+impl Display for ConvertNamespaceIdentifierFromStrError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        write!(formatter, "")
+        match self {
+            Self::MissingRootComponent => write!(formatter, "Root component is missing"),
+        }
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum OpenNamespaceError {
-    ZfsError(zfs::Error),
+    OpenFileSystemError(OpenFileSystemError),
 }
 
 impl Debug for OpenNamespaceError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -38,29 +48,31 @@ impl Debug for OpenNamespaceError {
 impl Display for OpenNamespaceError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
 impl error::Error for OpenNamespaceError {}
 
-impl From<zfs::Error> for OpenNamespaceError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<OpenFileSystemError> for OpenNamespaceError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum OpenNamespaceZoneIteratorError {
-    ZfsError(zfs::Error),
+    OpenFileSystemChildIteratorError(OpenFileSystemChildIteratorError),
 }
+
+impl error::Error for OpenNamespaceZoneIteratorError {}
 
 impl Debug for OpenNamespaceZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemChildIteratorError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -68,32 +80,34 @@ impl Debug for OpenNamespaceZoneIteratorError {
 impl Display for OpenNamespaceZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemChildIteratorError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
-impl error::Error for OpenNamespaceZoneIteratorError {}
-
-impl From<zfs::Error> for OpenNamespaceZoneIteratorError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<OpenFileSystemChildIteratorError> for OpenNamespaceZoneIteratorError {
+    fn from(error: OpenFileSystemChildIteratorError) -> Self {
+        Self::OpenFileSystemChildIteratorError(error)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum NextNamespaceZoneIteratorError {
-    ZfsError(zfs::Error),
-    ParseZoneIdentifierError(ParseZoneIdentifierError),
+    ReadFileSystemIdentifierError(ReadFileSystemIdentifierError),
+    ConvertZoneIdentifierFromFileSystemIdentifierError(
+        ConvertZoneIdentifierFromFileSystemIdentifierError,
+    ),
     OpenZoneError(OpenZoneError),
 }
 
 impl Debug for NextNamespaceZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
-            Self::ParseZoneIdentifierError(error) => Debug::fmt(error, formatter),
+            Self::ReadFileSystemIdentifierError(error) => Debug::fmt(error, formatter),
+            Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error) => {
+                Debug::fmt(error, formatter)
+            }
             Self::OpenZoneError(error) => Debug::fmt(error, formatter),
         }
     }
@@ -102,8 +116,10 @@ impl Debug for NextNamespaceZoneIteratorError {
 impl Display for NextNamespaceZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
-            Self::ParseZoneIdentifierError(error) => Display::fmt(error, formatter),
+            Self::ReadFileSystemIdentifierError(error) => Display::fmt(error, formatter),
+            Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error) => {
+                Debug::fmt(error, formatter)
+            }
             Self::OpenZoneError(error) => Display::fmt(error, formatter),
         }
     }
@@ -111,15 +127,15 @@ impl Display for NextNamespaceZoneIteratorError {
 
 impl error::Error for NextNamespaceZoneIteratorError {}
 
-impl From<zfs::Error> for NextNamespaceZoneIteratorError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<ReadFileSystemIdentifierError> for NextNamespaceZoneIteratorError {
+    fn from(error: ReadFileSystemIdentifierError) -> Self {
+        Self::ReadFileSystemIdentifierError(error)
     }
 }
 
-impl From<ParseZoneIdentifierError> for NextNamespaceZoneIteratorError {
-    fn from(error: ParseZoneIdentifierError) -> Self {
-        Self::ParseZoneIdentifierError(error)
+impl From<ConvertZoneIdentifierFromFileSystemIdentifierError> for NextNamespaceZoneIteratorError {
+    fn from(error: ConvertZoneIdentifierFromFileSystemIdentifierError) -> Self {
+        Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error)
     }
 }
 
@@ -132,15 +148,19 @@ impl From<OpenZoneError> for NextNamespaceZoneIteratorError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum CreateNamespaceError {
-    ZfsError(zfs::Error),
+    CreateFileSystemError(CreateFileSystemError),
+    OpenFileSystemError(OpenFileSystemError),
     FileSystemNotExisting,
+    MountFileSystemError(MountFileSystemError),
 }
 
 impl Debug for CreateNamespaceError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::CreateFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
             Self::FileSystemNotExisting => write!(formatter, "File system not existing"),
+            Self::MountFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -148,16 +168,30 @@ impl Debug for CreateNamespaceError {
 impl Display for CreateNamespaceError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::CreateFileSystemError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
             Self::FileSystemNotExisting => write!(formatter, "File system not existing"),
+            Self::MountFileSystemError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
 impl error::Error for CreateNamespaceError {}
 
-impl From<zfs::Error> for CreateNamespaceError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<CreateFileSystemError> for CreateNamespaceError {
+    fn from(error: CreateFileSystemError) -> Self {
+        Self::CreateFileSystemError(error)
+    }
+}
+
+impl From<OpenFileSystemError> for CreateNamespaceError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
+    }
+}
+
+impl From<MountFileSystemError> for CreateNamespaceError {
+    fn from(error: MountFileSystemError) -> Self {
+        Self::MountFileSystemError(error)
     }
 }

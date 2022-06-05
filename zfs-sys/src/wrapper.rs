@@ -165,14 +165,45 @@ pub fn zfs_snapshot(
     Ok(())
 }
 
+pub fn zfs_send<T>(
+    zhp: &mut ZfsHandle,
+    fromsnap: Option<&str>,
+    tosnap: &str,
+    flags: &mut sendflags_t,
+    outfd: i32,
+    filter_func: Option<T>,
+    debugnvp: Option<&mut Nvlist>,
+) -> Result<(), Error>
+where
+    T: FnMut(ZfsHandle) -> bool,
+{
+    let result = ffi::zfs_send(zhp, fromsnap, tosnap, flags, outfd, filter_func, debugnvp)?;
+
+    if result < 0 {
+        return Err(Error::ZfsError(
+            libzfs_errno(zhp.libzfs_handle()),
+            libzfs_error_description(zhp.libzfs_handle())?,
+        ));
+    }
+
+    Ok(())
+}
+
 pub fn zfs_send_one(
     param0: &mut ZfsHandle,
-    param1: &str,
+    param1: Option<&str>,
     param2: i32,
     param3: &mut sendflags_t,
     param4: Option<&str>,
 ) -> Result<(), Error> {
-    ffi::zfs_send_one(param0, param1, param2, param3, param4)?;
+    let result = ffi::zfs_send_one(param0, param1, param2, param3, param4)?;
+
+    if result < 0 {
+        return Err(Error::ZfsError(
+            libzfs_errno(param0.libzfs_handle()),
+            libzfs_error_description(param0.libzfs_handle())?,
+        ));
+    }
 
     Ok(())
 }
@@ -185,7 +216,14 @@ pub fn zfs_receive(
     param4: i32,
     param5: Option<&mut avl_tree_t>,
 ) -> Result<(), Error> {
-    ffi::zfs_receive(param0, param1, param2, param3, param4, param5)?;
+    let result = ffi::zfs_receive(param0, param1, param2, param3, param4, param5)?;
+
+    if result < 0 {
+        return Err(Error::ZfsError(
+            libzfs_errno(param0),
+            libzfs_error_description(param0)?,
+        ));
+    }
 
     Ok(())
 }

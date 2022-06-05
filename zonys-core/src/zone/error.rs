@@ -1,4 +1,4 @@
-use crate::namespace::ParseNamespaceIdentifierError;
+use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template;
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -7,8 +7,10 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
 use std::process::ExitStatusError;
-use zfs::snapshot::error::{
-    CreateSnapshotError, DestroySnapshotError, OpenSnapshotError, SendSnapshotError,
+use zfs::file_system::error::{
+    CreateFileSystemError, DestroyFileSystemError, MountFileSystemError, OpenFileSystemError,
+    ReadFileSystemMountStatusError, ReceiveFileSystemError, SendFileSystemError,
+    UnmountAllFileSystemError,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,9 +142,11 @@ impl From<ExecuteChildZoneError> for ExecuteZoneError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum CreateZoneError {
-    ZfsError(zfs::Error),
     IoError(io::Error),
     FileSystemNotExisting,
+    CreateFileSystemError(CreateFileSystemError),
+    MountFileSystemError(MountFileSystemError),
+    OpenFileSystemError(OpenFileSystemError),
     ExecuteZoneError(ExecuteZoneError),
     YamlError(serde_yaml::Error),
     CreateJailError(CreateJailError),
@@ -150,6 +154,9 @@ pub enum CreateZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     StartZoneError(StartZoneError),
+    DestroyFileSystemError(DestroyFileSystemError),
+    ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
+    UnmountAllFileSystemError(UnmountAllFileSystemError),
 }
 
 impl error::Error for CreateZoneError {}
@@ -157,9 +164,11 @@ impl error::Error for CreateZoneError {}
 impl Debug for CreateZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::FileSystemNotExisting => write!(formatter, "File system not existing"),
+            Self::CreateFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::MountFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
             Self::YamlError(error) => Debug::fmt(error, formatter),
             Self::CreateJailError(error) => Debug::fmt(error, formatter),
@@ -167,6 +176,9 @@ impl Debug for CreateZoneError {
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
             Self::StartZoneError(error) => Debug::fmt(error, formatter),
+            Self::DestroyFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
+            Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -174,9 +186,11 @@ impl Debug for CreateZoneError {
 impl Display for CreateZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::FileSystemNotExisting => write!(formatter, "File system not existing"),
+            Self::CreateFileSystemError(error) => Display::fmt(error, formatter),
+            Self::MountFileSystemError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Display::fmt(error, formatter),
             Self::YamlError(error) => Display::fmt(error, formatter),
             Self::CreateJailError(error) => Display::fmt(error, formatter),
@@ -184,19 +198,34 @@ impl Display for CreateZoneError {
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::StartZoneError(error) => Display::fmt(error, formatter),
+            Self::DestroyFileSystemError(error) => Display::fmt(error, formatter),
+            Self::ReadFileSystemMountStatusError(error) => Display::fmt(error, formatter),
+            Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
         }
-    }
-}
-
-impl From<zfs::Error> for CreateZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
     }
 }
 
 impl From<io::Error> for CreateZoneError {
     fn from(error: io::Error) -> Self {
         Self::IoError(error)
+    }
+}
+
+impl From<CreateFileSystemError> for CreateZoneError {
+    fn from(error: CreateFileSystemError) -> Self {
+        Self::CreateFileSystemError(error)
+    }
+}
+
+impl From<MountFileSystemError> for CreateZoneError {
+    fn from(error: MountFileSystemError) -> Self {
+        Self::MountFileSystemError(error)
+    }
+}
+
+impl From<OpenFileSystemError> for CreateZoneError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
     }
 }
 
@@ -239,6 +268,24 @@ impl From<UnlockZoneError> for CreateZoneError {
 impl From<StartZoneError> for CreateZoneError {
     fn from(error: StartZoneError) -> Self {
         Self::StartZoneError(error)
+    }
+}
+
+impl From<DestroyFileSystemError> for CreateZoneError {
+    fn from(error: DestroyFileSystemError) -> Self {
+        Self::DestroyFileSystemError(error)
+    }
+}
+
+impl From<ReadFileSystemMountStatusError> for CreateZoneError {
+    fn from(error: ReadFileSystemMountStatusError) -> Self {
+        Self::ReadFileSystemMountStatusError(error)
+    }
+}
+
+impl From<UnmountAllFileSystemError> for CreateZoneError {
+    fn from(error: UnmountAllFileSystemError) -> Self {
+        Self::UnmountAllFileSystemError(error)
     }
 }
 
@@ -410,7 +457,6 @@ impl From<DestroyZoneError> for StopZoneError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum DestroyZoneError {
-    ZfsError(zfs::Error),
     OpenZoneConfigurationError(OpenZoneConfigurationError),
     ExecuteZoneError(ExecuteZoneError),
     TryIntoJailIdError(TryIntoJailIdError),
@@ -420,7 +466,11 @@ pub enum DestroyZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     IoError(io::Error),
-    DestroySnapshotError(DestroySnapshotError),
+    DestroyFileSystemError(DestroyFileSystemError),
+    OpenFileSystemError(OpenFileSystemError),
+    FileSystemNotExisting,
+    ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
+    UnmountAllFileSystemError(UnmountAllFileSystemError),
 }
 
 impl error::Error for DestroyZoneError {}
@@ -428,7 +478,6 @@ impl error::Error for DestroyZoneError {}
 impl Debug for DestroyZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
             Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
             Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
@@ -438,7 +487,11 @@ impl Debug for DestroyZoneError {
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
-            Self::DestroySnapshotError(error) => Debug::fmt(error, formatter),
+            Self::DestroyFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::FileSystemNotExisting => write!(formatter, "File system is not existing"),
+            Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
+            Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -446,7 +499,6 @@ impl Debug for DestroyZoneError {
 impl Display for DestroyZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
             Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
             Self::ExecuteZoneError(error) => Display::fmt(error, formatter),
             Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
@@ -456,14 +508,12 @@ impl Display for DestroyZoneError {
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
-            Self::DestroySnapshotError(error) => Display::fmt(error, formatter),
+            Self::DestroyFileSystemError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
+            Self::FileSystemNotExisting => write!(formatter, "File system is not existing"),
+            Self::ReadFileSystemMountStatusError(error) => Display::fmt(error, formatter),
+            Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
         }
-    }
-}
-
-impl From<zfs::Error> for DestroyZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
     }
 }
 
@@ -515,46 +565,34 @@ impl From<io::Error> for DestroyZoneError {
     }
 }
 
-impl From<DestroySnapshotError> for DestroyZoneError {
-    fn from(error: DestroySnapshotError) -> Self {
-        Self::DestroySnapshotError(error)
+impl From<DestroyFileSystemError> for DestroyZoneError {
+    fn from(error: DestroyFileSystemError) -> Self {
+        Self::DestroyFileSystemError(error)
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub enum ExistsZoneError {
-    ZfsError(zfs::Error),
-}
-
-impl error::Error for ExistsZoneError {}
-
-impl Display for ExistsZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
-        }
+impl From<OpenFileSystemError> for DestroyZoneError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
     }
 }
 
-impl Debug for ExistsZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
-        }
+impl From<ReadFileSystemMountStatusError> for DestroyZoneError {
+    fn from(error: ReadFileSystemMountStatusError) -> Self {
+        Self::ReadFileSystemMountStatusError(error)
     }
 }
 
-impl From<zfs::Error> for ExistsZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<UnmountAllFileSystemError> for DestroyZoneError {
+    fn from(error: UnmountAllFileSystemError) -> Self {
+        Self::UnmountAllFileSystemError(error)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum OpenZoneError {
-    ZfsError(zfs::Error),
+    OpenFileSystemError(OpenFileSystemError),
 }
 
 impl error::Error for OpenZoneError {}
@@ -562,7 +600,7 @@ impl error::Error for OpenZoneError {}
 impl Display for OpenZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -570,51 +608,20 @@ impl Display for OpenZoneError {
 impl Debug for OpenZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
 
-impl From<zfs::Error> for OpenZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub enum AllZoneError {
-    ZfsError(zfs::Error),
-}
-
-impl error::Error for AllZoneError {}
-
-impl Display for AllZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
-        }
-    }
-}
-
-impl Debug for AllZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
-
-impl From<zfs::Error> for AllZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<OpenFileSystemError> for OpenZoneError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum NextAllZoneIteratorError {
-    ZfsError(zfs::Error),
     ParseZoneIdentifierError(ParseZoneIdentifierError),
     OpenZoneError(OpenZoneError),
 }
@@ -624,7 +631,6 @@ impl error::Error for NextAllZoneIteratorError {}
 impl Display for NextAllZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
             Self::ParseZoneIdentifierError(error) => Display::fmt(error, formatter),
             Self::OpenZoneError(error) => Display::fmt(error, formatter),
         }
@@ -634,16 +640,9 @@ impl Display for NextAllZoneIteratorError {
 impl Debug for NextAllZoneIteratorError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
             Self::ParseZoneIdentifierError(error) => Debug::fmt(error, formatter),
             Self::OpenZoneError(error) => Debug::fmt(error, formatter),
         }
-    }
-}
-
-impl From<zfs::Error> for NextAllZoneIteratorError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
     }
 }
 
@@ -688,7 +687,7 @@ impl Display for ParseZoneIdentifierBaseError {
 pub enum ParseZoneIdentifierError {
     UuidError(uuid::Error),
     EmptyInput,
-    ParseNamespaceIdentifierError(ParseNamespaceIdentifierError),
+    ConvertNamespaceIdentifierFromStrError(ConvertNamespaceIdentifierFromStrError),
 }
 
 impl error::Error for ParseZoneIdentifierError {}
@@ -698,7 +697,7 @@ impl Debug for ParseZoneIdentifierError {
         match self {
             Self::UuidError(error) => Debug::fmt(error, formatter),
             Self::EmptyInput => write!(formatter, "Input is empty"),
-            Self::ParseNamespaceIdentifierError(error) => Debug::fmt(error, formatter),
+            Self::ConvertNamespaceIdentifierFromStrError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -708,7 +707,7 @@ impl Display for ParseZoneIdentifierError {
         match self {
             Self::UuidError(error) => Display::fmt(error, formatter),
             Self::EmptyInput => write!(formatter, "Input is empty"),
-            Self::ParseNamespaceIdentifierError(error) => Display::fmt(error, formatter),
+            Self::ConvertNamespaceIdentifierFromStrError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -719,9 +718,9 @@ impl From<uuid::Error> for ParseZoneIdentifierError {
     }
 }
 
-impl From<ParseNamespaceIdentifierError> for ParseZoneIdentifierError {
-    fn from(error: ParseNamespaceIdentifierError) -> Self {
-        Self::ParseNamespaceIdentifierError(error)
+impl From<ConvertNamespaceIdentifierFromStrError> for ParseZoneIdentifierError {
+    fn from(error: ConvertNamespaceIdentifierFromStrError) -> Self {
+        Self::ConvertNamespaceIdentifierFromStrError(error)
     }
 }
 
@@ -881,14 +880,13 @@ impl From<io::Error> for UnlockZoneError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum SendZoneError {
-    ZfsError(zfs::Error),
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
-    CreateSnapshotError(CreateSnapshotError),
-    OpenSnapshotError(OpenSnapshotError),
-    SnapshotNotExisting,
-    SendSnapshotError(SendSnapshotError),
-    DestroySnapshotError(DestroySnapshotError),
+    SendFileSystemError(SendFileSystemError),
+    TryIntoJailIdError(TryIntoJailIdError),
+    ZoneIsRunning,
+    OpenFileSystemError(OpenFileSystemError),
+    MissingFileSystem,
 }
 
 impl error::Error for SendZoneError {}
@@ -896,14 +894,13 @@ impl error::Error for SendZoneError {}
 impl Debug for SendZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
-            Self::CreateSnapshotError(error) => Debug::fmt(error, formatter),
-            Self::OpenSnapshotError(error) => Debug::fmt(error, formatter),
-            Self::SnapshotNotExisting => write!(formatter, "Snapshot not existing"),
-            Self::SendSnapshotError(error) => Debug::fmt(error, formatter),
-            Self::DestroySnapshotError(error) => Debug::fmt(error, formatter),
+            Self::SendFileSystemError(error) => Display::fmt(error, formatter),
+            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
+            Self::ZoneIsRunning => write!(formatter, "Zone is running"),
+            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::MissingFileSystem => write!(formatter, "File system is not existing"),
         }
     }
 }
@@ -911,21 +908,14 @@ impl Debug for SendZoneError {
 impl Display for SendZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
-            Self::CreateSnapshotError(error) => Display::fmt(error, formatter),
-            Self::OpenSnapshotError(error) => Display::fmt(error, formatter),
-            Self::SnapshotNotExisting => write!(formatter, "Snapshot not existing"),
-            Self::SendSnapshotError(error) => Display::fmt(error, formatter),
-            Self::DestroySnapshotError(error) => Display::fmt(error, formatter),
+            Self::SendFileSystemError(error) => Display::fmt(error, formatter),
+            Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
+            Self::ZoneIsRunning => write!(formatter, "Zone is running"),
+            Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
+            Self::MissingFileSystem => write!(formatter, "File system is not existing"),
         }
-    }
-}
-
-impl From<zfs::Error> for SendZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
     }
 }
 
@@ -941,34 +931,30 @@ impl From<UnlockZoneError> for SendZoneError {
     }
 }
 
-impl From<CreateSnapshotError> for SendZoneError {
-    fn from(error: CreateSnapshotError) -> Self {
-        Self::CreateSnapshotError(error)
+impl From<SendFileSystemError> for SendZoneError {
+    fn from(error: SendFileSystemError) -> Self {
+        Self::SendFileSystemError(error)
     }
 }
 
-impl From<OpenSnapshotError> for SendZoneError {
-    fn from(error: OpenSnapshotError) -> Self {
-        Self::OpenSnapshotError(error)
+impl From<TryIntoJailIdError> for SendZoneError {
+    fn from(error: TryIntoJailIdError) -> Self {
+        Self::TryIntoJailIdError(error)
     }
 }
 
-impl From<SendSnapshotError> for SendZoneError {
-    fn from(error: SendSnapshotError) -> Self {
-        Self::SendSnapshotError(error)
-    }
-}
-
-impl From<DestroySnapshotError> for SendZoneError {
-    fn from(error: DestroySnapshotError) -> Self {
-        Self::DestroySnapshotError(error)
+impl From<OpenFileSystemError> for SendZoneError {
+    fn from(error: OpenFileSystemError) -> Self {
+        Self::OpenFileSystemError(error)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum ReceiveZoneError {
-    ZfsError(zfs::Error),
+    LockZoneError(LockZoneError),
+    UnlockZoneError(UnlockZoneError),
+    ReceiveFileSystemError(ReceiveFileSystemError),
 }
 
 impl error::Error for ReceiveZoneError {}
@@ -976,7 +962,9 @@ impl error::Error for ReceiveZoneError {}
 impl Debug for ReceiveZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Debug::fmt(error, formatter),
+            Self::LockZoneError(error) => Debug::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::ReceiveFileSystemError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -984,13 +972,60 @@ impl Debug for ReceiveZoneError {
 impl Display for ReceiveZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::ZfsError(error) => Display::fmt(error, formatter),
+            Self::LockZoneError(error) => Display::fmt(error, formatter),
+            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::ReceiveFileSystemError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
-impl From<zfs::Error> for ReceiveZoneError {
-    fn from(error: zfs::Error) -> Self {
-        Self::ZfsError(error)
+impl From<LockZoneError> for ReceiveZoneError {
+    fn from(error: LockZoneError) -> Self {
+        Self::LockZoneError(error)
+    }
+}
+
+impl From<UnlockZoneError> for ReceiveZoneError {
+    fn from(error: UnlockZoneError) -> Self {
+        Self::UnlockZoneError(error)
+    }
+}
+
+impl From<ReceiveFileSystemError> for ReceiveZoneError {
+    fn from(error: ReceiveFileSystemError) -> Self {
+        Self::ReceiveFileSystemError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum ConvertZoneIdentifierFromFileSystemIdentifierError {
+    MissingZoneIdentifier,
+    UuidError(uuid::Error),
+}
+
+impl error::Error for ConvertZoneIdentifierFromFileSystemIdentifierError {}
+
+impl Debug for ConvertZoneIdentifierFromFileSystemIdentifierError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::MissingZoneIdentifier => write!(formatter, "Zone identifier is missing"),
+            Self::UuidError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for ConvertZoneIdentifierFromFileSystemIdentifierError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::MissingZoneIdentifier => write!(formatter, "Zone identifier is missing"),
+            Self::UuidError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<uuid::Error> for ConvertZoneIdentifierFromFileSystemIdentifierError {
+    fn from(error: uuid::Error) -> Self {
+        Self::UuidError(error)
     }
 }

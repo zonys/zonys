@@ -41,47 +41,50 @@ extern "C" {
 pub type ZfsIterF = unsafe extern "C" fn(param0: *mut zfs_handle_t, param1: *mut c_void) -> c_int;
 pub type ZpoolIterF =
     unsafe extern "C" fn(param0: *mut zpool_handle_t, param1: *mut c_void) -> c_int;
+pub type SnapfilterCb =
+    unsafe extern "C" fn(param0: *mut zfs_handle_t, param1: *mut c_void) -> bool;
+pub type Boolean = c_int;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[repr(C)]
 pub struct sendflags_t {
     pub verbosity: c_int,
-    pub replicate: bool,
-    pub skipmissing: bool,
-    pub doall: bool,
-    pub fromorigin: bool,
-    pub pad: bool,
-    pub props: bool,
-    pub dryrun: bool,
-    pub parsable: bool,
-    pub progress: bool,
-    pub largeblock: bool,
-    pub embed_data: bool,
-    pub compress: bool,
-    pub raw: bool,
-    pub backup: bool,
-    pub holds: bool,
-    pub saved: bool,
+    pub replicate: Boolean,
+    pub skipmissing: Boolean,
+    pub doall: Boolean,
+    pub fromorigin: Boolean,
+    pub pad: Boolean,
+    pub props: Boolean,
+    pub dryrun: Boolean,
+    pub parsable: Boolean,
+    pub progress: Boolean,
+    pub largeblock: Boolean,
+    pub embed_data: Boolean,
+    pub compress: Boolean,
+    pub raw: Boolean,
+    pub backup: Boolean,
+    pub holds: Boolean,
+    pub saved: Boolean,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[repr(C)]
 pub struct recvflags_t {
-    pub verbose: bool,
-    pub isprefix: bool,
-    pub istail: bool,
-    pub dryrun: bool,
-    pub force: bool,
-    pub canmountoff: bool,
-    pub resumable: bool,
-    pub byteswap: bool,
-    pub nomount: bool,
-    pub holds: bool,
-    pub skipholds: bool,
-    pub domount: bool,
-    pub forceunmount: bool,
+    pub verbose: Boolean,
+    pub isprefix: Boolean,
+    pub istail: Boolean,
+    pub dryrun: Boolean,
+    pub force: Boolean,
+    pub canmountoff: Boolean,
+    pub resumable: Boolean,
+    pub byteswap: Boolean,
+    pub nomount: Boolean,
+    pub holds: Boolean,
+    pub skipholds: Boolean,
+    pub domount: Boolean,
+    pub forceunmount: Boolean,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -430,9 +433,16 @@ extern "C" {
         flags: renameflags_t,
     ) -> c_int;
 
-    /*
-    _LIBZFS_H int zfs_send(zfs_handle_t *, const char *, const char *,
-    sendflags_t *, int, snapfilter_cb_t, void *, nvlist_t **);*/
+    pub fn zfs_send(
+        zhp: *mut zfs_handle_t,
+        fromsnap: *const c_char,
+        tosnap: *const c_char,
+        flags: *mut sendflags_t,
+        outfd: c_int,
+        filter_func: SnapfilterCb,
+        cb_arg: *mut c_void,
+        debugnvp: *mut *mut nvlist_t,
+    ) -> c_int;
 
     pub fn zfs_send_one(
         param0: *mut zfs_handle_t,
