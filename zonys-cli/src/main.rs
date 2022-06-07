@@ -7,7 +7,6 @@ use serde_yaml::from_reader;
 use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, Stdin};
-use std::os::unix::io::AsRawFd;
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
 use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid};
 
@@ -297,19 +296,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
 
-            zone.send(stdout().as_raw_fd())?;
+            zone.send(&mut stdout())?;
         }
         MainCommand::Receive => {
             let mut namespace =
                 Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
-            println!(
-                "{}",
-                namespace
-                    .zones_mut()
-                    .receive(io_stdin().as_raw_fd())?
-                    .uuid()
-            );
+            println!("{}", namespace.zones_mut().receive(&mut io_stdin())?.uuid());
         }
         MainCommand::Run { stdin } => {
             let mut configuration = if stdin {

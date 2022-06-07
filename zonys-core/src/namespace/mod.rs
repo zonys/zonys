@@ -12,7 +12,8 @@ use crate::zone::{
     CreateZoneError, OpenZoneError, ReceiveZoneError, Zone, ZoneConfiguration, ZoneIdentifier,
     ZoneIdentifierUuid,
 };
-use std::os::unix::prelude::RawFd;
+use std::io::Read;
+use std::os::unix::prelude::AsRawFd;
 use std::rc::Rc;
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
@@ -111,7 +112,10 @@ impl NamespaceZones {
         Zone::open(ZoneIdentifier::new(self.handle.identifier.clone(), uuid))
     }
 
-    pub fn receive(&mut self, file_descriptor: RawFd) -> Result<ZoneIdentifier, ReceiveZoneError> {
-        Zone::receive(self.handle.identifier.clone(), file_descriptor)
+    pub fn receive<T>(&mut self, reader: &mut T) -> Result<ZoneIdentifier, ReceiveZoneError>
+    where
+        T: Read + AsRawFd,
+    {
+        Zone::receive(self.handle.identifier.clone(), reader)
     }
 }

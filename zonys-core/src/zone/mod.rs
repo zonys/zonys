@@ -13,14 +13,14 @@ pub use transmission::*;
 use crate::namespace::NamespaceIdentifier;
 use crate::template::{TemplateObject, TemplateScalar, TemplateValue};
 use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
+use bincode::serde::{decode_from_slice, encode_into_std_write, encode_to_vec};
 use execution::*;
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
-use serde_yaml::{from_reader, to_writer};
+use serde_yaml::{from_reader, to_vec, to_writer};
 use std::fs::{remove_file, File};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::os::unix::io::AsRawFd;
-use std::os::unix::prelude::RawFd;
 use std::path::PathBuf;
 use uuid::Uuid;
 use zfs::file_system::identifier::FileSystemIdentifier;
@@ -379,7 +379,10 @@ impl Zone {
         Ok(())
     }
 
-    fn handle_send(&mut self, file_descriptor: RawFd) -> Result<(), SendZoneError> {
+    fn handle_send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
+    where
+        T: Write + AsRawFd,
+    {
         if self.jail()?.is_some() {
             return Err(SendZoneError::ZoneIsRunning);
         }
@@ -389,14 +392,59 @@ impl Zone {
             Some(f) => f,
         };
 
-        Ok(file_system.send(file_descriptor)?)
+        let bincode_configuration = create_bincode_configuration();
+
+        let header = encode_to_vec(
+            ZoneTransmissionHeader::Version1(ZoneTransmissionVersion1Header::new(
+                to_vec(&self.configuration()?)?,
+                ZoneTransmissionVersion1Type::Zfs,
+            )),
+            bincode_configuration,
+        )
+        .unwrap();
+
+        encode_into_std_write(
+            header.len() as ZoneTransmissionHeaderLength,
+            writer,
+            bincode_configuration,
+        )?;
+
+        writer.write(&header)?;
+        writer.flush()?;
+
+        Ok(file_system.send(writer.as_raw_fd())?)
     }
 
-    fn handle_receive(&mut self, file_descriptor: RawFd) -> Result<(), ReceiveZoneError> {
-        Ok(FileSystem::receive(
-            self.identifier.clone().into(),
-            file_descriptor,
-        )?)
+    fn handle_receive<T>(&mut self, reader: &mut T) -> Result<(), ReceiveZoneError>
+    where
+        T: Read + AsRawFd,
+    {
+        let bincode_configuration = create_bincode_configuration();
+
+        let mut header_len: [u8; 8] = [0; 8];
+        reader.read_exact(&mut header_len)?;
+        let (header_len, _): (ZoneTransmissionHeaderLength, _) =
+            decode_from_slice(&header_len, bincode_configuration)?;
+
+        let mut header: Vec<u8> = vec![0; header_len as usize];
+        reader.read_exact(&mut header)?;
+        let (header, _): (ZoneTransmissionHeader, _) =
+            decode_from_slice(&header, bincode_configuration)?;
+
+        match header {
+            ZoneTransmissionHeader::Version1(version1) => {
+                match version1.r#type() {
+                    ZoneTransmissionVersion1Type::Zfs => {
+                        FileSystem::receive(self.identifier.clone().into(), reader.as_raw_fd())?;
+                    }
+                };
+
+                let writer = &mut BufWriter::new(File::create(self.configuration_path())?);
+                writer.write(version1.configuration())?;
+            }
+        };
+
+        Ok(())
     }
 }
 
@@ -479,24 +527,30 @@ impl Zone {
         self.handle_destroy()
     }
 
-    pub fn send(&mut self, file_descriptor: RawFd) -> Result<(), SendZoneError> {
+    pub fn send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
+    where
+        T: Write + AsRawFd,
+    {
         self.lock()?;
-        let result = self.handle_send(file_descriptor);
+        let result = self.handle_send(writer);
         self.unlock()?;
 
         result
     }
 
-    pub fn receive(
+    pub fn receive<T>(
         namespace_identifier: NamespaceIdentifier,
-        file_descriptor: RawFd,
-    ) -> Result<ZoneIdentifier, ReceiveZoneError> {
+        reader: &mut T,
+    ) -> Result<ZoneIdentifier, ReceiveZoneError>
+    where
+        T: Read + AsRawFd,
+    {
         let mut zone = Self::new(
             ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),
             None,
         );
         zone.lock()?;
-        let result = zone.handle_receive(file_descriptor);
+        let result = zone.handle_receive(reader);
         zone.unlock()?;
 
         result?;

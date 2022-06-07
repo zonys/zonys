@@ -1,5 +1,6 @@
 use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template;
+use bincode::error::{DecodeError, EncodeError};
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
 use std::error;
@@ -887,6 +888,10 @@ pub enum SendZoneError {
     ZoneIsRunning,
     OpenFileSystemError(OpenFileSystemError),
     MissingFileSystem,
+    OpenZoneConfigurationError(OpenZoneConfigurationError),
+    YamlError(serde_yaml::Error),
+    BincodeEncodeError(EncodeError),
+    IoError(io::Error),
 }
 
 impl error::Error for SendZoneError {}
@@ -901,6 +906,10 @@ impl Debug for SendZoneError {
             Self::ZoneIsRunning => write!(formatter, "Zone is running"),
             Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
             Self::MissingFileSystem => write!(formatter, "File system is not existing"),
+            Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
+            Self::YamlError(error) => Debug::fmt(error, formatter),
+            Self::BincodeEncodeError(error) => Debug::fmt(error, formatter),
+            Self::IoError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -915,6 +924,10 @@ impl Display for SendZoneError {
             Self::ZoneIsRunning => write!(formatter, "Zone is running"),
             Self::OpenFileSystemError(error) => Display::fmt(error, formatter),
             Self::MissingFileSystem => write!(formatter, "File system is not existing"),
+            Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
+            Self::YamlError(error) => Display::fmt(error, formatter),
+            Self::BincodeEncodeError(error) => Display::fmt(error, formatter),
+            Self::IoError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -949,12 +962,39 @@ impl From<OpenFileSystemError> for SendZoneError {
     }
 }
 
+impl From<OpenZoneConfigurationError> for SendZoneError {
+    fn from(error: OpenZoneConfigurationError) -> Self {
+        Self::OpenZoneConfigurationError(error)
+    }
+}
+
+impl From<serde_yaml::Error> for SendZoneError {
+    fn from(error: serde_yaml::Error) -> Self {
+        Self::YamlError(error)
+    }
+}
+
+impl From<EncodeError> for SendZoneError {
+    fn from(error: EncodeError) -> Self {
+        Self::BincodeEncodeError(error)
+    }
+}
+
+impl From<io::Error> for SendZoneError {
+    fn from(error: io::Error) -> Self {
+        Self::IoError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum ReceiveZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     ReceiveFileSystemError(ReceiveFileSystemError),
+    IoError(io::Error),
+    BincodeDecodeError(DecodeError),
+    YamlError(serde_yaml::Error),
 }
 
 impl error::Error for ReceiveZoneError {}
@@ -965,6 +1005,9 @@ impl Debug for ReceiveZoneError {
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
             Self::ReceiveFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::IoError(error) => Debug::fmt(error, formatter),
+            Self::BincodeDecodeError(error) => Debug::fmt(error, formatter),
+            Self::YamlError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -975,6 +1018,9 @@ impl Display for ReceiveZoneError {
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::ReceiveFileSystemError(error) => Display::fmt(error, formatter),
+            Self::IoError(error) => Display::fmt(error, formatter),
+            Self::BincodeDecodeError(error) => Display::fmt(error, formatter),
+            Self::YamlError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -994,6 +1040,24 @@ impl From<UnlockZoneError> for ReceiveZoneError {
 impl From<ReceiveFileSystemError> for ReceiveZoneError {
     fn from(error: ReceiveFileSystemError) -> Self {
         Self::ReceiveFileSystemError(error)
+    }
+}
+
+impl From<io::Error> for ReceiveZoneError {
+    fn from(error: io::Error) -> Self {
+        Self::IoError(error)
+    }
+}
+
+impl From<DecodeError> for ReceiveZoneError {
+    fn from(error: DecodeError) -> Self {
+        Self::BincodeDecodeError(error)
+    }
+}
+
+impl From<serde_yaml::Error> for ReceiveZoneError {
+    fn from(error: serde_yaml::Error) -> Self {
+        Self::YamlError(error)
     }
 }
 
