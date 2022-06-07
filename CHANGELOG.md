@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+- Add destroy_after_stop configuration directive
+- Add receive command
+- Add run command
+- Add send command
+- Add start_after_create configuration directive
+
 ## 0.3.0
 - Add deploy command
 - Add down command
