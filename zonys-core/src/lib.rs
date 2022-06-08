@@ -5,5 +5,4 @@
 
 pub mod namespace;
 pub mod template;
-pub mod utility;
 pub mod zone;
