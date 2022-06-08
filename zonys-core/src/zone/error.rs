@@ -995,6 +995,7 @@ pub enum ReceiveZoneError {
     IoError(io::Error),
     BincodeDecodeError(DecodeError),
     YamlError(serde_yaml::Error),
+    MissingMagicNumber,
 }
 
 impl error::Error for ReceiveZoneError {}
@@ -1008,6 +1009,7 @@ impl Debug for ReceiveZoneError {
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::BincodeDecodeError(error) => Debug::fmt(error, formatter),
             Self::YamlError(error) => Debug::fmt(error, formatter),
+            Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
         }
     }
 }
@@ -1021,6 +1023,7 @@ impl Display for ReceiveZoneError {
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::BincodeDecodeError(error) => Display::fmt(error, formatter),
             Self::YamlError(error) => Debug::fmt(error, formatter),
+            Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
         }
     }
 }

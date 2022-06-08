@@ -404,6 +404,12 @@ impl Zone {
         .unwrap();
 
         encode_into_std_write(
+            ZONE_TRANSMISSION_MAGIC_NUMBER,
+            writer,
+            bincode_configuration,
+        )?;
+
+        encode_into_std_write(
             header.len() as ZoneTransmissionHeaderLength,
             writer,
             bincode_configuration,
@@ -420,11 +426,18 @@ impl Zone {
         T: Read + AsRawFd,
     {
         let bincode_configuration = create_bincode_configuration();
+        let mut buffer: [u8; 8] = [0; 8];
 
-        let mut header_len: [u8; 8] = [0; 8];
-        reader.read_exact(&mut header_len)?;
+        reader.read_exact(&mut buffer)?;
+        let (magic_number, _): (ZoneTransmissionMagicNumberLength, _) =
+            decode_from_slice(&buffer, bincode_configuration)?;
+        if magic_number != ZONE_TRANSMISSION_MAGIC_NUMBER {
+            return Err(ReceiveZoneError::MissingMagicNumber);
+        }
+
+        reader.read_exact(&mut buffer)?;
         let (header_len, _): (ZoneTransmissionHeaderLength, _) =
-            decode_from_slice(&header_len, bincode_configuration)?;
+            decode_from_slice(&buffer, bincode_configuration)?;
 
         let mut header: Vec<u8> = vec![0; header_len as usize];
         reader.read_exact(&mut header)?;
