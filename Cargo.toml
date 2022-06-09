@@ -2,6 +2,7 @@
 members = [
     "jail",
     "jail-sys",
+    "jail-utility-sys",
     "nv-sys",
     "zfs-sys",
     "zonys-cli",

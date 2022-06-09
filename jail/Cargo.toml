@@ -9,3 +9,4 @@ edition = "2021"
 errno = "0.2"
 serde = "1"
 jail-sys = { path = "../jail-sys" }
+jail-utility-sys = { path = "../jail-utility-sys" }

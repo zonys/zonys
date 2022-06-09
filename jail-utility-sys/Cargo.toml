@@ -1,0 +1,9 @@
+[package]
+name = "jail-utility-sys"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+jail-sys = { path = "../jail-sys" }
+libc = "0.2"
+nix = "0.23"

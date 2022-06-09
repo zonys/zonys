@@ -2,18 +2,17 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+use errno::Errno;
+use jail_sys::wrapper::{
+    jail_attach, jail_getid, jail_remove, jailparam_set, GetIdJailError, JailFlag, Jailparam,
+    NewJailparamError, RemoveJailError, SetJailparamError,
+};
+use jail_utility_sys::jail_execute;
+use serde::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::num::TryFromIntError;
-
-use serde::{Deserialize, Serialize};
-
-use errno::Errno;
-use jail_sys::wrapper::{
-    jail_attach, jail_execute, jail_getid, jail_remove, jailparam_set, GetIdJailError, JailFlag,
-    Jailparam, NewJailparamError, RemoveJailError, SetJailparamError,
-};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -157,7 +156,7 @@ pub type AttachJailError = jail_sys::wrapper::AttachJailError;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub type ExecuteJailError = jail_sys::wrapper::ExecuteJailError;
+pub type ExecuteJailError = jail_utility_sys::ExecuteJailError;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
