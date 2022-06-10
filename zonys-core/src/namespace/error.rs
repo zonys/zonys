@@ -1,4 +1,6 @@
-use crate::zone::{ConvertZoneIdentifierFromFileSystemIdentifierError, OpenZoneError};
+use crate::zone::{
+    ConvertZoneIdentifierFromFileSystemIdentifierError, OpenZoneConfigurationError, OpenZoneError,
+};
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -193,5 +195,83 @@ impl From<OpenFileSystemError> for CreateNamespaceError {
 impl From<MountFileSystemError> for CreateNamespaceError {
     fn from(error: MountFileSystemError) -> Self {
         Self::MountFileSystemError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum OpenNamespaceMatchZoneIteratorError {
+    OpenNamespaceZoneIteratorError(OpenNamespaceZoneIteratorError),
+    RegexError(regex::Error),
+}
+
+impl error::Error for OpenNamespaceMatchZoneIteratorError {}
+
+impl Debug for OpenNamespaceMatchZoneIteratorError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::OpenNamespaceZoneIteratorError(error) => Debug::fmt(error, formatter),
+            Self::RegexError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for OpenNamespaceMatchZoneIteratorError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::OpenNamespaceZoneIteratorError(error) => Display::fmt(error, formatter),
+            Self::RegexError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<OpenNamespaceZoneIteratorError> for OpenNamespaceMatchZoneIteratorError {
+    fn from(error: OpenNamespaceZoneIteratorError) -> Self {
+        Self::OpenNamespaceZoneIteratorError(error)
+    }
+}
+
+impl From<regex::Error> for OpenNamespaceMatchZoneIteratorError {
+    fn from(error: regex::Error) -> Self {
+        Self::RegexError(error)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub enum NextNamespaceMatchZoneIteratorError {
+    NextNamespaceZoneIteratorError(NextNamespaceZoneIteratorError),
+    OpenZoneConfigurationError(OpenZoneConfigurationError),
+}
+
+impl error::Error for NextNamespaceMatchZoneIteratorError {}
+
+impl Debug for NextNamespaceMatchZoneIteratorError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::NextNamespaceZoneIteratorError(error) => Debug::fmt(error, formatter),
+            Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
+        }
+    }
+}
+
+impl Display for NextNamespaceMatchZoneIteratorError {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        match self {
+            Self::NextNamespaceZoneIteratorError(error) => Display::fmt(error, formatter),
+            Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl From<NextNamespaceZoneIteratorError> for NextNamespaceMatchZoneIteratorError {
+    fn from(error: NextNamespaceZoneIteratorError) -> Self {
+        Self::NextNamespaceZoneIteratorError(error)
+    }
+}
+
+impl From<OpenZoneConfigurationError> for NextNamespaceMatchZoneIteratorError {
+    fn from(error: OpenZoneConfigurationError) -> Self {
+        Self::OpenZoneConfigurationError(error)
     }
 }

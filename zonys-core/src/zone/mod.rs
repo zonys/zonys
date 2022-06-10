@@ -444,6 +444,8 @@ impl Zone {
         let (header, _): (ZoneTransmissionHeader, _) =
             decode_from_slice(&header, bincode_configuration)?;
 
+        println!("{:?}", header);
+
         match header {
             ZoneTransmissionHeader::Version1(version1) => {
                 match version1.r#type() {

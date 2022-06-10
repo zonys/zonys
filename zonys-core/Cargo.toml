@@ -8,6 +8,7 @@ bincode = { version = "2.0.0-rc.1", features = ["serde"] }
 jail = { path = "../jail" }
 liquid = { version = "0.26" }
 nix = { version = "0.24", features = ["fs"] }
+regex = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.8"
 tokio = { version = "1", features = ["full"] }

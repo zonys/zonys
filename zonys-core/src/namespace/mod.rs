@@ -12,6 +12,7 @@ use crate::zone::{
     CreateZoneError, OpenZoneError, ReceiveZoneError, Zone, ZoneConfiguration, ZoneIdentifier,
     ZoneIdentifierUuid,
 };
+use regex::Regex;
 use std::io::Read;
 use std::os::unix::prelude::AsRawFd;
 use std::rc::Rc;
@@ -117,5 +118,15 @@ impl NamespaceZones {
         T: Read + AsRawFd,
     {
         Zone::receive(self.handle.identifier.clone(), reader)
+    }
+
+    pub fn r#match(
+        &self,
+        regular_expression: &str,
+    ) -> Result<NamespaceMatchZoneIterator, OpenNamespaceMatchZoneIteratorError> {
+        Ok(NamespaceMatchZoneIterator::new(
+            self.iter()?,
+            Regex::new(regular_expression)?,
+        ))
     }
 }

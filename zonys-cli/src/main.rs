@@ -6,9 +6,9 @@ use clap::{Parser, Subcommand};
 use serde_yaml::from_reader;
 use std::error;
 use std::fmt::Debug;
-use std::io::{stdin as io_stdin, stdout, Stdin};
+use std::io::{stdin as io_stdin, stdout, ErrorKind, Stdin};
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
-use zonys_core::zone::{ZoneConfiguration, ZoneIdentifierUuid};
+use zonys_core::zone::{ReceiveZoneError, ZoneConfiguration};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -33,41 +33,41 @@ enum MainCommand {
         stdin: bool,
     },
     Destroy {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Recreate {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Start {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Stop {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Restart {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Up {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Down {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Reup {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Deploy {
         #[clap(short, long)]
         stdin: bool,
     },
     Undeploy {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Redeploy {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Send {
-        uuid: ZoneIdentifierUuid,
+        regular_expression: String,
     },
     Receive,
     Run {
@@ -102,109 +102,93 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             println!("{}", namespace.zones_mut().create(configuration)?.uuid());
         }
-        MainCommand::Destroy { uuid } => match Namespace::open(arguments.namespace_identifier)? {
-            Some(mut namespace) => {
-                namespace
-                    .zones_mut()
-                    .open(uuid)?
-                    .expect("Zone not found")
-                    .destroy()?;
+        MainCommand::Destroy { regular_expression } => {
+            match Namespace::open(arguments.namespace_identifier)? {
+                Some(namespace) => {
+                    let matched_zones = namespace
+                        .zones()
+                        .r#match(&regular_expression)?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    for zone in matched_zones {
+                        let uuid = zone.identifier().uuid().to_string();
+
+                        zone.destroy()?;
+
+                        println!("{}", uuid);
+                    }
+                }
+                None => {}
             }
-            None => {}
-        },
-        MainCommand::Recreate { uuid } => {
+        }
+        MainCommand::Recreate { regular_expression } => {
             let mut namespace =
                 Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
-            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-            let configuration = zone.configuration()?;
+            for zone in matched_zones {
+                let configuration = zone.configuration()?;
 
-            zone.destroy()?;
+                zone.destroy()?;
 
-            println!("{}", namespace.zones_mut().create(configuration)?);
+                println!("{}", namespace.zones_mut().create(configuration)?.uuid());
+            }
         }
-        MainCommand::Start { uuid } => match Namespace::open(arguments.namespace_identifier)? {
-            Some(mut namespace) => {
-                namespace
-                    .zones_mut()
-                    .open(uuid)?
-                    .expect("Zone not found")
-                    .start()?;
+        MainCommand::Start { regular_expression } => {
+            match Namespace::open(arguments.namespace_identifier)? {
+                Some(namespace) => {
+                    let matched_zones = namespace
+                        .zones()
+                        .r#match(&regular_expression)?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    for mut zone in matched_zones {
+                        zone.start()?;
+                        println!("{}", zone.identifier().uuid().to_string());
+                    }
+                }
+                None => {}
             }
-            None => {}
-        },
-        MainCommand::Stop { uuid } => match Namespace::open(arguments.namespace_identifier)? {
-            Some(mut namespace) => {
-                namespace
-                    .zones_mut()
-                    .open(uuid)?
-                    .expect("Zone not found")
-                    .stop()?;
+        }
+        MainCommand::Stop { regular_expression } => {
+            match Namespace::open(arguments.namespace_identifier)? {
+                Some(namespace) => {
+                    let matched_zones = namespace
+                        .zones()
+                        .r#match(&regular_expression)?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    for zone in matched_zones {
+                        let uuid = zone.identifier().uuid().to_string();
+                        zone.stop()?;
+                        println!("{}", uuid);
+                    }
+                }
+                None => {}
             }
-            None => {}
-        },
-        MainCommand::Restart { uuid } => {
+        }
+        MainCommand::Restart { regular_expression } => {
             let mut namespace =
                 Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
-            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-            let configuration = zone.configuration()?;
+            for zone in matched_zones {
+                let configuration = zone.configuration()?;
 
-            match zone.stop()? {
-                Some(mut zone) => zone.start()?,
-                None => {
-                    let identifier = namespace.zones_mut().create(configuration)?;
+                let zone = match zone.stop()? {
+                    Some(mut zone) => {
+                        zone.start()?;
 
-                    let mut zone = namespace
-                        .zones_mut()
-                        .open(*identifier.uuid())?
-                        .expect("Zone not found");
-
-                    zone.start()?;
-                }
-            }
-        }
-        MainCommand::Up { uuid } => {
-            let mut zone = Namespace::open(arguments.namespace_identifier)?
-                .expect("Namespace not found")
-                .zones_mut()
-                .open(uuid)?
-                .expect("Zone not found");
-
-            match zone.is_running()? {
-                true => {}
-                false => {
-                    zone.start()?;
-                }
-            }
-        }
-        MainCommand::Down { uuid } => {
-            let zone = Namespace::open(arguments.namespace_identifier)?
-                .expect("Namespace not found")
-                .zones_mut()
-                .open(uuid)?
-                .expect("Zone not found");
-
-            match zone.is_running()? {
-                true => {
-                    zone.stop()?;
-                }
-                false => {}
-            }
-        }
-        MainCommand::Reup { uuid } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
-
-            let configuration = zone.configuration()?;
-
-            if zone.is_running()? {
-                match zone.stop()? {
-                    Some(mut zone) => zone.start()?,
+                        zone
+                    }
                     None => {
                         let identifier = namespace.zones_mut().create(configuration)?;
 
@@ -214,10 +198,92 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                             .expect("Zone not found");
 
                         zone.start()?;
+
+                        zone
+                    }
+                };
+
+                println!("{}", zone.identifier().uuid().to_string());
+            }
+        }
+        MainCommand::Up { regular_expression } => {
+            let namespace =
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
+
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            for mut zone in matched_zones {
+                match zone.is_running()? {
+                    true => {}
+                    false => {
+                        zone.start()?;
+                        println!("{}", zone.identifier().uuid().to_string());
                     }
                 }
-            } else {
-                zone.start()?;
+            }
+        }
+        MainCommand::Down { regular_expression } => {
+            let namespace =
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
+
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            for zone in matched_zones {
+                match zone.is_running()? {
+                    true => {
+                        let uuid = zone.identifier().uuid().to_string();
+                        zone.stop()?;
+                        println!("{}", uuid);
+                    }
+                    false => {}
+                }
+            }
+        }
+        MainCommand::Reup { regular_expression } => {
+            let mut namespace =
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
+
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            for mut zone in matched_zones {
+                let configuration = zone.configuration()?;
+
+                let zone = if zone.is_running()? {
+                    match zone.stop()? {
+                        Some(mut zone) => {
+                            zone.start()?;
+
+                            zone
+                        }
+                        None => {
+                            let identifier = namespace.zones_mut().create(configuration)?;
+
+                            let mut zone = namespace
+                                .zones_mut()
+                                .open(*identifier.uuid())?
+                                .expect("Zone not found");
+
+                            zone.start()?;
+
+                            zone
+                        }
+                    }
+                } else {
+                    zone.start()?;
+
+                    zone
+                };
+
+                println!("{}", zone.identifier().uuid().to_string());
             }
         }
         MainCommand::Deploy { stdin } => {
@@ -246,63 +312,97 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             println!("{}", zone_identifier);
         }
-        MainCommand::Undeploy { uuid } => {
-            let zone = Namespace::open(arguments.namespace_identifier)?
-                .expect("Namespace not found")
-                .zones_mut()
-                .open(uuid)?
-                .expect("Zone not found");
+        MainCommand::Undeploy { regular_expression } => {
+            let namespace =
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
-            if zone.is_running()? {
-                match zone.stop()? {
-                    Some(zone) => zone.destroy()?,
-                    None => {}
-                };
-            } else {
-                zone.destroy()?;
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
+
+            for zone in matched_zones {
+                let uuid = zone.identifier().uuid().to_string();
+
+                if zone.is_running()? {
+                    match zone.stop()? {
+                        Some(zone) => zone.destroy()?,
+                        None => {}
+                    };
+                } else {
+                    zone.destroy()?;
+                }
+
+                println!("{}", uuid);
             }
         }
-        MainCommand::Redeploy { uuid } => {
+        MainCommand::Redeploy { regular_expression } => {
             let mut namespace =
                 Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
 
-            let zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-            let configuration = zone.configuration()?;
+            for zone in matched_zones {
+                let configuration = zone.configuration()?;
 
-            if zone.is_running()? {
-                match zone.stop()? {
-                    Some(zone) => zone.destroy()?,
-                    None => {}
-                };
-            } else {
-                zone.destroy()?;
+                if zone.is_running()? {
+                    match zone.stop()? {
+                        Some(zone) => zone.destroy()?,
+                        None => {}
+                    };
+                } else {
+                    zone.destroy()?;
+                }
+
+                let zone_identifier = namespace.zones_mut().create(configuration)?;
+
+                let mut zone = namespace
+                    .zones_mut()
+                    .open(*zone_identifier.uuid())?
+                    .expect("Zone not found");
+
+                zone.start()?;
+
+                println!("{}", zone_identifier.uuid().to_string());
+            }
+        }
+        MainCommand::Send { regular_expression } => {
+            let namespace =
+                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
+            let matched_zones = namespace
+                .zones()
+                .r#match(&regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
+            let mut stdout = stdout();
+
+            for zone in &matched_zones {
+                eprintln!("{}", zone.identifier().uuid());
             }
 
-            let zone_identifier = namespace.zones_mut().create(configuration)?;
-
-            let mut zone = namespace
-                .zones_mut()
-                .open(*zone_identifier.uuid())?
-                .expect("Zone not found");
-
-            zone.start()?;
-
-            println!("{}", zone_identifier);
-        }
-        MainCommand::Send { uuid } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let mut zone = namespace.zones_mut().open(uuid)?.expect("Zone not found");
-
-            zone.send(&mut stdout())?;
+            for mut zone in matched_zones {
+                zone.send(&mut stdout)?;
+            }
         }
         MainCommand::Receive => {
             let mut namespace =
                 Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
+            let mut stdin = io_stdin();
 
-            println!("{}", namespace.zones_mut().receive(&mut io_stdin())?.uuid());
+            loop {
+                match namespace.zones_mut().receive(&mut stdin) {
+                    Ok(z) => {
+                        println!("{}", z.uuid().to_string());
+                    }
+                    Err(ReceiveZoneError::IoError(e)) => match e.kind() {
+                        ErrorKind::UnexpectedEof => return Ok(()),
+                        _ => return Err(e.into()),
+                    },
+                    Err(e) => return Err(e.into()),
+                };
+            }
         }
         MainCommand::Run { stdin } => {
             let mut configuration = if stdin {
