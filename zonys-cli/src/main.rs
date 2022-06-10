@@ -378,10 +378,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
             let mut stdout = stdout();
 
-            for zone in &matched_zones {
-                eprintln!("{}", zone.identifier().uuid());
-            }
-
             for mut zone in matched_zones {
                 zone.send(&mut stdout)?;
             }
