@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+- Add tags configuration directive
+- Add regular expression matching based on tags and uuid to cli commands
+
 ## 0.4.0
 - Add destroy_after_stop configuration directive
 - Add receive command
