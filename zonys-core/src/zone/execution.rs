@@ -34,12 +34,12 @@ impl ZoneExecutionContext {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug)]
-pub struct ZoneParentExecutionInstruction {
+pub struct ZoneParentProgramExecution {
     program: String,
     arguments: Vec<String>,
 }
 
-impl ZoneParentExecutionInstruction {
+impl ZoneParentProgramExecution {
     pub fn new(program: String, arguments: Vec<String>) -> Self {
         Self { program, arguments }
     }
@@ -70,7 +70,7 @@ impl ZoneParentExecutionInstruction {
 }
 
 impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(
         configuration: &'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry,
@@ -87,7 +87,7 @@ impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1OnCreateExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -102,7 +102,7 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -117,7 +117,7 @@ impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -132,7 +132,7 @@ impl<'a> From<&'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1OnStartExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -147,7 +147,7 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1AfterStartExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -162,7 +162,7 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -177,7 +177,7 @@ impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1OnStopExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -192,7 +192,7 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1AfterStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1AfterStopExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -207,7 +207,7 @@ impl<'a> From<&'a Version1AfterStopExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(
         configuration: &'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry,
@@ -224,7 +224,7 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(configuration: &'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry) -> Self {
         Self::new(
@@ -239,7 +239,7 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry>
 }
 
 impl<'a> From<&'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentExecutionInstruction
+    for ZoneParentProgramExecution
 {
     fn from(
         configuration: &'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry,
@@ -258,12 +258,12 @@ impl<'a> From<&'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug)]
-pub struct ZoneChildExecutionInstruction {
+pub struct ZoneChildProgramExecution {
     program: String,
     arguments: Vec<String>,
 }
 
-impl ZoneChildExecutionInstruction {
+impl ZoneChildProgramExecution {
     pub fn new(program: String, arguments: Vec<String>) -> Self {
         Self { program, arguments }
     }
@@ -294,7 +294,7 @@ impl ZoneChildExecutionInstruction {
 }
 
 impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1OnCreateExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -309,7 +309,7 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -324,7 +324,7 @@ impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1OnStartExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -339,7 +339,7 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1AfterStartExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -354,7 +354,7 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -369,7 +369,7 @@ impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1OnStopExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -384,7 +384,7 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(
         configuration: &'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry,
@@ -401,7 +401,7 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry>
 }
 
 impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildExecutionInstruction
+    for ZoneChildProgramExecution
 {
     fn from(configuration: &'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry) -> Self {
         Self::new(
@@ -418,12 +418,12 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug)]
-pub enum ZoneExecutionInstruction {
-    Parent(ZoneParentExecutionInstruction),
-    Child(ZoneChildExecutionInstruction),
+pub enum ZoneProgramExecution {
+    Parent(ZoneParentProgramExecution),
+    Child(ZoneChildProgramExecution),
 }
 
-impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationEntry> for ZoneExecutionInstruction {
+impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1OnCreateExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1OnCreateExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -437,7 +437,7 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationEntry> for ZoneExe
 }
 
 impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationEntry>
-    for ZoneExecutionInstruction
+    for ZoneProgramExecution
 {
     fn from(entry: &'a Version1AfterCreateExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
@@ -451,7 +451,7 @@ impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationEntry> for ZoneExecutionInstruction {
+impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1OnStartExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1OnStartExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -465,7 +465,7 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationEntry> for ZoneExec
 }
 
 impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry>
-    for ZoneExecutionInstruction
+    for ZoneProgramExecution
 {
     fn from(entry: &'a Version1AfterStartExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
@@ -480,7 +480,7 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry>
 }
 
 impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationEntry>
-    for ZoneExecutionInstruction
+    for ZoneProgramExecution
 {
     fn from(entry: &'a Version1BeforeStopExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
@@ -494,7 +494,7 @@ impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationEntry> for ZoneExecutionInstruction {
+impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1OnStopExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1OnStopExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -508,7 +508,7 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationEntry> for ZoneExecu
 }
 
 impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry>
-    for ZoneExecutionInstruction
+    for ZoneProgramExecution
 {
     fn from(entry: &'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
@@ -522,7 +522,7 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationEntry> for ZoneExecutionInstruction {
+impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1OnDestroyExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1OnDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -537,12 +537,12 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationEntry> for ZoneEx
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateBeforeZoneExecutionInstructionIterator;
+pub struct ExecuteCreateBeforeZoneProgramExecutionIterator;
 
-impl ExecuteCreateBeforeZoneExecutionInstructionIterator {
+impl ExecuteCreateBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
@@ -555,7 +555,7 @@ impl ExecuteCreateBeforeZoneExecutionInstructionIterator {
                         .map(|c| c.before().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1BeforeCreateExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentExecutionInstruction::from(parent),
+                            Version1BeforeCreateExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         }))
                     {
                         Some(iter) => Box::new(iter),
@@ -570,12 +570,12 @@ impl ExecuteCreateBeforeZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateOnZoneExecutionInstructionIterator;
+pub struct ExecuteCreateOnZoneProgramExecutionIterator;
 
-impl ExecuteCreateOnZoneExecutionInstructionIterator {
+impl ExecuteCreateOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -586,7 +586,7 @@ impl ExecuteCreateOnZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.on().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -599,12 +599,12 @@ impl ExecuteCreateOnZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateAfterZoneExecutionInstructionIterator;
+pub struct ExecuteCreateAfterZoneProgramExecutionIterator;
 
-impl ExecuteCreateAfterZoneExecutionInstructionIterator {
+impl ExecuteCreateAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -615,7 +615,7 @@ impl ExecuteCreateAfterZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.after().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -628,12 +628,12 @@ impl ExecuteCreateAfterZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStartBeforeZoneExecutionInstructionIterator;
+pub struct ExecuteStartBeforeZoneProgramExecutionIterator;
 
-impl ExecuteStartBeforeZoneExecutionInstructionIterator {
+impl ExecuteStartBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
@@ -646,7 +646,7 @@ impl ExecuteStartBeforeZoneExecutionInstructionIterator {
                         .map(|c| c.before().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1BeforeStartExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentExecutionInstruction::from(parent),
+                            Version1BeforeStartExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         }))
                     {
                         Some(iter) => Box::new(iter),
@@ -661,12 +661,12 @@ impl ExecuteStartBeforeZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStartOnZoneExecutionInstructionIterator;
+pub struct ExecuteStartOnZoneProgramExecutionIterator;
 
-impl ExecuteStartOnZoneExecutionInstructionIterator {
+impl ExecuteStartOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -677,7 +677,7 @@ impl ExecuteStartOnZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.on().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -690,12 +690,12 @@ impl ExecuteStartOnZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStartAfterZoneExecutionInstructionIterator;
+pub struct ExecuteStartAfterZoneProgramExecutionIterator;
 
-impl ExecuteStartAfterZoneExecutionInstructionIterator {
+impl ExecuteStartAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -706,7 +706,7 @@ impl ExecuteStartAfterZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.after().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -719,12 +719,12 @@ impl ExecuteStartAfterZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStopBeforeZoneExecutionInstructionIterator;
+pub struct ExecuteStopBeforeZoneProgramExecutionIterator;
 
-impl ExecuteStopBeforeZoneExecutionInstructionIterator {
+impl ExecuteStopBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -735,7 +735,7 @@ impl ExecuteStopBeforeZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.before().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -748,12 +748,12 @@ impl ExecuteStopBeforeZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStopOnZoneExecutionInstructionIterator;
+pub struct ExecuteStopOnZoneProgramExecutionIterator;
 
-impl ExecuteStopOnZoneExecutionInstructionIterator {
+impl ExecuteStopOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -764,7 +764,7 @@ impl ExecuteStopOnZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.on().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -777,12 +777,12 @@ impl ExecuteStopOnZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteStopAfterZoneExecutionInstructionIterator;
+pub struct ExecuteStopAfterZoneProgramExecutionIterator;
 
-impl ExecuteStopAfterZoneExecutionInstructionIterator {
+impl ExecuteStopAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -797,7 +797,7 @@ impl ExecuteStopAfterZoneExecutionInstructionIterator {
                             b.inner().iter().map(|e| match e {
                                 Version1AfterStopExecuteJailZoneConfigurationEntry::Parent(
                                     parent,
-                                ) => ZoneParentExecutionInstruction::from(parent),
+                                ) => ZoneParentProgramExecution::from(parent),
                             })
                         }) {
                         Some(iter) => Box::new(iter),
@@ -811,12 +811,12 @@ impl ExecuteStopAfterZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyBeforeZoneExecutionInstructionIterator;
+pub struct ExecuteDestroyBeforeZoneProgramExecutionIterator;
 
-impl ExecuteDestroyBeforeZoneExecutionInstructionIterator {
+impl ExecuteDestroyBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -827,7 +827,7 @@ impl ExecuteDestroyBeforeZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.before().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -840,12 +840,12 @@ impl ExecuteDestroyBeforeZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyOnZoneExecutionInstructionIterator;
+pub struct ExecuteDestroyOnZoneProgramExecutionIterator;
 
-impl ExecuteDestroyOnZoneExecutionInstructionIterator {
+impl ExecuteDestroyOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
                 Version1ZoneConfigurationType::Jail(jail) => {
@@ -856,7 +856,7 @@ impl ExecuteDestroyOnZoneExecutionInstructionIterator {
                         .flatten()
                         .map(|c| c.on().as_ref())
                         .flatten()
-                        .map(|b| b.inner().iter().map(ZoneExecutionInstruction::from))
+                        .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
                         None => Box::new(std::iter::empty()),
@@ -869,12 +869,12 @@ impl ExecuteDestroyOnZoneExecutionInstructionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyAfterZoneExecutionInstructionIterator;
+pub struct ExecuteDestroyAfterZoneProgramExecutionIterator;
 
-impl ExecuteDestroyAfterZoneExecutionInstructionIterator {
+impl ExecuteDestroyAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
-    ) -> Box<dyn Iterator<Item = ZoneParentExecutionInstruction> + 'a> {
+    ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
@@ -887,7 +887,7 @@ impl ExecuteDestroyAfterZoneExecutionInstructionIterator {
                         .map(|c| c.after().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1AfterDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentExecutionInstruction::from(parent),
+                            Version1AfterDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         }))
                     {
                         Some(iter) => Box::new(iter),
@@ -911,7 +911,7 @@ impl ZoneExecutor {
     pub fn execute_parent(
         &self,
         context: &mut ZoneExecutionContext,
-        instruction: &ZoneParentExecutionInstruction,
+        instruction: &ZoneParentProgramExecution,
     ) -> Result<(), ExecuteParentZoneError> {
         Command::new(
             self.template_engine
@@ -935,7 +935,7 @@ impl ZoneExecutor {
     pub fn execute_child(
         &self,
         context: &mut ZoneExecutionContext,
-        instruction: &ZoneChildExecutionInstruction,
+        instruction: &ZoneChildProgramExecution,
         jail: &mut Jail,
     ) -> Result<(), ExecuteChildZoneError> {
         jail.execute(
@@ -957,14 +957,14 @@ impl ZoneExecutor {
     pub fn execute(
         &self,
         context: &mut ZoneExecutionContext,
-        instruction: &ZoneExecutionInstruction,
+        instruction: &ZoneProgramExecution,
         jail: &mut Jail,
     ) -> Result<(), ExecuteZoneError> {
         match instruction {
-            ZoneExecutionInstruction::Parent(parent_instruction) => {
+            ZoneProgramExecution::Parent(parent_instruction) => {
                 self.execute_parent(context, &parent_instruction)?
             }
-            ZoneExecutionInstruction::Child(child_instruction) => {
+            ZoneProgramExecution::Child(child_instruction) => {
                 self.execute_child(context, &child_instruction, jail)?
             }
         }
