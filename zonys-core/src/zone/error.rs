@@ -158,6 +158,7 @@ pub enum CreateZoneError {
     DestroyFileSystemError(DestroyFileSystemError),
     ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
     UnmountAllFileSystemError(UnmountAllFileSystemError),
+    TryIntoJailIdError(TryIntoJailIdError),
 }
 
 impl error::Error for CreateZoneError {}
@@ -180,6 +181,7 @@ impl Debug for CreateZoneError {
             Self::DestroyFileSystemError(error) => Debug::fmt(error, formatter),
             Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -202,6 +204,7 @@ impl Display for CreateZoneError {
             Self::DestroyFileSystemError(error) => Display::fmt(error, formatter),
             Self::ReadFileSystemMountStatusError(error) => Display::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
+            Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -287,6 +290,12 @@ impl From<ReadFileSystemMountStatusError> for CreateZoneError {
 impl From<UnmountAllFileSystemError> for CreateZoneError {
     fn from(error: UnmountAllFileSystemError) -> Self {
         Self::UnmountAllFileSystemError(error)
+    }
+}
+
+impl From<TryIntoJailIdError> for CreateZoneError {
+    fn from(error: TryIntoJailIdError) -> Self {
+        Self::TryIntoJailIdError(error)
     }
 }
 

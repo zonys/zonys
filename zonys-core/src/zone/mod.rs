@@ -488,6 +488,11 @@ impl Zone {
             Err(e) => e,
         };
 
+        match zone.jail()? {
+            Some(j) => j.destroy()?,
+            None => {},
+        }
+
         let configuration_path = zone.configuration_path();
         if configuration_path.exists() {
             remove_file(configuration_path)?;
