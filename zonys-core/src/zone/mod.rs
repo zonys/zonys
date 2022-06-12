@@ -490,7 +490,7 @@ impl Zone {
 
         match zone.jail()? {
             Some(j) => j.destroy()?,
-            None => {},
+            None => {}
         }
 
         let configuration_path = zone.configuration_path();
