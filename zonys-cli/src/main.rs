@@ -76,7 +76,6 @@ enum MainCommand {
     },
     Status,
     List,
-    Purge,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -438,16 +437,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             Some(namespace) => {
                 for zone in namespace.zones().iter()? {
                     println!("{:?}", zone?.identifier().uuid());
-                }
-            }
-            None => {}
-        },
-        MainCommand::Purge => match Namespace::open(arguments.namespace_identifier)? {
-            Some(namespace) => {
-                for zone in namespace.zones().iter()? {
-                    let zone = zone?;
-                    println!("{:?}", zone.identifier().uuid());
-                    zone.destroy()?;
                 }
             }
             None => {}
