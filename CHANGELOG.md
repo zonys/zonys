@@ -1,11 +1,15 @@
 # Changelog
 
+## 0.6.0
+- Fix jail destruction on creation fail
+- Remove purge command
+
 ## 0.5.1
 - Remove debugging output
 
 ## 0.5.0
-- Add tags configuration directive
 - Add regular expression matching based on tags and uuid to cli commands
+- Add tags configuration directive
 
 ## 0.4.0
 - Add destroy_after_stop configuration directive
