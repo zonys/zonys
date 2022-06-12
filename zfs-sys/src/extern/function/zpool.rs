@@ -68,6 +68,37 @@ extern "C" {
         param2: *mut nvlist_t,
         param3: *mut trimflags_t,
     ) -> c_int;
+    pub fn zpool_checkpoint(param0: *mut zpool_handle_t) -> c_int;
+    pub fn zpool_discard_checkpoint(param0: *mut zpool_handle_t) -> c_int;
+    pub fn zpool_is_draid_spare(param0: *const c_char) -> bool;
+    pub fn zpool_in_use(
+        param0: *mut libzfs_handle_t,
+        param1: c_int,
+        param2: *mut pool_state_t,
+        param3: *mut *mut c_char,
+        param4: *mut bool,
+    ) -> c_int;
+
+    pub fn zpool_enable_datasets(
+        param0: *mut zpool_handle_t,
+        param1: *const c_char,
+        param2: c_int,
+    ) -> c_int;
+    pub fn zpool_disable_datasets(param0: *mut zpool_handle_t, param1: bool) -> c_int;
+    pub fn zpool_disable_datasets_os(param0: *mut zpool_handle_t, param1: bool);
+    pub fn zpool_disable_volume_os(param0: *const c_char);
+    pub fn zpool_load_compat(
+        param0: *const c_char,
+        param1: *mut bool,
+        param2: *mut c_char,
+        param3: size_t,
+    ) -> zpool_compat_status_t;
+    pub fn zpool_nextboot(
+        param0: *mut libzfs_handle_t,
+        param1: u64,
+        param2: u64,
+        param3: *const c_char,
+    ) -> c_int;
 
     /*_LIBZFS_H int zpool_clear(zpool_handle_t *, const char *, nvlist_t *);
     _LIBZFS_H int zpool_reguid(zpool_handle_t *);
@@ -175,37 +206,5 @@ extern "C" {
     _LIBZFS_H void zpool_explain_recover(libzfs_handle_t *, const char *, int,
         nvlist_t *);
     */
-
-    pub fn zpool_checkpoint(param0: *mut zpool_handle_t) -> c_int;
-    pub fn zpool_discard_checkpoint(param0: *mut zpool_handle_t) -> c_int;
-    pub fn zpool_is_draid_spare(param0: *const c_char) -> bool;
-    pub fn zpool_in_use(
-        param0: *mut libzfs_handle_t,
-        param1: c_int,
-        param2: *mut pool_state_t,
-        param3: *mut *mut c_char,
-        param4: *mut bool,
-    ) -> c_int;
-
-    pub fn zpool_enable_datasets(
-        param0: *mut zpool_handle_t,
-        param1: *const c_char,
-        param2: c_int,
-    ) -> c_int;
-    pub fn zpool_disable_datasets(param0: *mut zpool_handle_t, param1: bool) -> c_int;
-    pub fn zpool_disable_datasets_os(param0: *mut zpool_handle_t, param1: bool);
-    pub fn zpool_disable_volume_os(param0: *const c_char);
-    pub fn zpool_load_compat(
-        param0: *const c_char,
-        param1: *mut bool,
-        param2: *mut c_char,
-        param3: size_t,
-    ) -> zpool_compat_status_t;
-    pub fn zpool_nextboot(
-        param0: *mut libzfs_handle_t,
-        param1: u64,
-        param2: u64,
-        param3: *const c_char,
-    ) -> c_int;
 
 }
