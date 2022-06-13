@@ -259,11 +259,27 @@ impl Jail {
         Ok(jail_attach(self.id.into())?)
     }
 
-    pub fn execute<T>(&self, program: &str, arguments: &[T]) -> Result<(), ExecuteJailError>
+    pub fn execute<'a, I, K, V, T>(
+        &self,
+        program: &str,
+        arguments: &[T],
+        environment_variables: I,
+    ) -> Result<(), ExecuteJailError>
     where
+        I: IntoIterator<Item = (K, V)>,
+        K: AsRef<str>,
+        V: AsRef<str>,
         T: AsRef<str>,
     {
-        Ok(jail_execute(self.id.into(), program, arguments)?)
+        Ok(jail_execute(
+            self.id.into(),
+            program,
+            arguments,
+            &environment_variables
+                .into_iter()
+                .map(|(key, value)| format!("{}={}", key.as_ref(), value.as_ref()))
+                .collect::<Vec<_>>(),
+        )?)
     }
 
     pub fn destroy(self) -> Result<(), DestroyJailError> {

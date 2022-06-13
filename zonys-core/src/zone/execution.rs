@@ -2,6 +2,7 @@ use super::error::{ExecuteChildZoneError, ExecuteParentZoneError, ExecuteZoneErr
 use crate::template::{TemplateEngine, TemplateObject};
 use crate::zone::configuration::*;
 use ::jail::Jail;
+use std::collections::HashMap;
 use std::iter::empty;
 use std::process::Command;
 use std::process::Stdio;
@@ -37,11 +38,20 @@ impl ZoneExecutionContext {
 pub struct ZoneParentProgramExecution {
     program: String,
     arguments: Vec<String>,
+    environment_variables: HashMap<String, String>,
 }
 
 impl ZoneParentProgramExecution {
-    pub fn new(program: String, arguments: Vec<String>) -> Self {
-        Self { program, arguments }
+    pub fn new(
+        program: String,
+        arguments: Vec<String>,
+        environment_variables: HashMap<String, String>,
+    ) -> Self {
+        Self {
+            program,
+            arguments,
+            environment_variables,
+        }
     }
 
     pub fn program(&self) -> &String {
@@ -67,6 +77,18 @@ impl ZoneParentProgramExecution {
     pub fn set_arguments(&mut self, arguments: Vec<String>) {
         self.arguments = arguments
     }
+
+    pub fn environment_variables(&self) -> &HashMap<String, String> {
+        &self.environment_variables
+    }
+
+    pub fn environment_variables_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.environment_variables
+    }
+
+    pub fn set_environment_variables(&mut self, environment_variables: HashMap<String, String>) {
+        self.environment_variables = environment_variables
+    }
 }
 
 impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
@@ -79,6 +101,11 @@ impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -97,6 +124,11 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -109,6 +141,11 @@ impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -127,6 +164,11 @@ impl<'a> From<&'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -139,6 +181,11 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -157,6 +204,11 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -169,6 +221,11 @@ impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -187,6 +244,11 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -199,6 +261,11 @@ impl<'a> From<&'a Version1AfterStopExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -219,6 +286,11 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -231,6 +303,11 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -251,6 +328,11 @@ impl<'a> From<&'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -261,11 +343,20 @@ impl<'a> From<&'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry>
 pub struct ZoneChildProgramExecution {
     program: String,
     arguments: Vec<String>,
+    environment_variables: HashMap<String, String>,
 }
 
 impl ZoneChildProgramExecution {
-    pub fn new(program: String, arguments: Vec<String>) -> Self {
-        Self { program, arguments }
+    pub fn new(
+        program: String,
+        arguments: Vec<String>,
+        environment_variables: HashMap<String, String>,
+    ) -> Self {
+        Self {
+            program,
+            arguments,
+            environment_variables,
+        }
     }
 
     pub fn program(&self) -> &String {
@@ -291,6 +382,18 @@ impl ZoneChildProgramExecution {
     pub fn set_arguments(&mut self, arguments: Vec<String>) {
         self.arguments = arguments
     }
+
+    pub fn environment_variables(&self) -> &HashMap<String, String> {
+        &self.environment_variables
+    }
+
+    pub fn environment_variables_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.environment_variables
+    }
+
+    pub fn set_environment_variables(&mut self, environment_variables: HashMap<String, String>) {
+        self.environment_variables = environment_variables
+    }
 }
 
 impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
@@ -301,6 +404,11 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -319,6 +427,11 @@ impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -331,6 +444,11 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationChildEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -349,6 +467,11 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationChildEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -364,6 +487,11 @@ impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -376,6 +504,11 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationChildEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -396,6 +529,11 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry>
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
         )
     }
 }
@@ -408,6 +546,11 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry>
             configuration.program().clone(),
             configuration
                 .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
                 .as_ref()
                 .map(|a| a.clone())
                 .unwrap_or_default(),
@@ -436,9 +579,7 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationEntry> for ZonePro
     }
 }
 
-impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationEntry>
-    for ZoneProgramExecution
-{
+impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1AfterCreateExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1AfterCreateExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -464,9 +605,7 @@ impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationEntry> for ZoneProg
     }
 }
 
-impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry>
-    for ZoneProgramExecution
-{
+impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1AfterStartExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1AfterStartExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -479,9 +618,7 @@ impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry>
     }
 }
 
-impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationEntry>
-    for ZoneProgramExecution
-{
+impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1BeforeStopExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1BeforeStopExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -507,9 +644,7 @@ impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationEntry> for ZoneProgr
     }
 }
 
-impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry>
-    for ZoneProgramExecution
-{
+impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
     fn from(entry: &'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry) -> Self {
         match entry {
             Version1BeforeDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => {
@@ -556,11 +691,10 @@ impl ExecuteCreateBeforeZoneProgramExecutionIterator {
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
                             Version1BeforeCreateExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
-                        }))
-                    {
-                        Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
-                    }
+                        })) {
+                            Some(iter) => Box::new(iter),
+                            None => Box::new(std::iter::empty()),
+                        }
                     }
                 }
             }
@@ -913,6 +1047,15 @@ impl ZoneExecutor {
         context: &mut ZoneExecutionContext,
         instruction: &ZoneParentProgramExecution,
     ) -> Result<(), ExecuteParentZoneError> {
+        let mut environment_variables = HashMap::<String, String>::new();
+
+        for (key, value) in instruction.environment_variables() {
+            environment_variables.insert(
+                self.template_engine.render(context.variables(), key)?,
+                self.template_engine.render(context.variables(), value)?,
+            );
+        }
+
         Command::new(
             self.template_engine
                 .render(context.variables(), instruction.program())?,
@@ -924,6 +1067,8 @@ impl ZoneExecutor {
                 .map(|a| self.template_engine.render(context.variables(), a))
                 .collect::<Result<Vec<_>, _>>()?,
         )
+        .env_clear()
+        .envs(environment_variables)
         .stdout(Stdio::inherit())
         .spawn()?
         .wait()?
@@ -938,6 +1083,15 @@ impl ZoneExecutor {
         instruction: &ZoneChildProgramExecution,
         jail: &mut Jail,
     ) -> Result<(), ExecuteChildZoneError> {
+        let mut environment_variables = HashMap::<String, String>::new();
+
+        for (key, value) in instruction.environment_variables() {
+            environment_variables.insert(
+                self.template_engine.render(context.variables(), key)?,
+                self.template_engine.render(context.variables(), value)?,
+            );
+        }
+
         jail.execute(
             &self
                 .template_engine
@@ -947,6 +1101,7 @@ impl ZoneExecutor {
                 .iter()
                 .map(|a| self.template_engine.render(context.variables(), a))
                 .collect::<Result<Vec<_>, _>>()?,
+            environment_variables,
         )?;
 
         Ok(())

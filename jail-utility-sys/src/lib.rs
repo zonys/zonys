@@ -59,8 +59,14 @@ impl From<NulError> for ExecuteJailError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn jail_execute<T>(jid: usize, program: &str, arguments: &[T]) -> Result<(), ExecuteJailError>
+pub fn jail_execute<S, T>(
+    jid: usize,
+    program: &str,
+    arguments: &[T],
+    environment_variables: &[S],
+) -> Result<(), ExecuteJailError>
 where
+    S: AsRef<str>,
     T: AsRef<str>,
 {
     match unsafe { fork()? } {
@@ -77,7 +83,10 @@ where
                         .chain(arguments.iter().map(|x| x.as_ref()))
                         .map(CString::new)
                         .collect::<Result<Vec<CString>, _>>()?,
-                    &Vec::<CString>::new(),
+                    &environment_variables
+                        .iter()
+                        .map(|x| CString::new(x.as_ref()))
+                        .collect::<Result<Vec<CString>, _>>()?,
                 )?;
 
                 libc::_exit(0);

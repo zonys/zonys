@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -6,11 +7,20 @@ use serde::{Deserialize, Serialize};
 pub struct Version1OnStartExecuteJailZoneConfigurationParentEntry {
     program: String,
     arguments: Option<Vec<String>>,
+    environment_variables: Option<HashMap<String, String>>,
 }
 
 impl Version1OnStartExecuteJailZoneConfigurationParentEntry {
-    pub fn new(program: String, arguments: Option<Vec<String>>) -> Self {
-        Self { program, arguments }
+    pub fn new(
+        program: String,
+        arguments: Option<Vec<String>>,
+        environment_variables: Option<HashMap<String, String>>,
+    ) -> Self {
+        Self {
+            program,
+            arguments,
+            environment_variables,
+        }
     }
 
     pub fn program(&self) -> &String {
@@ -35,6 +45,21 @@ impl Version1OnStartExecuteJailZoneConfigurationParentEntry {
 
     pub fn set_arguments(&mut self, arguments: Option<Vec<String>>) {
         self.arguments = arguments
+    }
+
+    pub fn environment_variables(&self) -> &Option<HashMap<String, String>> {
+        &self.environment_variables
+    }
+
+    pub fn environment_variables_mut(&mut self) -> &mut Option<HashMap<String, String>> {
+        &mut self.environment_variables
+    }
+
+    pub fn set_environment_variables(
+        &mut self,
+        environment_variables: Option<HashMap<String, String>>,
+    ) {
+        self.environment_variables = environment_variables
     }
 }
 
@@ -44,11 +69,20 @@ impl Version1OnStartExecuteJailZoneConfigurationParentEntry {
 pub struct Version1OnStartExecuteJailZoneConfigurationChildEntry {
     program: String,
     arguments: Option<Vec<String>>,
+    environment_variables: Option<HashMap<String, String>>,
 }
 
 impl Version1OnStartExecuteJailZoneConfigurationChildEntry {
-    pub fn new(program: String, arguments: Option<Vec<String>>) -> Self {
-        Self { program, arguments }
+    pub fn new(
+        program: String,
+        arguments: Option<Vec<String>>,
+        environment_variables: Option<HashMap<String, String>>,
+    ) -> Self {
+        Self {
+            program,
+            arguments,
+            environment_variables,
+        }
     }
 
     pub fn program(&self) -> &String {
@@ -73,6 +107,21 @@ impl Version1OnStartExecuteJailZoneConfigurationChildEntry {
 
     pub fn set_arguments(&mut self, arguments: Option<Vec<String>>) {
         self.arguments = arguments
+    }
+
+    pub fn environment_variables(&self) -> &Option<HashMap<String, String>> {
+        &self.environment_variables
+    }
+
+    pub fn environment_variables_mut(&mut self) -> &mut Option<HashMap<String, String>> {
+        &mut self.environment_variables
+    }
+
+    pub fn set_environment_variables(
+        &mut self,
+        environment_variables: Option<HashMap<String, String>>,
+    ) {
+        self.environment_variables = environment_variables
     }
 }
 
