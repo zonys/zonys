@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.0
+- Add environment_variables configuration directive
+- Add environment variables example
+
 ## 0.6.0
 - Fix jail destruction on creation fail
 - Remove purge command
