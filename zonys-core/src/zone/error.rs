@@ -1,5 +1,5 @@
 use crate::namespace::ConvertNamespaceIdentifierFromStrError;
-use crate::template;
+use crate::template::RenderTemplateError;
 use bincode::error::{DecodeError, EncodeError};
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -17,7 +17,7 @@ use zfs::file_system::error::{
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum ExecuteParentZoneError {
-    TemplateError(template::Error),
+    RenderTemplateError(RenderTemplateError),
     IoError(io::Error),
     ExitStatusError(ExitStatusError),
 }
@@ -27,7 +27,7 @@ impl error::Error for ExecuteParentZoneError {}
 impl Debug for ExecuteParentZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TemplateError(error) => Debug::fmt(error, formatter),
+            Self::RenderTemplateError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::ExitStatusError(error) => Debug::fmt(error, formatter),
         }
@@ -37,16 +37,16 @@ impl Debug for ExecuteParentZoneError {
 impl Display for ExecuteParentZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TemplateError(error) => Display::fmt(error, formatter),
+            Self::RenderTemplateError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::ExitStatusError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
-impl From<template::Error> for ExecuteParentZoneError {
-    fn from(error: template::Error) -> Self {
-        Self::TemplateError(error)
+impl From<RenderTemplateError> for ExecuteParentZoneError {
+    fn from(error: RenderTemplateError) -> Self {
+        Self::RenderTemplateError(error)
     }
 }
 
@@ -66,7 +66,7 @@ impl From<ExitStatusError> for ExecuteParentZoneError {
 
 pub enum ExecuteChildZoneError {
     ExecuteJailError(ExecuteJailError),
-    TemplateError(template::Error),
+    RenderTemplateError(RenderTemplateError),
 }
 
 impl error::Error for ExecuteChildZoneError {}
@@ -75,7 +75,7 @@ impl Debug for ExecuteChildZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::ExecuteJailError(error) => Debug::fmt(error, formatter),
-            Self::TemplateError(error) => Debug::fmt(error, formatter),
+            Self::RenderTemplateError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -84,7 +84,7 @@ impl Display for ExecuteChildZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
             Self::ExecuteJailError(error) => Display::fmt(error, formatter),
-            Self::TemplateError(error) => Display::fmt(error, formatter),
+            Self::RenderTemplateError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -95,9 +95,9 @@ impl From<ExecuteJailError> for ExecuteChildZoneError {
     }
 }
 
-impl From<template::Error> for ExecuteChildZoneError {
-    fn from(error: template::Error) -> Self {
-        Self::TemplateError(error)
+impl From<RenderTemplateError> for ExecuteChildZoneError {
+    fn from(error: RenderTemplateError) -> Self {
+        Self::RenderTemplateError(error)
     }
 }
 
