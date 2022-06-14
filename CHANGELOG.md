@@ -1,8 +1,13 @@
 # Changelog
 
+## 0.8.0
+- Add evaluation loop checking
+- Add show command
+- Change default matching to use exact matches
+
 ## 0.7.0
-- Add environment_variables configuration directive
 - Add environment variables example
+- Add environment_variables configuration directive
 
 ## 0.6.0
 - Fix jail destruction on creation fail
