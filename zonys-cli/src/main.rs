@@ -28,6 +28,9 @@ struct MainArguments {
 
 #[derive(Debug, Subcommand)]
 enum MainCommand {
+    Show {
+        regular_expression: String,
+    },
     Create {
         #[clap(short, long)]
         stdin: bool,
@@ -84,6 +87,21 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let arguments = MainArguments::parse();
 
     match arguments.command {
+        MainCommand::Show { regular_expression } => {
+            match Namespace::open(arguments.namespace_identifier)? {
+                Some(namespace) => {
+                    let matched_zones = namespace
+                        .zones()
+                        .r#match(&regular_expression)?
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    for zone in matched_zones {
+                        println!("{}", zone.identifier().uuid());
+                    }
+                }
+                None => {}
+            }
+        }
         MainCommand::Create { stdin } => {
             let configuration = if stdin {
                 from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
