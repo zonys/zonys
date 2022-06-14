@@ -126,7 +126,7 @@ impl NamespaceZones {
     ) -> Result<NamespaceMatchZoneIterator, OpenNamespaceMatchZoneIteratorError> {
         Ok(NamespaceMatchZoneIterator::new(
             self.iter()?,
-            Regex::new(regular_expression)?,
+            Regex::new(&format!("${}^", regular_expression))?,
         ))
     }
 }
