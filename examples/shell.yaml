@@ -17,7 +17,7 @@ variables:
       archive: "base.txz"
       full: "{{ freebsd.url.scheme }}://{{ freebsd.url.authority }}{{ freebsd.url.path }}"
 
-execute:
+operate:
   create:
     on:
       - target: parent
@@ -38,6 +38,7 @@ execute:
         arguments:
           - "{{ zone.paths.root }}/base.txz"
 
+execute:
   start:
     on:
       - target: child

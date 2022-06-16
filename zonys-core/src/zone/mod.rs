@@ -195,7 +195,7 @@ impl Zone {
             TemplateValue::Object(self.context_variables()),
         );
 
-        ExecuteCreateBeforeZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateBeforeZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
@@ -208,11 +208,11 @@ impl Zone {
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
-        ExecuteCreateOnZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateOnZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        ExecuteCreateAfterZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateAfterZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
@@ -345,11 +345,11 @@ impl Zone {
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
-        ExecuteDestroyBeforeZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyBeforeZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        ExecuteDestroyOnZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyOnZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
@@ -361,7 +361,7 @@ impl Zone {
 
         file_system.destroy()?;
 
-        ExecuteDestroyAfterZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyAfterZoneProgramExecutionIterator::new(&configuration)
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;

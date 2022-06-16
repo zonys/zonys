@@ -91,11 +91,11 @@ impl ZoneParentProgramExecution {
     }
 }
 
-impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
+impl<'a> From<&'a version1::ZoneJailOperateCreateBeforeParentEntryConfiguration>
     for ZoneParentProgramExecution
 {
     fn from(
-        configuration: &'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry,
+        configuration: &'a version1::ZoneJailOperateCreateBeforeParentEntryConfiguration,
     ) -> Self {
         Self::new(
             configuration.program().clone(),
@@ -113,10 +113,10 @@ impl<'a> From<&'a Version1BeforeCreateExecuteJailZoneConfigurationParentEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationParentEntry>
+impl<'a> From<&'a version1::ZoneJailOperateCreateOnParentEntryConfiguration>
     for ZoneParentProgramExecution
 {
-    fn from(configuration: &'a Version1OnCreateExecuteJailZoneConfigurationParentEntry) -> Self {
+    fn from(configuration: &'a version1::ZoneJailOperateCreateOnParentEntryConfiguration) -> Self {
         Self::new(
             configuration.program().clone(),
             configuration
@@ -133,151 +133,11 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationParentEntry>
     }
 }
 
-impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1AfterCreateExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1BeforeStartExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1OnStartExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1AfterStartExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1BeforeStopExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1OnStopExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1AfterStopExecuteJailZoneConfigurationParentEntry>
-    for ZoneParentProgramExecution
-{
-    fn from(configuration: &'a Version1AfterStopExecuteJailZoneConfigurationParentEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry>
+impl<'a> From<&'a version1::ZoneJailOperateCreateAfterParentEntryConfiguration>
     for ZoneParentProgramExecution
 {
     fn from(
-        configuration: &'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry,
+        configuration: &'a version1::ZoneJailOperateCreateAfterParentEntryConfiguration,
     ) -> Self {
         Self::new(
             configuration.program().clone(),
@@ -295,10 +155,12 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationParentEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry>
+impl<'a> From<&'a version1::ZoneJailExecuteStartBeforeParentEntryConfiguration>
     for ZoneParentProgramExecution
 {
-    fn from(configuration: &'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry) -> Self {
+    fn from(
+        configuration: &'a version1::ZoneJailExecuteStartBeforeParentEntryConfiguration,
+    ) -> Self {
         Self::new(
             configuration.program().clone(),
             configuration
@@ -315,11 +177,157 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationParentEntry>
     }
 }
 
-impl<'a> From<&'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry>
+impl<'a> From<&'a version1::ZoneJailExecuteStartOnParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStartOnParentEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStartAfterParentEntryConfiguration>
     for ZoneParentProgramExecution
 {
     fn from(
-        configuration: &'a Version1AfterDestroyExecuteJailZoneConfigurationParentEntry,
+        configuration: &'a version1::ZoneJailExecuteStartAfterParentEntryConfiguration,
+    ) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStopBeforeParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(
+        configuration: &'a version1::ZoneJailExecuteStopBeforeParentEntryConfiguration,
+    ) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStopOnParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStopOnParentEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStopAfterParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStopAfterParentEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateDestroyBeforeParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(
+        configuration: &'a version1::ZoneJailOperateDestroyBeforeParentEntryConfiguration,
+    ) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateDestroyOnParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailOperateDestroyOnParentEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateDestroyAfterParentEntryConfiguration>
+    for ZoneParentProgramExecution
+{
+    fn from(
+        configuration: &'a version1::ZoneJailOperateDestroyAfterParentEntryConfiguration,
     ) -> Self {
         Self::new(
             configuration.program().clone(),
@@ -396,10 +404,10 @@ impl ZoneChildProgramExecution {
     }
 }
 
-impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
+impl<'a> From<&'a version1::ZoneJailOperateCreateOnChildEntryConfiguration>
     for ZoneChildProgramExecution
 {
-    fn from(configuration: &'a Version1OnCreateExecuteJailZoneConfigurationChildEntry) -> Self {
+    fn from(configuration: &'a version1::ZoneJailOperateCreateOnChildEntryConfiguration) -> Self {
         Self::new(
             configuration.program().clone(),
             configuration
@@ -416,111 +424,11 @@ impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationChildEntry>
     }
 }
 
-impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildProgramExecution
-{
-    fn from(configuration: &'a Version1AfterCreateExecuteJailZoneConfigurationChildEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildProgramExecution
-{
-    fn from(configuration: &'a Version1OnStartExecuteJailZoneConfigurationChildEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildProgramExecution
-{
-    fn from(configuration: &'a Version1AfterStartExecuteJailZoneConfigurationChildEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildProgramExecution
-{
-    fn from(configuration: &'a Version1BeforeStopExecuteJailZoneConfigurationChildEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationChildEntry>
-    for ZoneChildProgramExecution
-{
-    fn from(configuration: &'a Version1OnStopExecuteJailZoneConfigurationChildEntry) -> Self {
-        Self::new(
-            configuration.program().clone(),
-            configuration
-                .arguments()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-            configuration
-                .environment_variables()
-                .as_ref()
-                .map(|a| a.clone())
-                .unwrap_or_default(),
-        )
-    }
-}
-
-impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry>
+impl<'a> From<&'a version1::ZoneJailOperateCreateAfterChildEntryConfiguration>
     for ZoneChildProgramExecution
 {
     fn from(
-        configuration: &'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry,
+        configuration: &'a version1::ZoneJailOperateCreateAfterChildEntryConfiguration,
     ) -> Self {
         Self::new(
             configuration.program().clone(),
@@ -538,10 +446,112 @@ impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationChildEntry>
     }
 }
 
-impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry>
+impl<'a> From<&'a version1::ZoneJailExecuteStartOnChildEntryConfiguration>
     for ZoneChildProgramExecution
 {
-    fn from(configuration: &'a Version1OnDestroyExecuteJailZoneConfigurationChildEntry) -> Self {
+    fn from(configuration: &'a version1::ZoneJailExecuteStartOnChildEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStartAfterChildEntryConfiguration>
+    for ZoneChildProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStartAfterChildEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStopBeforeChildEntryConfiguration>
+    for ZoneChildProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStopBeforeChildEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailExecuteStopOnChildEntryConfiguration>
+    for ZoneChildProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailExecuteStopOnChildEntryConfiguration) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateDestroyBeforeChildEntryConfiguration>
+    for ZoneChildProgramExecution
+{
+    fn from(
+        configuration: &'a version1::ZoneJailOperateDestroyBeforeChildEntryConfiguration,
+    ) -> Self {
+        Self::new(
+            configuration.program().clone(),
+            configuration
+                .arguments()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+            configuration
+                .environment_variables()
+                .as_ref()
+                .map(|a| a.clone())
+                .unwrap_or_default(),
+        )
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateDestroyOnChildEntryConfiguration>
+    for ZoneChildProgramExecution
+{
+    fn from(configuration: &'a version1::ZoneJailOperateDestroyOnChildEntryConfiguration) -> Self {
         Self::new(
             configuration.program().clone(),
             configuration
@@ -566,104 +576,118 @@ pub enum ZoneProgramExecution {
     Child(ZoneChildProgramExecution),
 }
 
-impl<'a> From<&'a Version1OnCreateExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1OnCreateExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailOperateCreateBeforeEntryConfiguration>
+    for ZoneProgramExecution
+{
+    fn from(entry: &'a version1::ZoneJailOperateCreateBeforeEntryConfiguration) -> Self {
         match entry {
-            Version1OnCreateExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailOperateCreateBeforeEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1OnCreateExecuteJailZoneConfigurationEntry::Child(child) => {
+        }
+    }
+}
+
+impl<'a> From<&'a version1::ZoneJailOperateCreateOnEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailOperateCreateOnEntryConfiguration) -> Self {
+        match entry {
+            version1::ZoneJailOperateCreateOnEntryConfiguration::Parent(parent) => {
+                Self::Parent(parent.into())
+            }
+            version1::ZoneJailOperateCreateOnEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1AfterCreateExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1AfterCreateExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailOperateCreateAfterEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailOperateCreateAfterEntryConfiguration) -> Self {
         match entry {
-            Version1AfterCreateExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailOperateCreateAfterEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1AfterCreateExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailOperateCreateAfterEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1OnStartExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1OnStartExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailExecuteStartOnEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailExecuteStartOnEntryConfiguration) -> Self {
         match entry {
-            Version1OnStartExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailExecuteStartOnEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1OnStartExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailExecuteStartOnEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1AfterStartExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1AfterStartExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailExecuteStartAfterEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailExecuteStartAfterEntryConfiguration) -> Self {
         match entry {
-            Version1AfterStartExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailExecuteStartAfterEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1AfterStartExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailExecuteStartAfterEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1BeforeStopExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1BeforeStopExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailExecuteStopBeforeEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailExecuteStopBeforeEntryConfiguration) -> Self {
         match entry {
-            Version1BeforeStopExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailExecuteStopBeforeEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1BeforeStopExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailExecuteStopBeforeEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1OnStopExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1OnStopExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailExecuteStopOnEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailExecuteStopOnEntryConfiguration) -> Self {
         match entry {
-            Version1OnStopExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailExecuteStopOnEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1OnStopExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailExecuteStopOnEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1BeforeDestroyExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailOperateDestroyBeforeEntryConfiguration>
+    for ZoneProgramExecution
+{
+    fn from(entry: &'a version1::ZoneJailOperateDestroyBeforeEntryConfiguration) -> Self {
         match entry {
-            Version1BeforeDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailOperateDestroyBeforeEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1BeforeDestroyExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailOperateDestroyBeforeEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
     }
 }
 
-impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationEntry> for ZoneProgramExecution {
-    fn from(entry: &'a Version1OnDestroyExecuteJailZoneConfigurationEntry) -> Self {
+impl<'a> From<&'a version1::ZoneJailOperateDestroyOnEntryConfiguration> for ZoneProgramExecution {
+    fn from(entry: &'a version1::ZoneJailOperateDestroyOnEntryConfiguration) -> Self {
         match entry {
-            Version1OnDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => {
+            version1::ZoneJailOperateDestroyOnEntryConfiguration::Parent(parent) => {
                 Self::Parent(parent.into())
             }
-            Version1OnDestroyExecuteJailZoneConfigurationEntry::Child(child) => {
+            version1::ZoneJailOperateDestroyOnEntryConfiguration::Child(child) => {
                 Self::Child(child.into())
             }
         }
@@ -672,25 +696,25 @@ impl<'a> From<&'a Version1OnDestroyExecuteJailZoneConfigurationEntry> for ZonePr
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateBeforeZoneProgramExecutionIterator;
+pub struct OperateCreateBeforeZoneProgramExecutionIterator;
 
-impl ExecuteCreateBeforeZoneProgramExecutionIterator {
+impl OperateCreateBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
-                    Version1ZoneConfigurationType::Jail(jail) => {
+                    version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.create().as_ref())
                         .flatten()
                         .map(|c| c.before().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1BeforeCreateExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
+                            version1::ZoneJailOperateCreateBeforeEntryConfiguration::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         })) {
                             Some(iter) => Box::new(iter),
                             None => Box::new(std::iter::empty()),
@@ -704,17 +728,17 @@ impl ExecuteCreateBeforeZoneProgramExecutionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateOnZoneProgramExecutionIterator;
+pub struct OperateCreateOnZoneProgramExecutionIterator;
 
-impl ExecuteCreateOnZoneProgramExecutionIterator {
+impl OperateCreateOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.create().as_ref())
                         .flatten()
@@ -733,17 +757,17 @@ impl ExecuteCreateOnZoneProgramExecutionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteCreateAfterZoneProgramExecutionIterator;
+pub struct OperateCreateAfterZoneProgramExecutionIterator;
 
-impl ExecuteCreateAfterZoneProgramExecutionIterator {
+impl OperateCreateAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.create().as_ref())
                         .flatten()
@@ -771,7 +795,7 @@ impl ExecuteStartBeforeZoneProgramExecutionIterator {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
-                    Version1ZoneConfigurationType::Jail(jail) => {
+                    version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
                         .execute()
                         .as_ref()
@@ -780,7 +804,7 @@ impl ExecuteStartBeforeZoneProgramExecutionIterator {
                         .map(|c| c.before().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1BeforeStartExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
+                            version1::ZoneJailExecuteStartBeforeEntryConfiguration::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         }))
                     {
                         Some(iter) => Box::new(iter),
@@ -803,7 +827,7 @@ impl ExecuteStartOnZoneProgramExecutionIterator {
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
                         .as_ref()
@@ -832,7 +856,7 @@ impl ExecuteStartAfterZoneProgramExecutionIterator {
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
                         .as_ref()
@@ -861,7 +885,7 @@ impl ExecuteStopBeforeZoneProgramExecutionIterator {
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
                         .as_ref()
@@ -890,7 +914,7 @@ impl ExecuteStopOnZoneProgramExecutionIterator {
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
                         .as_ref()
@@ -919,7 +943,7 @@ impl ExecuteStopAfterZoneProgramExecutionIterator {
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
                         .as_ref()
@@ -929,7 +953,7 @@ impl ExecuteStopAfterZoneProgramExecutionIterator {
                         .flatten()
                         .map(|b| {
                             b.inner().iter().map(|e| match e {
-                                Version1AfterStopExecuteJailZoneConfigurationEntry::Parent(
+                                version1::ZoneJailExecuteStopAfterEntryConfiguration::Parent(
                                     parent,
                                 ) => ZoneParentProgramExecution::from(parent),
                             })
@@ -945,17 +969,17 @@ impl ExecuteStopAfterZoneProgramExecutionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyBeforeZoneProgramExecutionIterator;
+pub struct OperateDestroyBeforeZoneProgramExecutionIterator;
 
-impl ExecuteDestroyBeforeZoneProgramExecutionIterator {
+impl OperateDestroyBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.destroy().as_ref())
                         .flatten()
@@ -974,17 +998,17 @@ impl ExecuteDestroyBeforeZoneProgramExecutionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyOnZoneProgramExecutionIterator;
+pub struct OperateDestroyOnZoneProgramExecutionIterator;
 
-impl ExecuteDestroyOnZoneProgramExecutionIterator {
+impl OperateDestroyOnZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => match version1.r#type() {
-                Version1ZoneConfigurationType::Jail(jail) => {
+                version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.destroy().as_ref())
                         .flatten()
@@ -1003,25 +1027,25 @@ impl ExecuteDestroyOnZoneProgramExecutionIterator {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct ExecuteDestroyAfterZoneProgramExecutionIterator;
+pub struct OperateDestroyAfterZoneProgramExecutionIterator;
 
-impl ExecuteDestroyAfterZoneProgramExecutionIterator {
+impl OperateDestroyAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
         configuration: &'a ZoneConfiguration,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
         match configuration {
             ZoneConfiguration::Version1(version1) => {
                 match version1.r#type() {
-                    Version1ZoneConfigurationType::Jail(jail) => {
+                    version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
-                        .execute()
+                        .operate()
                         .as_ref()
                         .map(|e| e.destroy().as_ref())
                         .flatten()
                         .map(|c| c.after().as_ref())
                         .flatten()
                         .map(|b| b.inner().iter().map(|e| match e {
-                            Version1AfterDestroyExecuteJailZoneConfigurationEntry::Parent(parent) => ZoneParentProgramExecution::from(parent),
+                            version1::ZoneJailOperateDestroyAfterEntryConfiguration::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         }))
                     {
                         Some(iter) => Box::new(iter),

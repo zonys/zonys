@@ -1,6 +1,8 @@
 pub mod execute;
+pub mod operate;
 
 pub use execute::*;
+pub use operate::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -8,49 +10,41 @@ use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum Version1NetworkJailZoneConfiguration {
-    #[serde(rename = "parent")]
-    Parent,
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Version1JailZoneConfiguration {
-    execute: Option<Version1ExecuteJailZoneConfiguration>,
-    network: Option<Version1NetworkJailZoneConfiguration>,
+pub struct ZoneJailConfiguration {
+    operate: Option<ZoneJailOperateConfiguration>,
+    execute: Option<ZoneJailExecuteConfiguration>,
 }
 
-impl Version1JailZoneConfiguration {
+impl ZoneJailConfiguration {
     pub fn new(
-        execute: Option<Version1ExecuteJailZoneConfiguration>,
-        network: Option<Version1NetworkJailZoneConfiguration>,
+        operate: Option<ZoneJailOperateConfiguration>,
+        execute: Option<ZoneJailExecuteConfiguration>,
     ) -> Self {
-        Self { execute, network }
+        Self { operate, execute }
     }
 
-    pub fn execute(&self) -> &Option<Version1ExecuteJailZoneConfiguration> {
+    pub fn operate(&self) -> &Option<ZoneJailOperateConfiguration> {
+        &self.operate
+    }
+
+    pub fn operate_mut(&mut self) -> &mut Option<ZoneJailOperateConfiguration> {
+        &mut self.operate
+    }
+
+    pub fn set_operate(&mut self, operate: Option<ZoneJailOperateConfiguration>) {
+        self.operate = operate
+    }
+
+    pub fn execute(&self) -> &Option<ZoneJailExecuteConfiguration> {
         &self.execute
     }
 
-    pub fn execute_mut(&mut self) -> &mut Option<Version1ExecuteJailZoneConfiguration> {
+    pub fn execute_mut(&mut self) -> &mut Option<ZoneJailExecuteConfiguration> {
         &mut self.execute
     }
 
-    pub fn set_execute(&mut self, execute: Option<Version1ExecuteJailZoneConfiguration>) {
+    pub fn set_execute(&mut self, execute: Option<ZoneJailExecuteConfiguration>) {
         self.execute = execute
-    }
-
-    pub fn network(&self) -> &Option<Version1NetworkJailZoneConfiguration> {
-        &self.network
-    }
-
-    pub fn network_mut(&mut self) -> &mut Option<Version1NetworkJailZoneConfiguration> {
-        &mut self.network
-    }
-
-    pub fn set_network(&mut self, network: Option<Version1NetworkJailZoneConfiguration>) {
-        self.network = network
     }
 }

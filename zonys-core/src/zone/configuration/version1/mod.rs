@@ -11,34 +11,34 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
-pub enum Version1ZoneConfigurationType {
+pub enum ZoneConfigurationType {
     #[serde(rename = "jail")]
-    Jail(Version1JailZoneConfiguration),
+    Jail(ZoneJailConfiguration),
 }
 
-impl Default for Version1ZoneConfigurationType {
+impl Default for ZoneConfigurationType {
     fn default() -> Self {
-        Self::Jail(Version1JailZoneConfiguration::default())
+        Self::Jail(ZoneJailConfiguration::default())
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Version1ZoneConfiguration {
+pub struct ZoneConfiguration {
     variables: Option<TemplateObject>,
     tags: Option<Vec<String>>,
     #[serde(flatten)]
-    r#type: Version1ZoneConfigurationType,
+    r#type: ZoneConfigurationType,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
 
-impl Version1ZoneConfiguration {
+impl ZoneConfiguration {
     pub fn new(
         variables: Option<TemplateObject>,
         tags: Option<Vec<String>>,
-        r#type: Version1ZoneConfigurationType,
+        r#type: ZoneConfigurationType,
         start_after_create: Option<bool>,
         destroy_after_stop: Option<bool>,
     ) -> Self {
@@ -75,15 +75,15 @@ impl Version1ZoneConfiguration {
         self.tags = tags
     }
 
-    pub fn r#type(&self) -> &Version1ZoneConfigurationType {
+    pub fn r#type(&self) -> &ZoneConfigurationType {
         &self.r#type
     }
 
-    pub fn type_mut(&mut self) -> &mut Version1ZoneConfigurationType {
+    pub fn type_mut(&mut self) -> &mut ZoneConfigurationType {
         &mut self.r#type
     }
 
-    pub fn set_type(&mut self, r#type: Version1ZoneConfigurationType) {
+    pub fn set_type(&mut self, r#type: ZoneConfigurationType) {
         self.r#type = r#type
     }
 

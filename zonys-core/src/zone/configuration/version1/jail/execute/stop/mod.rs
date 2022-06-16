@@ -12,55 +12,55 @@ use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Version1StopExecuteJailZoneConfiguration {
-    before: Option<Version1BeforeStopExecuteJailZoneConfiguration>,
-    on: Option<Version1OnStopExecuteJailZoneConfiguration>,
-    after: Option<Version1AfterStopExecuteJailZoneConfiguration>,
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ZoneJailExecuteStopConfiguration {
+    before: Option<ZoneJailExecuteStopBeforeConfiguration>,
+    on: Option<ZoneJailExecuteStopOnConfiguration>,
+    after: Option<ZoneJailExecuteStopAfterConfiguration>,
 }
 
-impl Version1StopExecuteJailZoneConfiguration {
+impl ZoneJailExecuteStopConfiguration {
     pub fn new(
-        before: Option<Version1BeforeStopExecuteJailZoneConfiguration>,
-        on: Option<Version1OnStopExecuteJailZoneConfiguration>,
-        after: Option<Version1AfterStopExecuteJailZoneConfiguration>,
+        before: Option<ZoneJailExecuteStopBeforeConfiguration>,
+        on: Option<ZoneJailExecuteStopOnConfiguration>,
+        after: Option<ZoneJailExecuteStopAfterConfiguration>,
     ) -> Self {
         Self { before, on, after }
     }
 
-    pub fn before(&self) -> &Option<Version1BeforeStopExecuteJailZoneConfiguration> {
+    pub fn before(&self) -> &Option<ZoneJailExecuteStopBeforeConfiguration> {
         &self.before
     }
 
-    pub fn before_mut(&mut self) -> &mut Option<Version1BeforeStopExecuteJailZoneConfiguration> {
+    pub fn before_mut(&mut self) -> &mut Option<ZoneJailExecuteStopBeforeConfiguration> {
         &mut self.before
     }
 
-    pub fn set_before(&mut self, before: Option<Version1BeforeStopExecuteJailZoneConfiguration>) {
+    pub fn set_before(&mut self, before: Option<ZoneJailExecuteStopBeforeConfiguration>) {
         self.before = before
     }
 
-    pub fn on(&self) -> &Option<Version1OnStopExecuteJailZoneConfiguration> {
+    pub fn on(&self) -> &Option<ZoneJailExecuteStopOnConfiguration> {
         &self.on
     }
 
-    pub fn on_mut(&mut self) -> &mut Option<Version1OnStopExecuteJailZoneConfiguration> {
+    pub fn on_mut(&mut self) -> &mut Option<ZoneJailExecuteStopOnConfiguration> {
         &mut self.on
     }
 
-    pub fn set_on(&mut self, on: Option<Version1OnStopExecuteJailZoneConfiguration>) {
+    pub fn set_on(&mut self, on: Option<ZoneJailExecuteStopOnConfiguration>) {
         self.on = on
     }
 
-    pub fn after(&self) -> &Option<Version1AfterStopExecuteJailZoneConfiguration> {
+    pub fn after(&self) -> &Option<ZoneJailExecuteStopAfterConfiguration> {
         &self.after
     }
 
-    pub fn after_mut(&mut self) -> &mut Option<Version1AfterStopExecuteJailZoneConfiguration> {
+    pub fn after_mut(&mut self) -> &mut Option<ZoneJailExecuteStopAfterConfiguration> {
         &mut self.after
     }
 
-    pub fn set_after(&mut self, after: Option<Version1AfterStopExecuteJailZoneConfiguration>) {
+    pub fn set_after(&mut self, after: Option<ZoneJailExecuteStopAfterConfiguration>) {
         self.after = after
     }
 }

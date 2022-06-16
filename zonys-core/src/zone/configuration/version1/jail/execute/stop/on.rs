@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Version1OnStopExecuteJailZoneConfigurationParentEntry {
+pub struct ZoneJailExecuteStopOnParentEntryConfiguration {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl Version1OnStopExecuteJailZoneConfigurationParentEntry {
+impl ZoneJailExecuteStopOnParentEntryConfiguration {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -66,13 +66,13 @@ impl Version1OnStopExecuteJailZoneConfigurationParentEntry {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Version1OnStopExecuteJailZoneConfigurationChildEntry {
+pub struct ZoneJailExecuteStopOnChildEntryConfiguration {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl Version1OnStopExecuteJailZoneConfigurationChildEntry {
+impl ZoneJailExecuteStopOnChildEntryConfiguration {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -128,35 +128,30 @@ impl Version1OnStopExecuteJailZoneConfigurationChildEntry {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "target")]
-pub enum Version1OnStopExecuteJailZoneConfigurationEntry {
-    #[serde(rename = "parent")]
-    Parent(Version1OnStopExecuteJailZoneConfigurationParentEntry),
-    #[serde(rename = "child")]
-    Child(Version1OnStopExecuteJailZoneConfigurationChildEntry),
+pub enum ZoneJailExecuteStopOnEntryConfiguration {
+    Parent(ZoneJailExecuteStopOnParentEntryConfiguration),
+    Child(ZoneJailExecuteStopOnChildEntryConfiguration),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Version1OnStopExecuteJailZoneConfiguration(
-    Vec<Version1OnStopExecuteJailZoneConfigurationEntry>,
-);
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ZoneJailExecuteStopOnConfiguration(Vec<ZoneJailExecuteStopOnEntryConfiguration>);
 
-impl Version1OnStopExecuteJailZoneConfiguration {
-    pub fn new(inner: Vec<Version1OnStopExecuteJailZoneConfigurationEntry>) -> Self {
+impl ZoneJailExecuteStopOnConfiguration {
+    pub fn new(inner: Vec<ZoneJailExecuteStopOnEntryConfiguration>) -> Self {
         Self(inner)
     }
 
-    pub fn inner(&self) -> &Vec<Version1OnStopExecuteJailZoneConfigurationEntry> {
+    pub fn inner(&self) -> &Vec<ZoneJailExecuteStopOnEntryConfiguration> {
         &self.0
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<Version1OnStopExecuteJailZoneConfigurationEntry> {
+    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStopOnEntryConfiguration> {
         &mut self.0
     }
 
-    pub fn set_inner(&mut self, inner: Vec<Version1OnStopExecuteJailZoneConfigurationEntry>) {
+    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStopOnEntryConfiguration>) {
         self.0 = inner
     }
 }
