@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.0
+- Add operate directive for create and destroy configuration
+
 ## 0.8.0
 - Add evaluation loop checking
 - Add show command
