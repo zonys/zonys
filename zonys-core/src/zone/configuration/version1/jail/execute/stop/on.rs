@@ -128,8 +128,11 @@ impl ZoneJailExecuteStopOnChildEntryConfiguration {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "target")]
 pub enum ZoneJailExecuteStopOnEntryConfiguration {
+    #[serde(rename = "parent")]
     Parent(ZoneJailExecuteStopOnParentEntryConfiguration),
+    #[serde(rename = "child")]
     Child(ZoneJailExecuteStopOnChildEntryConfiguration),
 }
 

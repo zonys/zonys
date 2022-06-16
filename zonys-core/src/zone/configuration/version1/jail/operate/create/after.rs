@@ -128,8 +128,11 @@ impl ZoneJailOperateCreateAfterChildEntryConfiguration {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "target")]
 pub enum ZoneJailOperateCreateAfterEntryConfiguration {
+    #[serde(rename = "parent")]
     Parent(ZoneJailOperateCreateAfterParentEntryConfiguration),
+    #[serde(rename = "child")]
     Child(ZoneJailOperateCreateAfterChildEntryConfiguration),
 }
 

@@ -66,7 +66,9 @@ impl ZoneJailOperateCreateBeforeParentEntryConfiguration {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "target")]
 pub enum ZoneJailOperateCreateBeforeEntryConfiguration {
+    #[serde(rename = "parent")]
     Parent(ZoneJailOperateCreateBeforeParentEntryConfiguration),
 }
 
