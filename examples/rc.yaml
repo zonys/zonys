@@ -52,5 +52,3 @@ execute:
         program: /bin/sh
         arguments:
           - /etc/rc.shutdown
-
-network: parent

@@ -37,5 +37,3 @@ operate:
         program: /bin/rm
         arguments:
           - "{{ zone.paths.root }}/base.txz"
-
-network: parent

@@ -22,5 +22,3 @@ execute:
         program: /usr/bin/env
         environment_variables:
           "{{ foo_key }}": "{{ bar_value }}"
-
-network: parent
