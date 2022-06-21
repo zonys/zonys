@@ -26,6 +26,7 @@ impl Default for ZoneConfigurationType {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ZoneConfiguration {
+    include: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     tags: Option<Vec<String>>,
     #[serde(flatten)]
@@ -36,6 +37,7 @@ pub struct ZoneConfiguration {
 
 impl ZoneConfiguration {
     pub fn new(
+        include: Option<Vec<String>>,
         variables: Option<TemplateObject>,
         tags: Option<Vec<String>>,
         r#type: ZoneConfigurationType,
@@ -43,12 +45,25 @@ impl ZoneConfiguration {
         destroy_after_stop: Option<bool>,
     ) -> Self {
         Self {
+            include,
             variables,
             tags,
             r#type,
             start_after_create,
             destroy_after_stop,
         }
+    }
+
+    pub fn include(&self) -> &Option<Vec<String>> {
+        &self.include
+    }
+
+    pub fn include_mut(&mut self) -> &mut Option<Vec<String>> {
+        &mut self.include
+    }
+
+    pub fn set_include(&mut self, include: Option<Vec<String>>) {
+        self.include = include
     }
 
     pub fn variables(&self) -> &Option<TemplateObject> {
