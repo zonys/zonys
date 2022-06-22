@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStopAfterParentEntryConfiguration {
+pub struct ZoneJailExecuteStopAfterParentEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailExecuteStopAfterParentEntryConfiguration {
+impl ZoneJailExecuteStopAfterParentEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -67,30 +67,32 @@ impl ZoneJailExecuteStopAfterParentEntryConfiguration {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "target")]
-pub enum ZoneJailExecuteStopAfterEntryConfiguration {
+pub enum ZoneJailExecuteStopAfterEntryConfigurationDirective {
     #[serde(rename = "parent")]
-    Parent(ZoneJailExecuteStopAfterParentEntryConfiguration),
+    Parent(ZoneJailExecuteStopAfterParentEntryConfigurationDirective),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStopAfterConfiguration(Vec<ZoneJailExecuteStopAfterEntryConfiguration>);
+pub struct ZoneJailExecuteStopAfterConfigurationDirective(
+    Vec<ZoneJailExecuteStopAfterEntryConfigurationDirective>,
+);
 
-impl ZoneJailExecuteStopAfterConfiguration {
-    pub fn new(inner: Vec<ZoneJailExecuteStopAfterEntryConfiguration>) -> Self {
+impl ZoneJailExecuteStopAfterConfigurationDirective {
+    pub fn new(inner: Vec<ZoneJailExecuteStopAfterEntryConfigurationDirective>) -> Self {
         Self(inner)
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailExecuteStopAfterEntryConfiguration> {
+    pub fn inner(&self) -> &Vec<ZoneJailExecuteStopAfterEntryConfigurationDirective> {
         &self.0
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStopAfterEntryConfiguration> {
+    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStopAfterEntryConfigurationDirective> {
         &mut self.0
     }
 
-    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStopAfterEntryConfiguration>) {
+    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStopAfterEntryConfigurationDirective>) {
         self.0 = inner
     }
 }

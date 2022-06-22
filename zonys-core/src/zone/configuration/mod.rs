@@ -13,12 +13,12 @@ use std::path::PathBuf;
 #[serde(tag = "version")]
 pub enum ZoneConfigurationVersionDirective {
     #[serde(rename = "1")]
-    Version1(version1::ZoneConfiguration),
+    Version1(version1::ZoneConfigurationDirective),
 }
 
 impl Default for ZoneConfigurationVersionDirective {
     fn default() -> Self {
-        Self::Version1(version1::ZoneConfiguration::default())
+        Self::Version1(version1::ZoneConfigurationDirective::default())
     }
 }
 

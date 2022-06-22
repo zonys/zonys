@@ -12,38 +12,38 @@ use serde_yaml::Value;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type")]
-pub enum ZoneConfigurationType {
+pub enum ZoneConfigurationTypeDirective {
     #[serde(rename = "jail")]
-    Jail(ZoneJailConfiguration),
+    Jail(ZoneJailConfigurationDirective),
     #[serde(rename = "undefined")]
     Undefined(Value),
 }
 
-impl Default for ZoneConfigurationType {
+impl Default for ZoneConfigurationTypeDirective {
     fn default() -> Self {
-        Self::Jail(ZoneJailConfiguration::default())
+        Self::Jail(ZoneJailConfigurationDirective::default())
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct ZoneConfiguration {
+pub struct ZoneConfigurationDirective {
     include: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     tags: Option<Vec<String>>,
     #[serde(flatten)]
-    r#type: ZoneConfigurationType,
+    r#type: ZoneConfigurationTypeDirective,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
 
-impl ZoneConfiguration {
+impl ZoneConfigurationDirective {
     pub fn new(
         include: Option<Vec<String>>,
         variables: Option<TemplateObject>,
         tags: Option<Vec<String>>,
-        r#type: ZoneConfigurationType,
+        r#type: ZoneConfigurationTypeDirective,
         start_after_create: Option<bool>,
         destroy_after_stop: Option<bool>,
     ) -> Self {
@@ -93,15 +93,15 @@ impl ZoneConfiguration {
         self.tags = tags
     }
 
-    pub fn r#type(&self) -> &ZoneConfigurationType {
+    pub fn r#type(&self) -> &ZoneConfigurationTypeDirective {
         &self.r#type
     }
 
-    pub fn type_mut(&mut self) -> &mut ZoneConfigurationType {
+    pub fn type_mut(&mut self) -> &mut ZoneConfigurationTypeDirective {
         &mut self.r#type
     }
 
-    pub fn set_type(&mut self, r#type: ZoneConfigurationType) {
+    pub fn set_type(&mut self, r#type: ZoneConfigurationTypeDirective) {
         self.r#type = r#type
     }
 

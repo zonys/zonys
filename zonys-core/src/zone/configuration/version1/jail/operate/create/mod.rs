@@ -13,54 +13,57 @@ use serde::{Deserialize, Serialize};
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct ZoneJailOperateCreateConfiguration {
-    before: Option<ZoneJailOperateCreateBeforeConfiguration>,
-    on: Option<ZoneJailOperateCreateOnConfiguration>,
-    after: Option<ZoneJailOperateCreateAfterConfiguration>,
+pub struct ZoneJailOperateCreateConfigurationDirective {
+    before: Option<ZoneJailOperateCreateBeforeConfigurationDirective>,
+    on: Option<ZoneJailOperateCreateOnConfigurationDirective>,
+    after: Option<ZoneJailOperateCreateAfterConfigurationDirective>,
 }
 
-impl ZoneJailOperateCreateConfiguration {
+impl ZoneJailOperateCreateConfigurationDirective {
     pub fn new(
-        before: Option<ZoneJailOperateCreateBeforeConfiguration>,
-        on: Option<ZoneJailOperateCreateOnConfiguration>,
-        after: Option<ZoneJailOperateCreateAfterConfiguration>,
+        before: Option<ZoneJailOperateCreateBeforeConfigurationDirective>,
+        on: Option<ZoneJailOperateCreateOnConfigurationDirective>,
+        after: Option<ZoneJailOperateCreateAfterConfigurationDirective>,
     ) -> Self {
         Self { before, on, after }
     }
 
-    pub fn before(&self) -> &Option<ZoneJailOperateCreateBeforeConfiguration> {
+    pub fn before(&self) -> &Option<ZoneJailOperateCreateBeforeConfigurationDirective> {
         &self.before
     }
 
-    pub fn before_mut(&mut self) -> &mut Option<ZoneJailOperateCreateBeforeConfiguration> {
+    pub fn before_mut(&mut self) -> &mut Option<ZoneJailOperateCreateBeforeConfigurationDirective> {
         &mut self.before
     }
 
-    pub fn set_before(&mut self, before: Option<ZoneJailOperateCreateBeforeConfiguration>) {
+    pub fn set_before(
+        &mut self,
+        before: Option<ZoneJailOperateCreateBeforeConfigurationDirective>,
+    ) {
         self.before = before
     }
 
-    pub fn on(&self) -> &Option<ZoneJailOperateCreateOnConfiguration> {
+    pub fn on(&self) -> &Option<ZoneJailOperateCreateOnConfigurationDirective> {
         &self.on
     }
 
-    pub fn on_mut(&mut self) -> &mut Option<ZoneJailOperateCreateOnConfiguration> {
+    pub fn on_mut(&mut self) -> &mut Option<ZoneJailOperateCreateOnConfigurationDirective> {
         &mut self.on
     }
 
-    pub fn set_on(&mut self, on: Option<ZoneJailOperateCreateOnConfiguration>) {
+    pub fn set_on(&mut self, on: Option<ZoneJailOperateCreateOnConfigurationDirective>) {
         self.on = on
     }
 
-    pub fn after(&self) -> &Option<ZoneJailOperateCreateAfterConfiguration> {
+    pub fn after(&self) -> &Option<ZoneJailOperateCreateAfterConfigurationDirective> {
         &self.after
     }
 
-    pub fn after_mut(&mut self) -> &mut Option<ZoneJailOperateCreateAfterConfiguration> {
+    pub fn after_mut(&mut self) -> &mut Option<ZoneJailOperateCreateAfterConfigurationDirective> {
         &mut self.after
     }
 
-    pub fn set_after(&mut self, after: Option<ZoneJailOperateCreateAfterConfiguration>) {
+    pub fn set_after(&mut self, after: Option<ZoneJailOperateCreateAfterConfigurationDirective>) {
         self.after = after
     }
 }

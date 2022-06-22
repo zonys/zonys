@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyOnParentEntryConfiguration {
+pub struct ZoneJailOperateDestroyOnParentEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailOperateDestroyOnParentEntryConfiguration {
+impl ZoneJailOperateDestroyOnParentEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -66,13 +66,13 @@ impl ZoneJailOperateDestroyOnParentEntryConfiguration {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyOnChildEntryConfiguration {
+pub struct ZoneJailOperateDestroyOnChildEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailOperateDestroyOnChildEntryConfiguration {
+impl ZoneJailOperateDestroyOnChildEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -129,32 +129,34 @@ impl ZoneJailOperateDestroyOnChildEntryConfiguration {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "target")]
-pub enum ZoneJailOperateDestroyOnEntryConfiguration {
+pub enum ZoneJailOperateDestroyOnEntryConfigurationDirective {
     #[serde(rename = "parent")]
-    Parent(ZoneJailOperateDestroyOnParentEntryConfiguration),
+    Parent(ZoneJailOperateDestroyOnParentEntryConfigurationDirective),
     #[serde(rename = "child")]
-    Child(ZoneJailOperateDestroyOnChildEntryConfiguration),
+    Child(ZoneJailOperateDestroyOnChildEntryConfigurationDirective),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyOnConfiguration(Vec<ZoneJailOperateDestroyOnEntryConfiguration>);
+pub struct ZoneJailOperateDestroyOnConfigurationDirective(
+    Vec<ZoneJailOperateDestroyOnEntryConfigurationDirective>,
+);
 
-impl ZoneJailOperateDestroyOnConfiguration {
-    pub fn new(inner: Vec<ZoneJailOperateDestroyOnEntryConfiguration>) -> Self {
+impl ZoneJailOperateDestroyOnConfigurationDirective {
+    pub fn new(inner: Vec<ZoneJailOperateDestroyOnEntryConfigurationDirective>) -> Self {
         Self(inner)
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailOperateDestroyOnEntryConfiguration> {
+    pub fn inner(&self) -> &Vec<ZoneJailOperateDestroyOnEntryConfigurationDirective> {
         &self.0
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailOperateDestroyOnEntryConfiguration> {
+    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailOperateDestroyOnEntryConfigurationDirective> {
         &mut self.0
     }
 
-    pub fn set_inner(&mut self, inner: Vec<ZoneJailOperateDestroyOnEntryConfiguration>) {
+    pub fn set_inner(&mut self, inner: Vec<ZoneJailOperateDestroyOnEntryConfigurationDirective>) {
         self.0 = inner
     }
 }

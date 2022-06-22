@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateCreateBeforeParentEntryConfiguration {
+pub struct ZoneJailOperateCreateBeforeParentEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailOperateCreateBeforeParentEntryConfiguration {
+impl ZoneJailOperateCreateBeforeParentEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -67,32 +67,37 @@ impl ZoneJailOperateCreateBeforeParentEntryConfiguration {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "target")]
-pub enum ZoneJailOperateCreateBeforeEntryConfiguration {
+pub enum ZoneJailOperateCreateBeforeEntryConfigurationDirective {
     #[serde(rename = "parent")]
-    Parent(ZoneJailOperateCreateBeforeParentEntryConfiguration),
+    Parent(ZoneJailOperateCreateBeforeParentEntryConfigurationDirective),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateCreateBeforeConfiguration(
-    Vec<ZoneJailOperateCreateBeforeEntryConfiguration>,
+pub struct ZoneJailOperateCreateBeforeConfigurationDirective(
+    Vec<ZoneJailOperateCreateBeforeEntryConfigurationDirective>,
 );
 
-impl ZoneJailOperateCreateBeforeConfiguration {
-    pub fn new(inner: Vec<ZoneJailOperateCreateBeforeEntryConfiguration>) -> Self {
+impl ZoneJailOperateCreateBeforeConfigurationDirective {
+    pub fn new(inner: Vec<ZoneJailOperateCreateBeforeEntryConfigurationDirective>) -> Self {
         Self(inner)
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailOperateCreateBeforeEntryConfiguration> {
+    pub fn inner(&self) -> &Vec<ZoneJailOperateCreateBeforeEntryConfigurationDirective> {
         &self.0
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailOperateCreateBeforeEntryConfiguration> {
+    pub fn inner_mut(
+        &mut self,
+    ) -> &mut Vec<ZoneJailOperateCreateBeforeEntryConfigurationDirective> {
         &mut self.0
     }
 
-    pub fn set_inner(&mut self, inner: Vec<ZoneJailOperateCreateBeforeEntryConfiguration>) {
+    pub fn set_inner(
+        &mut self,
+        inner: Vec<ZoneJailOperateCreateBeforeEntryConfigurationDirective>,
+    ) {
         self.0 = inner
     }
 }

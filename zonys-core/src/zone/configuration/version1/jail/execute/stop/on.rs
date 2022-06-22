@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStopOnParentEntryConfiguration {
+pub struct ZoneJailExecuteStopOnParentEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailExecuteStopOnParentEntryConfiguration {
+impl ZoneJailExecuteStopOnParentEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -66,13 +66,13 @@ impl ZoneJailExecuteStopOnParentEntryConfiguration {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStopOnChildEntryConfiguration {
+pub struct ZoneJailExecuteStopOnChildEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailExecuteStopOnChildEntryConfiguration {
+impl ZoneJailExecuteStopOnChildEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -129,32 +129,34 @@ impl ZoneJailExecuteStopOnChildEntryConfiguration {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "target")]
-pub enum ZoneJailExecuteStopOnEntryConfiguration {
+pub enum ZoneJailExecuteStopOnEntryConfigurationDirective {
     #[serde(rename = "parent")]
-    Parent(ZoneJailExecuteStopOnParentEntryConfiguration),
+    Parent(ZoneJailExecuteStopOnParentEntryConfigurationDirective),
     #[serde(rename = "child")]
-    Child(ZoneJailExecuteStopOnChildEntryConfiguration),
+    Child(ZoneJailExecuteStopOnChildEntryConfigurationDirective),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStopOnConfiguration(Vec<ZoneJailExecuteStopOnEntryConfiguration>);
+pub struct ZoneJailExecuteStopOnConfigurationDirective(
+    Vec<ZoneJailExecuteStopOnEntryConfigurationDirective>,
+);
 
-impl ZoneJailExecuteStopOnConfiguration {
-    pub fn new(inner: Vec<ZoneJailExecuteStopOnEntryConfiguration>) -> Self {
+impl ZoneJailExecuteStopOnConfigurationDirective {
+    pub fn new(inner: Vec<ZoneJailExecuteStopOnEntryConfigurationDirective>) -> Self {
         Self(inner)
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailExecuteStopOnEntryConfiguration> {
+    pub fn inner(&self) -> &Vec<ZoneJailExecuteStopOnEntryConfigurationDirective> {
         &self.0
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStopOnEntryConfiguration> {
+    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStopOnEntryConfigurationDirective> {
         &mut self.0
     }
 
-    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStopOnEntryConfiguration>) {
+    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStopOnEntryConfigurationDirective>) {
         self.0 = inner
     }
 }
