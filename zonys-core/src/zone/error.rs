@@ -1,5 +1,6 @@
 use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template::RenderTemplateError;
+use crate::zone::configuration::error::ProcessZoneConfigurationError;
 use bincode::error::{DecodeError, EncodeError};
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -159,6 +160,7 @@ pub enum CreateZoneError {
     ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
     UnmountAllFileSystemError(UnmountAllFileSystemError),
     TryIntoJailIdError(TryIntoJailIdError),
+    ProcessZoneConfigurationError(ProcessZoneConfigurationError),
 }
 
 impl error::Error for CreateZoneError {}
@@ -182,6 +184,7 @@ impl Debug for CreateZoneError {
             Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
             Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
+            Self::ProcessZoneConfigurationError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -205,6 +208,7 @@ impl Display for CreateZoneError {
             Self::ReadFileSystemMountStatusError(error) => Display::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
             Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
+            Self::ProcessZoneConfigurationError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -296,6 +300,12 @@ impl From<UnmountAllFileSystemError> for CreateZoneError {
 impl From<TryIntoJailIdError> for CreateZoneError {
     fn from(error: TryIntoJailIdError) -> Self {
         Self::TryIntoJailIdError(error)
+    }
+}
+
+impl From<ProcessZoneConfigurationError> for CreateZoneError {
+    fn from(error: ProcessZoneConfigurationError) -> Self {
+        Self::ProcessZoneConfigurationError(error)
     }
 }
 
@@ -739,6 +749,7 @@ impl From<ConvertNamespaceIdentifierFromStrError> for ParseZoneIdentifierError {
 pub enum OpenZoneConfigurationError {
     IoError(io::Error),
     YamlError(serde_yaml::Error),
+    ProcessZoneConfigurationError(ProcessZoneConfigurationError),
 }
 
 impl error::Error for OpenZoneConfigurationError {}
@@ -748,6 +759,7 @@ impl Debug for OpenZoneConfigurationError {
         match self {
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::YamlError(error) => Debug::fmt(error, formatter),
+            Self::ProcessZoneConfigurationError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -757,6 +769,7 @@ impl Display for OpenZoneConfigurationError {
         match self {
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::YamlError(error) => Display::fmt(error, formatter),
+            Self::ProcessZoneConfigurationError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -770,6 +783,12 @@ impl From<io::Error> for OpenZoneConfigurationError {
 impl From<serde_yaml::Error> for OpenZoneConfigurationError {
     fn from(error: serde_yaml::Error) -> Self {
         Self::YamlError(error)
+    }
+}
+
+impl From<ProcessZoneConfigurationError> for OpenZoneConfigurationError {
+    fn from(error: ProcessZoneConfigurationError) -> Self {
+        Self::ProcessZoneConfigurationError(error)
     }
 }
 

@@ -158,9 +158,14 @@ impl Zone {
     pub fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
         let configuration_path = self.configuration_path();
         if configuration_path.exists() {
-            Ok(from_reader(&mut BufReader::new(File::open(
+            let processor = ZoneConfigurationProcessor::default();
+
+            let configuration = processor.process(ZoneConfiguration::new(
+                from_reader(&mut BufReader::new(File::open(&configuration_path)?))?,
                 configuration_path,
-            )?))?)
+            ))?;
+
+            Ok(configuration)
         } else {
             Ok(ZoneConfiguration::default())
         }
@@ -176,26 +181,31 @@ impl Zone {
 
 impl Zone {
     fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
+        let processor = ZoneConfigurationProcessor::default();
+        let configuration = processor.process(configuration)?;
+
         let mut writer = &mut BufWriter::new(File::create(self.configuration_path())?);
-        to_writer(&mut writer, &configuration)?;
+        to_writer(&mut writer, configuration.directive())?;
         writer.flush()?;
 
         let executor = ZoneExecutor::default();
 
         let mut context = ZoneExecutionContext::default();
-        context.variables_mut().extend(match configuration {
-            ZoneConfiguration::Version1(ref version1) => version1
-                .variables()
-                .as_ref()
-                .map(|x| x.clone())
-                .unwrap_or_default(),
-        });
+        context
+            .variables_mut()
+            .extend(match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
+                    .variables()
+                    .as_ref()
+                    .map(|x| x.clone())
+                    .unwrap_or_default(),
+            });
         context.variables_mut().insert(
             "zone".into(),
             TemplateValue::Object(self.context_variables()),
         );
 
-        OperateCreateBeforeZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateBeforeZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
@@ -208,18 +218,20 @@ impl Zone {
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
-        OperateCreateOnZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateOnZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        OperateCreateAfterZoneProgramExecutionIterator::new(&configuration)
+        OperateCreateAfterZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
         jail.destroy()?;
 
-        let start_after_create = match configuration {
-            ZoneConfiguration::Version1(version1) => version1.start_after_create().unwrap_or(false),
+        let start_after_create = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => {
+                version1.start_after_create().unwrap_or(false)
+            }
         };
 
         if start_after_create {
@@ -238,30 +250,32 @@ impl Zone {
         let executor = ZoneExecutor::default();
 
         let mut context = ZoneExecutionContext::default();
-        context.variables_mut().extend(match configuration {
-            ZoneConfiguration::Version1(ref version1) => version1
-                .variables()
-                .as_ref()
-                .map(|x| x.clone())
-                .unwrap_or_default(),
-        });
+        context
+            .variables_mut()
+            .extend(match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
+                    .variables()
+                    .as_ref()
+                    .map(|x| x.clone())
+                    .unwrap_or_default(),
+            });
         context.variables_mut().insert(
             "zone".into(),
             TemplateValue::Object(self.context_variables()),
         );
 
-        ExecuteStartBeforeZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStartBeforeZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
-        ExecuteStartOnZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStartOnZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        ExecuteStartAfterZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStartAfterZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
@@ -279,35 +293,39 @@ impl Zone {
         let executor = ZoneExecutor::default();
 
         let mut context = ZoneExecutionContext::default();
-        context.variables_mut().extend(match configuration {
-            ZoneConfiguration::Version1(ref version1) => version1
-                .variables()
-                .as_ref()
-                .map(|x| x.clone())
-                .unwrap_or_default(),
-        });
+        context
+            .variables_mut()
+            .extend(match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
+                    .variables()
+                    .as_ref()
+                    .map(|x| x.clone())
+                    .unwrap_or_default(),
+            });
         context.variables_mut().insert(
             "zone".into(),
             TemplateValue::Object(self.context_variables()),
         );
 
-        ExecuteStopBeforeZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStopBeforeZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        ExecuteStopOnZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStopOnZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
         jail.destroy()?;
 
-        ExecuteStopAfterZoneProgramExecutionIterator::new(&configuration)
+        ExecuteStopAfterZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
 
-        let destroy_after_stop = match configuration {
-            ZoneConfiguration::Version1(version1) => version1.destroy_after_stop().unwrap_or(false),
+        let destroy_after_stop = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => {
+                version1.destroy_after_stop().unwrap_or(false)
+            }
         };
 
         if destroy_after_stop {
@@ -331,13 +349,15 @@ impl Zone {
         let executor = ZoneExecutor::default();
 
         let mut context = ZoneExecutionContext::default();
-        context.variables_mut().extend(match configuration {
-            ZoneConfiguration::Version1(ref version1) => version1
-                .variables()
-                .as_ref()
-                .map(|x| x.clone())
-                .unwrap_or_default(),
-        });
+        context
+            .variables_mut()
+            .extend(match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
+                    .variables()
+                    .as_ref()
+                    .map(|x| x.clone())
+                    .unwrap_or_default(),
+            });
         context.variables_mut().insert(
             "zone".into(),
             TemplateValue::Object(self.context_variables()),
@@ -345,11 +365,11 @@ impl Zone {
 
         let mut jail = Jail::create(self.jail_parameters())?;
 
-        OperateDestroyBeforeZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyBeforeZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
-        OperateDestroyOnZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyOnZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
             .collect::<Result<(), _>>()?;
 
@@ -361,7 +381,7 @@ impl Zone {
 
         file_system.destroy()?;
 
-        OperateDestroyAfterZoneProgramExecutionIterator::new(&configuration)
+        OperateDestroyAfterZoneProgramExecutionIterator::new(configuration.directive())
             .map(|instruction| executor.execute_parent(&mut context, &instruction))
             .collect::<Result<(), _>>()
             .map_err(|e| ExecuteZoneError::Parent(e))?;
@@ -396,7 +416,7 @@ impl Zone {
 
         let header = encode_to_vec(
             ZoneTransmissionHeader::Version1(ZoneTransmissionVersion1Header::new(
-                to_vec(&self.configuration()?)?,
+                to_vec(&self.configuration()?.directive())?,
                 ZoneTransmissionVersion1Type::Zfs,
             )),
             bincode_configuration,

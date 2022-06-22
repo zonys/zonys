@@ -1,5 +1,5 @@
 use super::error::{NextNamespaceMatchZoneIteratorError, NextNamespaceZoneIteratorError};
-use crate::zone::{Zone, ZoneConfiguration, ZoneIdentifier};
+use crate::zone::{Zone, ZoneConfigurationVersionDirective, ZoneIdentifier};
 use regex::Regex;
 use zfs::file_system::iterator::ChildFileSystemIterator;
 
@@ -84,8 +84,8 @@ impl Iterator for NamespaceMatchZoneIterator {
                 Ok(c) => c,
             };
 
-            let tags = match configuration {
-                ZoneConfiguration::Version1(ref version1) => version1.tags(),
+            let tags = match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1.tags(),
             };
 
             if let Some(tags) = tags {

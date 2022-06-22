@@ -6,6 +6,7 @@ pub use self::jail::*;
 
 use crate::template::TemplateObject;
 use serde::{Deserialize, Serialize};
+use serde_yaml::Value;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -14,6 +15,8 @@ use serde::{Deserialize, Serialize};
 pub enum ZoneConfigurationType {
     #[serde(rename = "jail")]
     Jail(ZoneJailConfiguration),
+    #[serde(rename = "undefined")]
+    Undefined(Value),
 }
 
 impl Default for ZoneConfigurationType {

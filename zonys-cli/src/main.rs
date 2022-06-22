@@ -4,11 +4,15 @@
 
 use clap::{Parser, Subcommand};
 use serde_yaml::from_reader;
+use std::env::current_dir;
 use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind, Stdin};
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
-use zonys_core::zone::{ReceiveZoneError, ZoneConfiguration};
+use zonys_core::zone::{
+    ReceiveZoneError, ZoneConfiguration, ZoneConfigurationDirective,
+    ZoneConfigurationVersionDirective,
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -103,10 +107,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Create { stdin } => {
-            let configuration = if stdin {
-                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            let configuration_directive = if stdin {
+                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
             } else {
-                ZoneConfiguration::default()
+                ZoneConfigurationDirective::default()
             };
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
@@ -117,7 +121,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
-            println!("{}", namespace.zones_mut().create(configuration)?.uuid());
+            println!(
+                "{}",
+                namespace
+                    .zones_mut()
+                    .create(ZoneConfiguration::new(
+                        configuration_directive,
+                        current_dir()?,
+                    ))?
+                    .uuid()
+            );
         }
         MainCommand::Destroy { regular_expression } => {
             match Namespace::open(arguments.namespace_identifier)? {
@@ -304,10 +317,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Deploy { stdin } => {
-            let configuration = if stdin {
-                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            let configuration_directive = if stdin {
+                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
             } else {
-                ZoneConfiguration::default()
+                ZoneConfigurationDirective::default()
             };
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
@@ -318,7 +331,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
-            let zone_identifier = namespace.zones_mut().create(configuration)?;
+            let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
+                configuration_directive,
+                current_dir()?,
+            ))?;
 
             let mut zone = namespace
                 .zones_mut()
@@ -418,10 +434,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Run { stdin } => {
-            let mut configuration = if stdin {
-                from_reader::<Stdin, ZoneConfiguration>(io_stdin())?
+            let mut configuration_directive = if stdin {
+                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
             } else {
-                ZoneConfiguration::default()
+                ZoneConfigurationDirective::default()
             };
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
@@ -432,14 +448,17 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
-            match configuration {
-                ZoneConfiguration::Version1(ref mut version1) => {
+            match configuration_directive.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
                     version1.set_start_after_create(Some(true));
                     version1.set_destroy_after_stop(Some(true));
                 }
             }
 
-            let zone_identifier = namespace.zones_mut().create(configuration)?;
+            let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
+                configuration_directive,
+                current_dir()?,
+            ))?;
 
             println!("{}", zone_identifier.uuid());
         }

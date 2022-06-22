@@ -4,17 +4,17 @@ use std::fmt::{Debug, Display, Formatter};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum TryIntoProcessedZoneConfigurationError {}
+pub enum ProcessZoneConfigurationError {}
 
-impl error::Error for TryIntoProcessedZoneConfigurationError {}
+impl error::Error for ProcessZoneConfigurationError {}
 
-impl Display for TryIntoProcessedZoneConfigurationError {
+impl Display for ProcessZoneConfigurationError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         write!(formatter, "")
     }
 }
 
-impl Debug for TryIntoProcessedZoneConfigurationError {
+impl Debug for ProcessZoneConfigurationError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         write!(formatter, "")
     }

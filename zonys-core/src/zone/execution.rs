@@ -700,10 +700,10 @@ pub struct OperateCreateBeforeZoneProgramExecutionIterator;
 
 impl OperateCreateBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => {
                 match version1.r#type() {
                     version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
@@ -717,9 +717,10 @@ impl OperateCreateBeforeZoneProgramExecutionIterator {
                             version1::ZoneJailOperateCreateBeforeEntryConfiguration::Parent(parent) => ZoneParentProgramExecution::from(parent),
                         })) {
                             Some(iter) => Box::new(iter),
-                            None => Box::new(std::iter::empty()),
+                            None => Box::new(empty()),
                         }
                     }
+                    version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
                 }
             }
         }
@@ -732,10 +733,10 @@ pub struct OperateCreateOnZoneProgramExecutionIterator;
 
 impl OperateCreateOnZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .operate()
@@ -747,9 +748,10 @@ impl OperateCreateOnZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -761,10 +763,10 @@ pub struct OperateCreateAfterZoneProgramExecutionIterator;
 
 impl OperateCreateAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .operate()
@@ -776,9 +778,10 @@ impl OperateCreateAfterZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -790,10 +793,10 @@ pub struct ExecuteStartBeforeZoneProgramExecutionIterator;
 
 impl ExecuteStartBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => {
                 match version1.r#type() {
                     version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
@@ -808,9 +811,10 @@ impl ExecuteStartBeforeZoneProgramExecutionIterator {
                         }))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                     }
+                    version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
                 }
             }
         }
@@ -823,10 +827,10 @@ pub struct ExecuteStartOnZoneProgramExecutionIterator;
 
 impl ExecuteStartOnZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
@@ -838,9 +842,10 @@ impl ExecuteStartOnZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -852,10 +857,10 @@ pub struct ExecuteStartAfterZoneProgramExecutionIterator;
 
 impl ExecuteStartAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
@@ -867,9 +872,10 @@ impl ExecuteStartAfterZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -881,10 +887,10 @@ pub struct ExecuteStopBeforeZoneProgramExecutionIterator;
 
 impl ExecuteStopBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
@@ -896,9 +902,10 @@ impl ExecuteStopBeforeZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -910,10 +917,10 @@ pub struct ExecuteStopOnZoneProgramExecutionIterator;
 
 impl ExecuteStopOnZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
@@ -925,9 +932,10 @@ impl ExecuteStopOnZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -939,10 +947,10 @@ pub struct ExecuteStopAfterZoneProgramExecutionIterator;
 
 impl ExecuteStopAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .execute()
@@ -959,9 +967,10 @@ impl ExecuteStopAfterZoneProgramExecutionIterator {
                             })
                         }) {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -973,10 +982,10 @@ pub struct OperateDestroyBeforeZoneProgramExecutionIterator;
 
 impl OperateDestroyBeforeZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .operate()
@@ -988,9 +997,10 @@ impl OperateDestroyBeforeZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -1002,10 +1012,10 @@ pub struct OperateDestroyOnZoneProgramExecutionIterator;
 
 impl OperateDestroyOnZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => match version1.r#type() {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
                 version1::ZoneConfigurationType::Jail(jail) => {
                     match jail
                         .operate()
@@ -1017,9 +1027,10 @@ impl OperateDestroyOnZoneProgramExecutionIterator {
                         .map(|b| b.inner().iter().map(ZoneProgramExecution::from))
                     {
                         Some(iter) => Box::new(iter),
-                        None => Box::new(std::iter::empty()),
+                        None => Box::new(empty()),
                     }
                 }
+                version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
             },
         }
     }
@@ -1031,10 +1042,10 @@ pub struct OperateDestroyAfterZoneProgramExecutionIterator;
 
 impl OperateDestroyAfterZoneProgramExecutionIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationDirective,
     ) -> Box<dyn Iterator<Item = ZoneParentProgramExecution> + 'a> {
-        match configuration {
-            ZoneConfiguration::Version1(version1) => {
+        match configuration.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => {
                 match version1.r#type() {
                     version1::ZoneConfigurationType::Jail(jail) => {
                         match jail
@@ -1052,6 +1063,7 @@ impl OperateDestroyAfterZoneProgramExecutionIterator {
                         None => Box::new(empty()),
                     }
                     }
+                    version1::ZoneConfigurationType::Undefined(_) => Box::new(empty()),
                 }
             }
         }
