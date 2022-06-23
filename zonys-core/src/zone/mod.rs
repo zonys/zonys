@@ -13,13 +13,14 @@ pub use transmission::*;
 use crate::namespace::NamespaceIdentifier;
 use crate::template::{TemplateObject, TemplateScalar, TemplateValue};
 use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
-use bincode::serde::{decode_from_slice, encode_into_std_write, encode_to_vec};
+use bincode::serde::{decode_from_slice, encode_to_vec};
 use execution::*;
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
+use nix::unistd::{read, write};
 use serde_yaml::{from_reader, to_vec, to_writer};
 use std::fs::{remove_file, File};
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -401,7 +402,7 @@ impl Zone {
 
     fn handle_send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
     where
-        T: Write + AsRawFd,
+        T: AsRawFd,
     {
         if self.jail()?.is_some() {
             return Err(SendZoneError::ZoneIsRunning);
@@ -420,47 +421,49 @@ impl Zone {
                 ZoneTransmissionVersion1Type::Zfs,
             )),
             bincode_configuration,
-        )
-        .unwrap();
-
-        encode_into_std_write(
-            ZONE_TRANSMISSION_MAGIC_NUMBER,
-            writer,
-            bincode_configuration,
         )?;
 
-        encode_into_std_write(
-            header.len() as ZoneTransmissionHeaderLength,
-            writer,
-            bincode_configuration,
+        write(
+            writer.as_raw_fd(),
+            &encode_to_vec(ZONE_TRANSMISSION_MAGIC_NUMBER, bincode_configuration)?,
         )?;
 
-        writer.write(&header)?;
-        writer.flush()?;
+        write(
+            writer.as_raw_fd(),
+            &encode_to_vec(
+                header.len() as ZoneTransmissionHeaderLength,
+                bincode_configuration,
+            )?,
+        )?;
+
+        write(writer.as_raw_fd(), &header)?;
 
         Ok(file_system.send(writer.as_raw_fd())?)
     }
 
     fn handle_receive<T>(&mut self, reader: &mut T) -> Result<(), ReceiveZoneError>
     where
-        T: Read + AsRawFd,
+        T: AsRawFd,
     {
         let bincode_configuration = create_bincode_configuration();
         let mut buffer: [u8; 8] = [0; 8];
 
-        reader.read_exact(&mut buffer)?;
+        if read(reader.as_raw_fd(), &mut buffer)? == 0 {
+            return Err(ReceiveZoneError::EmptyInput);
+        }
+
         let (magic_number, _): (ZoneTransmissionMagicNumberLength, _) =
             decode_from_slice(&buffer, bincode_configuration)?;
         if magic_number != ZONE_TRANSMISSION_MAGIC_NUMBER {
             return Err(ReceiveZoneError::MissingMagicNumber);
         }
 
-        reader.read_exact(&mut buffer)?;
+        read(reader.as_raw_fd(), &mut buffer)?;
         let (header_len, _): (ZoneTransmissionHeaderLength, _) =
             decode_from_slice(&buffer, bincode_configuration)?;
 
         let mut header: Vec<u8> = vec![0; header_len as usize];
-        reader.read_exact(&mut header)?;
+        read(reader.as_raw_fd(), &mut header)?;
         let (header, _): (ZoneTransmissionHeader, _) =
             decode_from_slice(&header, bincode_configuration)?;
 
@@ -567,7 +570,7 @@ impl Zone {
 
     pub fn send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
     where
-        T: Write + AsRawFd,
+        T: AsRawFd,
     {
         self.lock()?;
         let result = self.handle_send(writer);
@@ -581,7 +584,7 @@ impl Zone {
         reader: &mut T,
     ) -> Result<ZoneIdentifier, ReceiveZoneError>
     where
-        T: Read + AsRawFd,
+        T: AsRawFd,
     {
         let mut zone = Self::new(
             ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),

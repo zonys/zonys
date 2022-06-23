@@ -425,6 +425,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     Ok(z) => {
                         println!("{}", z.uuid().to_string());
                     }
+                    Err(ReceiveZoneError::EmptyInput) => return Ok(()),
                     Err(ReceiveZoneError::IoError(e)) => match e.kind() {
                         ErrorKind::UnexpectedEof => return Ok(()),
                         _ => return Err(e.into()),

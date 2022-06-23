@@ -920,6 +920,7 @@ pub enum SendZoneError {
     YamlError(serde_yaml::Error),
     BincodeEncodeError(EncodeError),
     IoError(io::Error),
+    Errno(Errno),
 }
 
 impl error::Error for SendZoneError {}
@@ -938,6 +939,7 @@ impl Debug for SendZoneError {
             Self::YamlError(error) => Debug::fmt(error, formatter),
             Self::BincodeEncodeError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
+            Self::Errno(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -956,6 +958,7 @@ impl Display for SendZoneError {
             Self::YamlError(error) => Display::fmt(error, formatter),
             Self::BincodeEncodeError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
+            Self::Errno(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -1014,6 +1017,12 @@ impl From<io::Error> for SendZoneError {
     }
 }
 
+impl From<Errno> for SendZoneError {
+    fn from(error: Errno) -> Self {
+        Self::Errno(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum ReceiveZoneError {
@@ -1024,6 +1033,8 @@ pub enum ReceiveZoneError {
     BincodeDecodeError(DecodeError),
     YamlError(serde_yaml::Error),
     MissingMagicNumber,
+    Errno(Errno),
+    EmptyInput,
 }
 
 impl error::Error for ReceiveZoneError {}
@@ -1038,6 +1049,8 @@ impl Debug for ReceiveZoneError {
             Self::BincodeDecodeError(error) => Debug::fmt(error, formatter),
             Self::YamlError(error) => Debug::fmt(error, formatter),
             Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
+            Self::Errno(error) => Debug::fmt(error, formatter),
+            Self::EmptyInput => write!(formatter, "Input is empty"),
         }
     }
 }
@@ -1050,8 +1063,10 @@ impl Display for ReceiveZoneError {
             Self::ReceiveFileSystemError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::BincodeDecodeError(error) => Display::fmt(error, formatter),
-            Self::YamlError(error) => Debug::fmt(error, formatter),
+            Self::YamlError(error) => Display::fmt(error, formatter),
             Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
+            Self::Errno(error) => Display::fmt(error, formatter),
+            Self::EmptyInput => write!(formatter, "Input is empty"),
         }
     }
 }
@@ -1089,6 +1104,12 @@ impl From<DecodeError> for ReceiveZoneError {
 impl From<serde_yaml::Error> for ReceiveZoneError {
     fn from(error: serde_yaml::Error) -> Self {
         Self::YamlError(error)
+    }
+}
+
+impl From<Errno> for ReceiveZoneError {
+    fn from(error: Errno) -> Self {
+        Self::Errno(error)
     }
 }
 
