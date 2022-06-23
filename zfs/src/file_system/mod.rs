@@ -26,6 +26,10 @@ use zfs_sys::{
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+pub const DEFAULT_RANDOM_NAME_LENGTH: usize = 16;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 pub enum FileSystemMountStatus {
     Mounted,
     Unmounted,
@@ -141,7 +145,7 @@ impl FileSystem {
     }
 
     pub fn send(&mut self, file_descriptor: RawFd) -> Result<(), SendFileSystemError> {
-        let name = Alphanumeric.sample_string(&mut thread_rng(), 16);
+        let name = Alphanumeric.sample_string(&mut thread_rng(), DEFAULT_RANDOM_NAME_LENGTH);
 
         self.snapshots_mut().create(name.clone())?;
         let mut snapshot = self
@@ -161,7 +165,7 @@ impl FileSystem {
     ) -> Result<(), ReceiveFileSystemError> {
         let snapshot_identifier = SnapshotIdentifier::new(
             file_system_identifier,
-            Alphanumeric.sample_string(&mut thread_rng(), 16),
+            Alphanumeric.sample_string(&mut thread_rng(), DEFAULT_RANDOM_NAME_LENGTH),
         );
 
         Snapshot::receive(&snapshot_identifier, file_descriptor)?;
