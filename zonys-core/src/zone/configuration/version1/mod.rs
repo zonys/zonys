@@ -21,7 +21,7 @@ pub enum ZoneConfigurationTypeDirective {
 
 impl Default for ZoneConfigurationTypeDirective {
     fn default() -> Self {
-        Self::Jail(ZoneJailConfigurationDirective::default())
+        Self::Undefined(Value::Null)
     }
 }
 
