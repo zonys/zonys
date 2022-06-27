@@ -134,47 +134,6 @@ impl ZoneConfigurationProcessor {
         }
     }
 
-    /*fn merge_version1_jail_operate(
-        &self,
-        mut left: version1::ZoneJailOperateConfigurationDirective,
-        mut right: version1::ZoneJailOperateConfigurationDirective,
-    ) -> Result<version1::ZoneJailOperateConfigurationDirective, MergeZoneConfigurationError> {
-        Ok(left)
-    }
-
-    fn merge_version1_jail_execute(
-        &self,
-        mut left: version1::ZoneJailExecuteConfigurationDirective,
-        mut right: version1::ZoneJailExecuteConfigurationDirective,
-    ) -> Result<version1::ZoneJailExecuteConfigurationDirective, MergeZoneConfigurationError> {
-        Ok(left)
-    }
-
-    fn merge_version1_jail(
-        &self,
-        mut left: version1::ZoneJailConfigurationDirective,
-        mut right: version1::ZoneJailConfigurationDirective,
-    ) -> Result<version1::ZoneJailConfigurationDirective, MergeZoneConfigurationError> {
-        let operate = match (replace(left.operate_mut(), None), replace(right.operate_mut(), None)) {
-            (None, None) => None,
-            (Some(operate), None) => Some(operate),
-            (None, Some(operate)) => Some(operate),
-            (Some(left), Some(right)) => Some(self.merge_version1_jail_operate(left, right)?),
-        };
-
-        let execute = match (replace(left.execute_mut(), None), replace(right.execute_mut(), None)) {
-            (None, None) => None,
-            (Some(execute), None) => Some(execute),
-            (None, Some(execute)) => Some(execute),
-            (Some(left), Some(right)) => Some(self.merge_version1_jail_execute(left, right)?),
-        };
-
-        Ok(version1::ZoneJailConfigurationDirective::new(
-            operate,
-            execute
-        ))
-    }*/
-
     fn merge_version1(
         &self,
         mut left: version1::ZoneConfigurationDirective,
