@@ -2,12 +2,11 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use clap::{Parser, Subcommand};
-use serde_yaml::from_reader;
+use clap::{Args, Parser, Subcommand};
 use std::env::current_dir;
 use std::error;
 use std::fmt::Debug;
-use std::io::{stdin as io_stdin, stdout, ErrorKind, Stdin};
+use std::io::{stdin as io_stdin, stdout, ErrorKind};
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
 use zonys_core::zone::{
     ReceiveZoneError, ZoneConfiguration, ZoneConfigurationDirective,
@@ -37,7 +36,7 @@ enum MainCommand {
     },
     Create {
         #[clap(short, long)]
-        stdin: bool,
+        include: Option<Vec<String>>,
     },
     Destroy {
         regular_expression: String,
@@ -65,7 +64,7 @@ enum MainCommand {
     },
     Deploy {
         #[clap(short, long)]
-        stdin: bool,
+        include: Option<Vec<String>>,
     },
     Undeploy {
         regular_expression: String,
@@ -79,7 +78,7 @@ enum MainCommand {
     Receive,
     Run {
         #[clap(short, long)]
-        stdin: bool,
+        include: Option<Vec<String>>,
     },
     Status,
     List,
@@ -106,12 +105,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 None => {}
             }
         }
-        MainCommand::Create { stdin } => {
-            let configuration_directive = if stdin {
-                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
-            } else {
-                ZoneConfigurationDirective::default()
+        MainCommand::Create { include } => {
+            let mut configuration_directive = ZoneConfigurationDirective::default();
+
+            match configuration_directive.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+                    version1.set_include(include);
+                }
             };
+
+            let configuration_directive = configuration_directive;
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
@@ -316,12 +319,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 println!("{}", zone.identifier().uuid().to_string());
             }
         }
-        MainCommand::Deploy { stdin } => {
-            let configuration_directive = if stdin {
-                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
-            } else {
-                ZoneConfigurationDirective::default()
+        MainCommand::Deploy { include } => {
+            let mut configuration_directive = ZoneConfigurationDirective::default();
+
+            match configuration_directive.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+                    version1.set_include(include);
+                }
             };
+
+            let configuration_directive = configuration_directive;
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
@@ -434,11 +441,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 };
             }
         }
-        MainCommand::Run { stdin } => {
-            let mut configuration_directive = if stdin {
-                from_reader::<Stdin, ZoneConfigurationDirective>(io_stdin())?
-            } else {
-                ZoneConfigurationDirective::default()
+        MainCommand::Run { include } => {
+            let mut configuration_directive = ZoneConfigurationDirective::default();
+
+            match configuration_directive.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+                    version1.set_include(include);
+                }
             };
 
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
