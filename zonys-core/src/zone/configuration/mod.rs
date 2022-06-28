@@ -282,7 +282,21 @@ impl ZoneConfigurationProcessor {
             }
 
             for item in include {
-                let included_configuration_path = configuration.path().join(item);
+                let included_configuration_path = if configuration.path().is_dir() {
+                    configuration.path()
+                } else {
+                    match configuration.path().parent() {
+                        None => {
+                            return Err(ProcessZoneConfigurationError::MissingParent(replace(
+                                configuration.path_mut(),
+                                PathBuf::default(),
+                            )))
+                        }
+                        Some(p) => p,
+                    }
+                };
+
+                let included_configuration_path = included_configuration_path.join(item);
 
                 let included_configuration = self.process(ZoneConfiguration::new(
                     from_reader(&mut BufReader::new(File::open(

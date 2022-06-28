@@ -3,6 +3,7 @@ use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::io;
+use std::path::PathBuf;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -10,6 +11,7 @@ pub enum ProcessZoneConfigurationError {
     YamlError(serde_yaml::Error),
     IoError(io::Error),
     MergeZoneConfigurationError(MergeZoneConfigurationError),
+    MissingParent(PathBuf),
 }
 
 impl Debug for ProcessZoneConfigurationError {
@@ -18,6 +20,7 @@ impl Debug for ProcessZoneConfigurationError {
             Self::YamlError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::MergeZoneConfigurationError(error) => Debug::fmt(error, formatter),
+            Self::MissingParent(p) => write!(formatter, "Parent path is missing ({})", p.display()),
         }
     }
 }
@@ -28,6 +31,7 @@ impl Display for ProcessZoneConfigurationError {
             Self::YamlError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::MergeZoneConfigurationError(error) => Display::fmt(error, formatter),
+            Self::MissingParent(p) => write!(formatter, "Parent path is missing ({})", p.display()),
         }
     }
 }
