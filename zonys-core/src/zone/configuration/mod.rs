@@ -4,6 +4,7 @@ pub mod version1;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use error::{MergeZoneConfigurationError, ProcessZoneConfigurationError};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_yaml::{from_reader, from_value, to_value, Value};
 use std::fs::File;
@@ -50,10 +51,6 @@ impl ZoneConfigurationDirective {
     pub fn set_version(&mut self, version: ZoneConfigurationVersionDirective) {
         self.version = version
     }
-
-    pub fn into_inner(self) -> (ZoneConfigurationVersionDirective,) {
-        (self.version,)
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,10 +88,6 @@ impl ZoneConfiguration {
 
     pub fn set_path(&mut self, path: PathBuf) {
         self.path = path
-    }
-
-    pub fn into_inner(self) -> (ZoneConfigurationDirective, PathBuf) {
-        (self.directive, self.path)
     }
 }
 
@@ -134,43 +127,36 @@ impl ZoneConfigurationProcessor {
         }
     }
 
+    fn merge_with_value<T>(&self, left: T, right: T) -> Result<T, MergeZoneConfigurationError>
+    where
+        T: 'static + DeserializeOwned + Serialize,
+    {
+        Ok(from_value(
+            self.merge_value(to_value(left)?, to_value(right)?)?,
+        )?)
+    }
+
+    fn merge_with_option_value<T>(
+        &self,
+        left: Option<T>,
+        right: Option<T>,
+    ) -> Result<Option<T>, MergeZoneConfigurationError>
+    where
+        T: 'static + DeserializeOwned + Serialize,
+    {
+        match (left, right) {
+            (None, None) => Ok(None),
+            (Some(left), None) => Ok(Some(left)),
+            (None, Some(right)) => Ok(Some(right)),
+            (Some(left), Some(right)) => Ok(Some(self.merge_with_value(left, right)?)),
+        }
+    }
+
     fn merge_version1(
         &self,
         mut left: version1::ZoneConfigurationDirective,
         mut right: version1::ZoneConfigurationDirective,
     ) -> Result<version1::ZoneConfigurationDirective, MergeZoneConfigurationError> {
-        let include = match (
-            replace(left.include_mut(), None),
-            replace(right.include_mut(), None),
-        ) {
-            (None, None) => None,
-            (Some(left), None) => Some(left),
-            (None, Some(right)) => Some(right),
-            (Some(left), Some(right)) => Some(left.into_iter().chain(right.into_iter()).collect()),
-        };
-
-        let variables = match (
-            replace(left.variables_mut(), None),
-            replace(right.variables_mut(), None),
-        ) {
-            (None, None) => None,
-            (Some(left), None) => Some(left),
-            (None, Some(right)) => Some(right),
-            (Some(left), Some(right)) => Some(from_value(
-                self.merge_value(to_value(left)?, to_value(right)?)?,
-            )?),
-        };
-
-        let tags = match (
-            replace(left.tags_mut(), None),
-            replace(right.tags_mut(), None),
-        ) {
-            (None, None) => None,
-            (Some(left), None) => Some(left),
-            (None, Some(right)) => Some(right),
-            (Some(left), Some(right)) => Some(left.into_iter().chain(right.into_iter()).collect()),
-        };
-
         let r#type = match (
             replace(
                 left.type_mut(),
@@ -207,46 +193,51 @@ impl ZoneConfigurationProcessor {
             )?),
         };
 
-        let start_after_create = match (
-            replace(left.start_after_create_mut(), None),
-            replace(right.start_after_create_mut(), None),
-        ) {
-            (None, None) => None,
-            (Some(left), None) => Some(left),
-            (None, Some(right)) => Some(right),
-            (Some(_), Some(right)) => Some(right),
-        };
-
-        let destroy_after_stop = match (
-            replace(left.destroy_after_stop_mut(), None),
-            replace(right.destroy_after_stop_mut(), None),
-        ) {
-            (None, None) => None,
-            (Some(left), None) => Some(left),
-            (None, Some(right)) => Some(right),
-            (Some(_), Some(right)) => Some(right),
-        };
-
         Ok(version1::ZoneConfigurationDirective::new(
-            include,
-            variables,
-            tags,
+            self.merge_with_option_value(
+                replace(left.include_mut(), None),
+                replace(right.include_mut(), None),
+            )?,
+            self.merge_with_option_value(
+                replace(left.variables_mut(), None),
+                replace(right.variables_mut(), None),
+            )?,
+            self.merge_with_option_value(
+                replace(left.tags_mut(), None),
+                replace(right.tags_mut(), None),
+            )?,
             r#type,
-            start_after_create,
-            destroy_after_stop,
+            self.merge_with_option_value(
+                replace(left.start_after_create_mut(), None),
+                replace(right.start_after_create_mut(), None),
+            )?,
+            self.merge_with_option_value(
+                replace(left.destroy_after_stop_mut(), None),
+                replace(right.destroy_after_stop_mut(), None),
+            )?,
         ))
     }
 
     fn merge(
         &self,
-        left: ZoneConfiguration,
-        right: ZoneConfiguration,
+        mut left: ZoneConfiguration,
+        mut right: ZoneConfiguration,
     ) -> Result<ZoneConfiguration, MergeZoneConfigurationError> {
-        let (left_directive, left_path) = left.into_inner();
-        let (right_directive, _) = right.into_inner();
+        let (mut left_directive, left_path) = (
+            replace(left.directive_mut(), ZoneConfigurationDirective::default()),
+            replace(left.path_mut(), PathBuf::default()),
+        );
+        let mut right_directive =
+            replace(right.directive_mut(), ZoneConfigurationDirective::default());
 
-        let (mut left_version,) = left_directive.into_inner();
-        let (right_version,) = right_directive.into_inner();
+        let mut left_version = replace(
+            left_directive.version_mut(),
+            ZoneConfigurationVersionDirective::default(),
+        );
+        let right_version = replace(
+            right_directive.version_mut(),
+            ZoneConfigurationVersionDirective::default(),
+        );
 
         match (left_version, right_version) {
             (
