@@ -123,33 +123,18 @@ impl ZoneConfigurationProcessor {
 
                 Ok(Value::Mapping(m1))
             }
+            (v, Value::Null) => Ok(v),
             (v1, v2) => Err(MergeZoneConfigurationError::IncompatibleValues(v1, v2)),
         }
     }
 
-    fn merge_with_value<T>(&self, left: T, right: T) -> Result<T, MergeZoneConfigurationError>
+    fn merge_any<R, S, T>(&self, left: S, right: T) -> Result<R, MergeZoneConfigurationError>
     where
+        R: 'static + DeserializeOwned + Serialize,
+        S: 'static + DeserializeOwned + Serialize,
         T: 'static + DeserializeOwned + Serialize,
     {
-        Ok(from_value(
-            self.merge_value(to_value(left)?, to_value(right)?)?,
-        )?)
-    }
-
-    fn merge_with_option_value<T>(
-        &self,
-        left: Option<T>,
-        right: Option<T>,
-    ) -> Result<Option<T>, MergeZoneConfigurationError>
-    where
-        T: 'static + DeserializeOwned + Serialize,
-    {
-        match (left, right) {
-            (None, None) => Ok(None),
-            (Some(left), None) => Ok(Some(left)),
-            (None, Some(right)) => Ok(Some(right)),
-            (Some(left), Some(right)) => Ok(Some(self.merge_with_value(left, right)?)),
-        }
+        from_value::<R>(self.merge_value(to_value(left)?, to_value(right)?)?).map_err(|e| e.into())
     }
 
     fn merge_version1(
@@ -170,48 +155,40 @@ impl ZoneConfigurationProcessor {
             (
                 version1::ZoneConfigurationTypeDirective::Undefined(left),
                 version1::ZoneConfigurationTypeDirective::Undefined(right),
-            ) => {
-                version1::ZoneConfigurationTypeDirective::Undefined(self.merge_value(left, right)?)
-            }
+            ) => version1::ZoneConfigurationTypeDirective::Undefined(self.merge_any(left, right)?),
             (
                 version1::ZoneConfigurationTypeDirective::Jail(left),
                 version1::ZoneConfigurationTypeDirective::Undefined(right),
-            ) => version1::ZoneConfigurationTypeDirective::Jail(from_value(
-                self.merge_value(to_value(left)?, right)?,
-            )?),
+            ) => version1::ZoneConfigurationTypeDirective::Jail(self.merge_any(left, right)?),
             (
                 version1::ZoneConfigurationTypeDirective::Undefined(left),
                 version1::ZoneConfigurationTypeDirective::Jail(right),
-            ) => version1::ZoneConfigurationTypeDirective::Jail(from_value(
-                self.merge_value(left, to_value(right)?)?,
-            )?),
+            ) => version1::ZoneConfigurationTypeDirective::Jail(self.merge_any(left, right)?),
             (
                 version1::ZoneConfigurationTypeDirective::Jail(left),
                 version1::ZoneConfigurationTypeDirective::Jail(right),
-            ) => version1::ZoneConfigurationTypeDirective::Jail(from_value(
-                self.merge_value(to_value(left)?, to_value(right)?)?,
-            )?),
+            ) => version1::ZoneConfigurationTypeDirective::Jail(self.merge_any(left, right)?),
         };
 
         Ok(version1::ZoneConfigurationDirective::new(
-            self.merge_with_option_value(
+            self.merge_any(
                 replace(left.include_mut(), None),
                 replace(right.include_mut(), None),
             )?,
-            self.merge_with_option_value(
+            self.merge_any(
                 replace(left.variables_mut(), None),
                 replace(right.variables_mut(), None),
             )?,
-            self.merge_with_option_value(
+            self.merge_any(
                 replace(left.tags_mut(), None),
                 replace(right.tags_mut(), None),
             )?,
             r#type,
-            self.merge_with_option_value(
+            self.merge_any(
                 replace(left.start_after_create_mut(), None),
                 replace(right.start_after_create_mut(), None),
             )?,
-            self.merge_with_option_value(
+            self.merge_any(
                 replace(left.destroy_after_stop_mut(), None),
                 replace(right.destroy_after_stop_mut(), None),
             )?,
