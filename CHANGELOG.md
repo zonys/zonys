@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.0
+- Add include directive
+- Fix send and receive buffering for sending and receiving multiple zones
+
 ## 0.9.0
 - Add operate directive for create and destroy configuration
 
