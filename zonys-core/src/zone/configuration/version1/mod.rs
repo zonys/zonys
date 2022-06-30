@@ -32,7 +32,7 @@ pub struct ZoneConfigurationDirective {
     include: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     tags: Option<Vec<String>>,
-    #[serde(flatten)]
+    #[serde(flatten, default = "ZoneConfigurationTypeDirective::Undefined")]
     r#type: ZoneConfigurationTypeDirective,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
