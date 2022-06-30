@@ -3,40 +3,8 @@ version: "1"
 
 type: jail
 
-variables:
-  freebsd:
-    version:
-      architecture: amd64
-      major: 13
-      minor: 1
-      channel: RELEASE
-    url:
-      scheme: https
-      authority: ftp.freebsd.org
-      path: "/pub/FreeBSD/releases/{{ freebsd.version.architecture }}/{{ freebsd.version.major }}.{{ freebsd.version.minor }}-{{ freebsd.version.channel }}/{{ freebsd.url.archive }}"
-      archive: "base.txz"
-      full: "{{ freebsd.url.scheme }}://{{ freebsd.url.authority }}{{ freebsd.url.path }}"
-
-operate:
-  create:
-    on:
-      - target: parent
-        program: /usr/bin/fetch
-        arguments:
-          - "{{ freebsd.url.full }}"
-          - "-o"
-          - "{{ zone.paths.root }}"
-      - target: parent
-        program: /usr/bin/tar
-        arguments:
-          - fpxv
-          - "{{ zone.paths.root }}/base.txz"
-          - "-C"
-          - "{{ zone.paths.root }}"
-      - target: parent
-        program: /bin/rm
-        arguments:
-          - "{{ zone.paths.root }}/base.txz"
+include:
+  - base.yaml
 
 execute:
   start:
