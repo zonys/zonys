@@ -14,7 +14,7 @@ use serde_yaml::Value;
 #[serde(tag = "type")]
 pub enum ZoneConfigurationTypeDirective {
     #[serde(rename = "jail")]
-    Jail(ZoneJailConfigurationDirective),
+    Jail(JailZoneConfigurationDirective),
     #[serde(rename = "undefined")]
     Undefined(Value),
 }
@@ -29,6 +29,7 @@ impl Default for ZoneConfigurationTypeDirective {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ZoneConfigurationDirective {
+    from: Option<String>,
     include: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     tags: Option<Vec<String>>,
@@ -40,6 +41,7 @@ pub struct ZoneConfigurationDirective {
 
 impl ZoneConfigurationDirective {
     pub fn new(
+        from: Option<String>,
         include: Option<Vec<String>>,
         variables: Option<TemplateObject>,
         tags: Option<Vec<String>>,
@@ -48,6 +50,7 @@ impl ZoneConfigurationDirective {
         destroy_after_stop: Option<bool>,
     ) -> Self {
         Self {
+            from,
             include,
             variables,
             tags,
@@ -55,6 +58,18 @@ impl ZoneConfigurationDirective {
             start_after_create,
             destroy_after_stop,
         }
+    }
+
+    pub fn from(&self) -> &Option<String> {
+        &self.from
+    }
+
+    pub fn from_mut(&mut self) -> &mut Option<String> {
+        &mut self.from
+    }
+
+    pub fn set_from(&mut self, from: Option<String>) {
+        self.from = from
     }
 
     pub fn include(&self) -> &Option<Vec<String>> {

@@ -17,23 +17,4 @@ variables:
       archive: "base.txz"
       full: "{{ freebsd.url.scheme }}://{{ freebsd.url.authority }}{{ freebsd.url.path }}"
 
-operate:
-  create:
-    on:
-      - target: parent
-        program: /usr/bin/fetch
-        arguments:
-          - "{{ freebsd.url.full }}"
-          - "-o"
-          - "{{ zone.paths.root }}"
-      - target: parent
-        program: /usr/bin/tar
-        arguments:
-          - fpxv
-          - "{{ zone.paths.root }}/base.txz"
-          - "-C"
-          - "{{ zone.paths.root }}"
-      - target: parent
-        program: /bin/rm
-        arguments:
-          - "{{ zone.paths.root }}/base.txz"
+from: "{{ freebsd.url.full }}"

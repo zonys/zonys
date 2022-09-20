@@ -1,5 +1,7 @@
 [workspace]
 members = [
+    "freebsd",
+    "freebsd-sys",
     "jail",
     "jail-sys",
     "jail-utility-sys",

@@ -1,0 +1,11 @@
+[package]
+name = "freebsd"
+version = "0.0.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1"
+freebsd-sys = { path = "../freebsd-sys" }
+nix = "0.25"

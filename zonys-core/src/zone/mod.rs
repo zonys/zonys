@@ -1,29 +1,35 @@
 pub mod configuration;
 pub mod error;
-pub mod execution;
+pub mod executor;
 pub mod identifier;
 pub mod transmission;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 pub use configuration::*;
 pub use error::*;
+pub use executor::*;
 pub use identifier::*;
 pub use transmission::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use crate::namespace::NamespaceIdentifier;
-use crate::template::{TemplateObject, TemplateScalar, TemplateValue};
-use ::jail::{Jail, JailId, JailName, JailParameter, TryIntoJailIdError};
+use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
 use bincode::serde::{decode_from_slice, encode_to_vec};
-use execution::*;
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
 use nix::unistd::{read, write};
+use reqwest::blocking::get;
 use serde_yaml::{from_reader, to_vec, to_writer};
 use std::fs::{remove_file, File};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, Seek, Write};
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
+use tar::Archive;
+use tempfile::tempfile;
 use uuid::Uuid;
+use xz2::read::XzDecoder;
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
 
@@ -49,25 +55,22 @@ impl Zone {
 }
 
 impl Zone {
-    fn jail_name(&self) -> String {
-        self.identifier().uuid().to_string()
+    fn executor(&self) -> Box<dyn ZoneExecutor> {
+        Box::new(JailZoneExecutor::new())
     }
 
-    fn jail(&self) -> Result<Option<Jail>, TryIntoJailIdError> {
-        Ok(Option::<JailId>::try_from(JailName::new(self.jail_name()))?
-            .map(Jail::open)
-            .flatten())
+    fn zone_paths_variables(&self) -> TemplateObject {
+        let mut paths = TemplateObject::default();
+
+        paths.insert(
+            "root".into(),
+            TemplateValue::Scalar(TemplateScalar::new(self.root_path().display().to_string())),
+        );
+
+        paths
     }
 
-    fn jail_parameters(&self) -> Vec<JailParameter> {
-        vec![
-            JailParameter::new("persist", "true"),
-            JailParameter::new("name", self.jail_name()),
-            JailParameter::new("path", self.root_path().display().to_string()),
-        ]
-    }
-
-    fn context_variables(&self) -> TemplateObject {
+    fn zone_variables(&self) -> TemplateObject {
         let mut zone = TemplateObject::default();
 
         zone.insert(
@@ -75,15 +78,20 @@ impl Zone {
             TemplateValue::Scalar(TemplateScalar::new(self.identifier().to_string())),
         );
 
-        let mut paths = TemplateObject::default();
-        paths.insert(
-            "root".into(),
-            TemplateValue::Scalar(TemplateScalar::new(self.root_path().display().to_string())),
+        zone.insert(
+            "paths".into(),
+            TemplateValue::Object(self.zone_paths_variables()),
         );
 
-        zone.insert("paths".into(), paths.into());
-
         zone
+    }
+
+    fn variables(&self) -> TemplateObject {
+        let mut root = TemplateObject::default();
+
+        root.insert("zone".into(), TemplateValue::Object(self.zone_variables()));
+
+        root
     }
 
     fn lock(&mut self) -> Result<(), LockZoneError> {
@@ -172,44 +180,24 @@ impl Zone {
         }
     }
 
-    pub fn is_running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
+    pub fn running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
         Ok(self
-            .jail()
-            .map_err(RetrieveZoneRunningStatusError::TryIntoJailIdError)?
-            .is_some())
+            .executor()
+            .running(RunningZoneExecutorEvent::new(
+                self.identifier.clone(),
+                false,
+            ))?
+            .running())
     }
 }
 
 impl Zone {
     fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
-        let processor = ZoneConfigurationProcessor::default();
-        let configuration = processor.process(configuration)?;
+        let configuration = ZoneConfigurationProcessor::default().process(configuration)?;
 
         let mut writer = &mut BufWriter::new(File::create(self.configuration_path())?);
         to_writer(&mut writer, configuration.directive())?;
         writer.flush()?;
-
-        let executor = ZoneExecutor::default();
-
-        let mut context = ZoneExecutionContext::default();
-        context
-            .variables_mut()
-            .extend(match configuration.directive().version() {
-                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
-                    .variables()
-                    .as_ref()
-                    .map(|x| x.clone())
-                    .unwrap_or_default(),
-            });
-        context.variables_mut().insert(
-            "zone".into(),
-            TemplateValue::Object(self.context_variables()),
-        );
-
-        OperateCreateBeforeZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>()
-            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
         FileSystem::create(&file_system_identifier)?;
@@ -217,19 +205,40 @@ impl Zone {
             .ok_or(CreateZoneError::FileSystemNotExisting)?;
         file_system.mount()?;
 
-        let mut jail = Jail::create(self.jail_parameters())?;
+        let mut variables = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => version1
+                .variables()
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or_default(),
+        };
 
-        OperateCreateOnZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
+        variables.extend(self.variables().into_iter());
 
-        OperateCreateAfterZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
+        let template_engine = TemplateEngine::default();
 
-        jail.destroy()?;
+        if let Some(from) = configuration.directive().from() {
+            let from = template_engine.render(&variables, from)?;
 
-        let start_after_create = match configuration.directive().version() {
+            let mut response = get(from)?;
+            let mut file = tempfile()?;
+            response.copy_to(&mut file).unwrap();
+            file.sync_all()?;
+            file.rewind()?;
+
+            let mut archive = Archive::new(XzDecoder::new(file));
+            archive.unpack(self.root_path())?;
+        }
+
+        let event = self.executor().create(CreateZoneExecutorEvent::new(
+            self.identifier.clone(),
+            configuration,
+            self.root_path(),
+            template_engine,
+            variables,
+        ))?;
+
+        let start_after_create = match event.configuration().directive().version() {
             ZoneConfigurationVersionDirective::Version1(version1) => {
                 version1.start_after_create().unwrap_or(false)
             }
@@ -243,87 +252,51 @@ impl Zone {
     }
 
     fn handle_start(&mut self) -> Result<(), StartZoneError> {
-        if self.jail()?.is_some() {
-            return Err(StartZoneError::AlreadyRunning);
-        }
-
         let configuration = self.configuration()?;
-        let executor = ZoneExecutor::default();
 
-        let mut context = ZoneExecutionContext::default();
-        context
-            .variables_mut()
-            .extend(match configuration.directive().version() {
-                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
-                    .variables()
-                    .as_ref()
-                    .map(|x| x.clone())
-                    .unwrap_or_default(),
-            });
-        context.variables_mut().insert(
-            "zone".into(),
-            TemplateValue::Object(self.context_variables()),
-        );
+        let mut variables = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => version1
+                .variables()
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or_default(),
+        };
 
-        ExecuteStartBeforeZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>()
-            .map_err(|e| ExecuteZoneError::Parent(e))?;
+        variables.extend(self.variables().into_iter());
 
-        let mut jail = Jail::create(self.jail_parameters())?;
-
-        ExecuteStartOnZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
-
-        ExecuteStartAfterZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
+        self.executor().start(StartZoneExecutorEvent::new(
+            self.identifier.clone(),
+            configuration,
+            self.root_path(),
+            TemplateEngine::default(),
+            variables,
+        ))?;
 
         Ok(())
     }
 
     fn handle_stop(self) -> Result<Option<Self>, StopZoneError> {
-        let mut jail = match self.jail() {
-            Ok(Some(j)) => j,
-            Ok(None) => return Err(StopZoneError::NotRunning),
-            Err(e) => return Err(e.into()),
+        let configuration = self.configuration()?;
+
+        let mut variables = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => version1
+                .variables()
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or_default(),
         };
 
-        let configuration = self.configuration()?;
-        let executor = ZoneExecutor::default();
+        variables.extend(self.variables().into_iter());
 
-        let mut context = ZoneExecutionContext::default();
-        context
-            .variables_mut()
-            .extend(match configuration.directive().version() {
-                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
-                    .variables()
-                    .as_ref()
-                    .map(|x| x.clone())
-                    .unwrap_or_default(),
-            });
-        context.variables_mut().insert(
-            "zone".into(),
-            TemplateValue::Object(self.context_variables()),
-        );
+        let event = self.executor().stop(StopZoneExecutorEvent::new(
+            self.identifier.clone(),
+            configuration,
+            self.root_path(),
+            TemplateEngine::default(),
+            variables,
+        ))?;
 
-        ExecuteStopBeforeZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
-
-        ExecuteStopOnZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
-
-        jail.destroy()?;
-
-        ExecuteStopAfterZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>()
-            .map_err(|e| ExecuteZoneError::Parent(e))?;
-
-        let destroy_after_stop = match configuration.directive().version() {
+        let destroy_after_stop = match event.configuration().directive().version() {
             ZoneConfigurationVersionDirective::Version1(version1) => {
                 version1.destroy_after_stop().unwrap_or(false)
             }
@@ -339,53 +312,35 @@ impl Zone {
     }
 
     fn handle_destroy(self) -> Result<(), DestroyZoneError> {
-        if self.jail()?.is_some() {
-            return Err(DestroyZoneError::IsRunning);
-        }
+        let configuration = self.configuration()?;
+
+        let mut variables = match configuration.directive().version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => version1
+                .variables()
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or_default(),
+        };
+
+        variables.extend(self.variables().into_iter());
+
+        self.executor().destroy(DestroyZoneExecutorEvent::new(
+            self.identifier.clone(),
+            configuration,
+            self.root_path(),
+            TemplateEngine::default(),
+            variables,
+        ))?;
 
         let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
         let mut file_system = FileSystem::open(&file_system_identifier)?
             .ok_or(DestroyZoneError::FileSystemNotExisting)?;
-        let configuration = self.configuration()?;
-        let executor = ZoneExecutor::default();
-
-        let mut context = ZoneExecutionContext::default();
-        context
-            .variables_mut()
-            .extend(match configuration.directive().version() {
-                ZoneConfigurationVersionDirective::Version1(ref version1) => version1
-                    .variables()
-                    .as_ref()
-                    .map(|x| x.clone())
-                    .unwrap_or_default(),
-            });
-        context.variables_mut().insert(
-            "zone".into(),
-            TemplateValue::Object(self.context_variables()),
-        );
-
-        let mut jail = Jail::create(self.jail_parameters())?;
-
-        OperateDestroyBeforeZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
-
-        OperateDestroyOnZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute(&mut context, &instruction, &mut jail))
-            .collect::<Result<(), _>>()?;
-
-        jail.destroy()?;
 
         if file_system.mount_status()?.is_mounted() {
             file_system.unmount_all()?;
         }
 
         file_system.destroy()?;
-
-        OperateDestroyAfterZoneProgramExecutionIterator::new(configuration.directive())
-            .map(|instruction| executor.execute_parent(&mut context, &instruction))
-            .collect::<Result<(), _>>()
-            .map_err(|e| ExecuteZoneError::Parent(e))?;
 
         let configuration_path = self.configuration_path();
         if configuration_path.exists() {
@@ -404,7 +359,7 @@ impl Zone {
     where
         T: AsRawFd,
     {
-        if self.jail()?.is_some() {
+        if self.running()? {
             return Err(SendZoneError::ZoneIsRunning);
         }
 
@@ -510,11 +465,6 @@ impl Zone {
             Ok(()) => return Ok(zone.identifier),
             Err(e) => e,
         };
-
-        match zone.jail()? {
-            Some(j) => j.destroy()?,
-            None => {}
-        }
 
         let configuration_path = zone.configuration_path();
         if configuration_path.exists() {

@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStartOnParentEntryConfigurationDirective {
+pub struct JailZoneOperateCreateEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailExecuteStartOnParentEntryConfigurationDirective {
+impl JailZoneOperateCreateEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -66,13 +66,13 @@ impl ZoneJailExecuteStartOnParentEntryConfigurationDirective {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStartOnChildEntryConfigurationDirective {
+pub struct JailZoneOperateDestroyEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailExecuteStartOnChildEntryConfigurationDirective {
+impl JailZoneOperateDestroyEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -127,36 +127,51 @@ impl ZoneJailExecuteStartOnChildEntryConfigurationDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "target")]
-pub enum ZoneJailExecuteStartOnEntryConfigurationDirective {
-    #[serde(rename = "parent")]
-    Parent(ZoneJailExecuteStartOnParentEntryConfigurationDirective),
-    #[serde(rename = "child")]
-    Child(ZoneJailExecuteStartOnChildEntryConfigurationDirective),
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct JailZoneOperateConfigurationDirective {
+    create: Option<Vec<JailZoneOperateCreateEntryConfigurationDirective>>,
+    destroy: Option<Vec<JailZoneOperateDestroyEntryConfigurationDirective>>,
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailExecuteStartOnConfigurationDirective(
-    Vec<ZoneJailExecuteStartOnEntryConfigurationDirective>,
-);
-
-impl ZoneJailExecuteStartOnConfigurationDirective {
-    pub fn new(inner: Vec<ZoneJailExecuteStartOnEntryConfigurationDirective>) -> Self {
-        Self(inner)
+impl JailZoneOperateConfigurationDirective {
+    pub fn new(
+        create: Option<Vec<JailZoneOperateCreateEntryConfigurationDirective>>,
+        destroy: Option<Vec<JailZoneOperateDestroyEntryConfigurationDirective>>,
+    ) -> Self {
+        Self { create, destroy }
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailExecuteStartOnEntryConfigurationDirective> {
-        &self.0
+    pub fn create(&self) -> &Option<Vec<JailZoneOperateCreateEntryConfigurationDirective>> {
+        &self.create
     }
 
-    pub fn inner_mut(&mut self) -> &mut Vec<ZoneJailExecuteStartOnEntryConfigurationDirective> {
-        &mut self.0
+    pub fn create_mut(
+        &mut self,
+    ) -> &mut Option<Vec<JailZoneOperateCreateEntryConfigurationDirective>> {
+        &mut self.create
     }
 
-    pub fn set_inner(&mut self, inner: Vec<ZoneJailExecuteStartOnEntryConfigurationDirective>) {
-        self.0 = inner
+    pub fn set_create(
+        &mut self,
+        create: Option<Vec<JailZoneOperateCreateEntryConfigurationDirective>>,
+    ) {
+        self.create = create
+    }
+
+    pub fn destroy(&self) -> &Option<Vec<JailZoneOperateDestroyEntryConfigurationDirective>> {
+        &self.destroy
+    }
+
+    pub fn destroy_mut(
+        &mut self,
+    ) -> &mut Option<Vec<JailZoneOperateDestroyEntryConfigurationDirective>> {
+        &mut self.destroy
+    }
+
+    pub fn set_destroy(
+        &mut self,
+        destroy: Option<Vec<JailZoneOperateDestroyEntryConfigurationDirective>>,
+    ) {
+        self.destroy = destroy
     }
 }

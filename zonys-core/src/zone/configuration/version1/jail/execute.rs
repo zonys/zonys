@@ -4,13 +4,13 @@ use std::collections::HashMap;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyBeforeParentEntryConfigurationDirective {
+pub struct JailZoneExecuteStartEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailOperateDestroyBeforeParentEntryConfigurationDirective {
+impl JailZoneExecuteStartEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -66,13 +66,13 @@ impl ZoneJailOperateDestroyBeforeParentEntryConfigurationDirective {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyBeforeChildEntryConfigurationDirective {
+pub struct JailZoneExecuteStopEntryConfigurationDirective {
     program: String,
     arguments: Option<Vec<String>>,
     environment_variables: Option<HashMap<String, String>>,
 }
 
-impl ZoneJailOperateDestroyBeforeChildEntryConfigurationDirective {
+impl JailZoneExecuteStopEntryConfigurationDirective {
     pub fn new(
         program: String,
         arguments: Option<Vec<String>>,
@@ -127,41 +127,46 @@ impl ZoneJailOperateDestroyBeforeChildEntryConfigurationDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "target")]
-pub enum ZoneJailOperateDestroyBeforeEntryConfigurationDirective {
-    #[serde(rename = "parent")]
-    Parent(ZoneJailOperateDestroyBeforeParentEntryConfigurationDirective),
-    #[serde(rename = "child")]
-    Child(ZoneJailOperateDestroyBeforeChildEntryConfigurationDirective),
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct JailZoneExecuteConfigurationDirective {
+    start: Option<Vec<JailZoneExecuteStartEntryConfigurationDirective>>,
+    stop: Option<Vec<JailZoneExecuteStopEntryConfigurationDirective>>,
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ZoneJailOperateDestroyBeforeConfigurationDirective(
-    Vec<ZoneJailOperateDestroyBeforeEntryConfigurationDirective>,
-);
-
-impl ZoneJailOperateDestroyBeforeConfigurationDirective {
-    pub fn new(inner: Vec<ZoneJailOperateDestroyBeforeEntryConfigurationDirective>) -> Self {
-        Self(inner)
+impl JailZoneExecuteConfigurationDirective {
+    pub fn new(
+        start: Option<Vec<JailZoneExecuteStartEntryConfigurationDirective>>,
+        stop: Option<Vec<JailZoneExecuteStopEntryConfigurationDirective>>,
+    ) -> Self {
+        Self { start, stop }
     }
 
-    pub fn inner(&self) -> &Vec<ZoneJailOperateDestroyBeforeEntryConfigurationDirective> {
-        &self.0
+    pub fn start(&self) -> &Option<Vec<JailZoneExecuteStartEntryConfigurationDirective>> {
+        &self.start
     }
 
-    pub fn inner_mut(
+    pub fn start_mut(
         &mut self,
-    ) -> &mut Vec<ZoneJailOperateDestroyBeforeEntryConfigurationDirective> {
-        &mut self.0
+    ) -> &mut Option<Vec<JailZoneExecuteStartEntryConfigurationDirective>> {
+        &mut self.start
     }
 
-    pub fn set_inner(
+    pub fn set_start(
         &mut self,
-        inner: Vec<ZoneJailOperateDestroyBeforeEntryConfigurationDirective>,
+        start: Option<Vec<JailZoneExecuteStartEntryConfigurationDirective>>,
     ) {
-        self.0 = inner
+        self.start = start
+    }
+
+    pub fn stop(&self) -> &Option<Vec<JailZoneExecuteStopEntryConfigurationDirective>> {
+        &self.stop
+    }
+
+    pub fn stop_mut(&mut self) -> &mut Option<Vec<JailZoneExecuteStopEntryConfigurationDirective>> {
+        &mut self.stop
+    }
+
+    pub fn set_stop(&mut self, stop: Option<Vec<JailZoneExecuteStopEntryConfigurationDirective>>) {
+        self.stop = stop
     }
 }

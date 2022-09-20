@@ -51,6 +51,12 @@ impl ZoneConfigurationDirective {
     pub fn set_version(&mut self, version: ZoneConfigurationVersionDirective) {
         self.version = version
     }
+
+    pub fn from(&self) -> &Option<String> {
+        match &self.version {
+            ZoneConfigurationVersionDirective::Version1(version1) => version1.from(),
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,6 +177,10 @@ impl ZoneConfigurationProcessor {
         };
 
         Ok(version1::ZoneConfigurationDirective::new(
+            self.merge_any(
+                replace(left.from_mut(), None),
+                replace(right.from_mut(), None),
+            )?,
             self.merge_any(
                 replace(left.include_mut(), None),
                 replace(right.include_mut(), None),

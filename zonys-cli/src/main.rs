@@ -249,7 +249,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
-                match zone.is_running()? {
+                match zone.running()? {
                     true => {}
                     false => {
                         zone.start()?;
@@ -268,7 +268,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                match zone.is_running()? {
+                match zone.running()? {
                     true => {
                         let uuid = zone.identifier().uuid().to_string();
                         zone.stop()?;
@@ -290,7 +290,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             for mut zone in matched_zones {
                 let configuration = zone.configuration()?;
 
-                let zone = if zone.is_running()? {
+                let zone = if zone.running()? {
                     match zone.stop()? {
                         Some(mut zone) => {
                             zone.start()?;
@@ -364,7 +364,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             for zone in matched_zones {
                 let uuid = zone.identifier().uuid().to_string();
 
-                if zone.is_running()? {
+                if zone.running()? {
                     match zone.stop()? {
                         Some(zone) => zone.destroy()?,
                         None => {}
@@ -388,7 +388,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             for zone in matched_zones {
                 let configuration = zone.configuration()?;
 
-                if zone.is_running()? {
+                if zone.running()? {
                     match zone.stop()? {
                         Some(zone) => zone.destroy()?,
                         None => {}

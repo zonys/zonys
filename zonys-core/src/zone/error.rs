@@ -1,6 +1,10 @@
 use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template::RenderTemplateError;
 use crate::zone::configuration::error::ProcessZoneConfigurationError;
+use crate::zone::executor::{
+    CreateZoneExecutorEventError, DestroyZoneExecutorEventError, RunningZoneExecutorEventError,
+    StartZoneExecutorEventError, StopZoneExecutorEventError,
+};
 use bincode::error::{DecodeError, EncodeError};
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -104,21 +108,13 @@ impl From<RenderTemplateError> for ExecuteChildZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub enum ExecuteZoneError {
     Parent(ExecuteParentZoneError),
     Child(ExecuteChildZoneError),
 }
 
 impl error::Error for ExecuteZoneError {}
-
-impl Debug for ExecuteZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::Parent(error) => Debug::fmt(error, formatter),
-            Self::Child(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
 
 impl Display for ExecuteZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -143,6 +139,7 @@ impl From<ExecuteChildZoneError> for ExecuteZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub enum CreateZoneError {
     IoError(io::Error),
     FileSystemNotExisting,
@@ -161,33 +158,12 @@ pub enum CreateZoneError {
     UnmountAllFileSystemError(UnmountAllFileSystemError),
     TryIntoJailIdError(TryIntoJailIdError),
     ProcessZoneConfigurationError(ProcessZoneConfigurationError),
+    CreateZoneExecutorEventError(CreateZoneExecutorEventError),
+    RenderTemplateError(RenderTemplateError),
+    ReqwestError(reqwest::Error),
 }
 
 impl error::Error for CreateZoneError {}
-
-impl Debug for CreateZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::IoError(error) => Debug::fmt(error, formatter),
-            Self::FileSystemNotExisting => write!(formatter, "File system not existing"),
-            Self::CreateFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::MountFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::ExecuteZoneError(error) => Debug::fmt(error, formatter),
-            Self::YamlError(error) => Debug::fmt(error, formatter),
-            Self::CreateJailError(error) => Debug::fmt(error, formatter),
-            Self::DestroyJailError(error) => Debug::fmt(error, formatter),
-            Self::LockZoneError(error) => Debug::fmt(error, formatter),
-            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
-            Self::StartZoneError(error) => Debug::fmt(error, formatter),
-            Self::DestroyFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
-            Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
-            Self::ProcessZoneConfigurationError(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
 
 impl Display for CreateZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -209,6 +185,9 @@ impl Display for CreateZoneError {
             Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
             Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
             Self::ProcessZoneConfigurationError(error) => Display::fmt(error, formatter),
+            Self::CreateZoneExecutorEventError(error) => Display::fmt(error, formatter),
+            Self::RenderTemplateError(error) => Display::fmt(error, formatter),
+            Self::ReqwestError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -309,6 +288,24 @@ impl From<ProcessZoneConfigurationError> for CreateZoneError {
     }
 }
 
+impl From<CreateZoneExecutorEventError> for CreateZoneError {
+    fn from(error: CreateZoneExecutorEventError) -> Self {
+        Self::CreateZoneExecutorEventError(error)
+    }
+}
+
+impl From<RenderTemplateError> for CreateZoneError {
+    fn from(error: RenderTemplateError) -> Self {
+        Self::RenderTemplateError(error)
+    }
+}
+
+impl From<reqwest::Error> for CreateZoneError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::ReqwestError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum StartZoneError {
@@ -319,6 +316,7 @@ pub enum StartZoneError {
     CreateJailError(CreateJailError),
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
+    StartZoneExecutorEventError(StartZoneExecutorEventError),
 }
 
 impl error::Error for StartZoneError {}
@@ -333,6 +331,7 @@ impl Debug for StartZoneError {
             Self::CreateJailError(error) => Debug::fmt(error, formatter),
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
+            Self::StartZoneExecutorEventError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -347,6 +346,7 @@ impl Display for StartZoneError {
             Self::CreateJailError(error) => Display::fmt(error, formatter),
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
+            Self::StartZoneExecutorEventError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -387,6 +387,12 @@ impl From<UnlockZoneError> for StartZoneError {
     }
 }
 
+impl From<StartZoneExecutorEventError> for StartZoneError {
+    fn from(error: StartZoneExecutorEventError) -> Self {
+        Self::StartZoneExecutorEventError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum StopZoneError {
@@ -398,6 +404,7 @@ pub enum StopZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     DestroyZoneError(DestroyZoneError),
+    StopZoneExecutorEventError(StopZoneExecutorEventError),
 }
 
 impl error::Error for StopZoneError {}
@@ -413,6 +420,7 @@ impl Debug for StopZoneError {
             Self::LockZoneError(error) => Debug::fmt(error, formatter),
             Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
             Self::DestroyZoneError(error) => Debug::fmt(error, formatter),
+            Self::StopZoneExecutorEventError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -428,6 +436,7 @@ impl Display for StopZoneError {
             Self::LockZoneError(error) => Display::fmt(error, formatter),
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::DestroyZoneError(error) => Display::fmt(error, formatter),
+            Self::StopZoneExecutorEventError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -474,6 +483,12 @@ impl From<DestroyZoneError> for StopZoneError {
     }
 }
 
+impl From<StopZoneExecutorEventError> for StopZoneError {
+    fn from(error: StopZoneExecutorEventError) -> Self {
+        Self::StopZoneExecutorEventError(error)
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum DestroyZoneError {
@@ -491,6 +506,7 @@ pub enum DestroyZoneError {
     FileSystemNotExisting,
     ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
     UnmountAllFileSystemError(UnmountAllFileSystemError),
+    DestroyZoneExecutorEventError(DestroyZoneExecutorEventError),
 }
 
 impl error::Error for DestroyZoneError {}
@@ -512,6 +528,7 @@ impl Debug for DestroyZoneError {
             Self::FileSystemNotExisting => write!(formatter, "File system is not existing"),
             Self::ReadFileSystemMountStatusError(error) => Debug::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Debug::fmt(error, formatter),
+            Self::DestroyZoneExecutorEventError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -533,6 +550,7 @@ impl Display for DestroyZoneError {
             Self::FileSystemNotExisting => write!(formatter, "File system is not existing"),
             Self::ReadFileSystemMountStatusError(error) => Display::fmt(error, formatter),
             Self::UnmountAllFileSystemError(error) => Display::fmt(error, formatter),
+            Self::DestroyZoneExecutorEventError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -606,6 +624,12 @@ impl From<ReadFileSystemMountStatusError> for DestroyZoneError {
 impl From<UnmountAllFileSystemError> for DestroyZoneError {
     fn from(error: UnmountAllFileSystemError) -> Self {
         Self::UnmountAllFileSystemError(error)
+    }
+}
+
+impl From<DestroyZoneExecutorEventError> for DestroyZoneError {
+    fn from(error: DestroyZoneExecutorEventError) -> Self {
+        Self::DestroyZoneExecutorEventError(error)
     }
 }
 
@@ -795,7 +819,7 @@ impl From<ProcessZoneConfigurationError> for OpenZoneConfigurationError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub enum RetrieveZoneRunningStatusError {
-    TryIntoJailIdError(TryIntoJailIdError),
+    RunningZoneExecutorEventError(RunningZoneExecutorEventError),
 }
 
 impl error::Error for RetrieveZoneRunningStatusError {}
@@ -803,7 +827,7 @@ impl error::Error for RetrieveZoneRunningStatusError {}
 impl Debug for RetrieveZoneRunningStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
+            Self::RunningZoneExecutorEventError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -811,14 +835,14 @@ impl Debug for RetrieveZoneRunningStatusError {
 impl Display for RetrieveZoneRunningStatusError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
-            Self::TryIntoJailIdError(error) => Display::fmt(error, formatter),
+            Self::RunningZoneExecutorEventError(error) => Display::fmt(error, formatter),
         }
     }
 }
 
-impl From<TryIntoJailIdError> for RetrieveZoneRunningStatusError {
-    fn from(error: TryIntoJailIdError) -> Self {
-        Self::TryIntoJailIdError(error)
+impl From<RunningZoneExecutorEventError> for RetrieveZoneRunningStatusError {
+    fn from(error: RunningZoneExecutorEventError) -> Self {
+        Self::RunningZoneExecutorEventError(error)
     }
 }
 
@@ -921,6 +945,7 @@ pub enum SendZoneError {
     BincodeEncodeError(EncodeError),
     IoError(io::Error),
     Errno(Errno),
+    RetrieveRunningStatusError(RetrieveZoneRunningStatusError),
 }
 
 impl error::Error for SendZoneError {}
@@ -940,6 +965,7 @@ impl Debug for SendZoneError {
             Self::BincodeEncodeError(error) => Debug::fmt(error, formatter),
             Self::IoError(error) => Debug::fmt(error, formatter),
             Self::Errno(error) => Debug::fmt(error, formatter),
+            Self::RetrieveRunningStatusError(error) => Debug::fmt(error, formatter),
         }
     }
 }
@@ -959,6 +985,7 @@ impl Display for SendZoneError {
             Self::BincodeEncodeError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::Errno(error) => Display::fmt(error, formatter),
+            Self::RetrieveRunningStatusError(error) => Display::fmt(error, formatter),
         }
     }
 }
@@ -1020,6 +1047,12 @@ impl From<io::Error> for SendZoneError {
 impl From<Errno> for SendZoneError {
     fn from(error: Errno) -> Self {
         Self::Errno(error)
+    }
+}
+
+impl From<RetrieveZoneRunningStatusError> for SendZoneError {
+    fn from(error: RetrieveZoneRunningStatusError) -> Self {
+        Self::RetrieveRunningStatusError(error)
     }
 }
 

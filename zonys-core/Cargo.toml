@@ -5,12 +5,17 @@ edition = "2021"
 
 [dependencies]
 bincode = { version = "2.0.0-rc.1", features = ["serde"] }
+freebsd = { path = "../freebsd" }
+flate2 = "*"
+xz2 = "*"
 jail = { path = "../jail" }
 liquid = { version = "0.26" }
 nix = { version = "0.24", features = ["fs"] }
 regex = { version = "1" }
+reqwest = { version = "*", features = ["gzip", "blocking"] }
 serde = { version = "1", features = ["derive"] }
-serde_yaml = "0.8"
-tokio = { version = "1", features = ["full"] }
-uuid = { version = "0.8", features = ["v4", "serde"] }
+serde_yaml = "*"
+tar = "*"
+tempfile = "*"
+uuid = { version = "*", features = ["v4", "serde"] }
 zfs = { path = "../zfs" }
