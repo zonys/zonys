@@ -4,9 +4,6 @@ pub use version1::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use bincode::config::{
-    standard, Configuration, Fixint, LittleEndian, NoLimit, WriteFixedArrayLength,
-};
 use serde::{Deserialize, Serialize};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,7 +12,7 @@ pub type ZoneTransmissionMagicNumberLength = u64;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub const ZONE_TRANSMISSION_MAGIC_NUMBER: ZoneTransmissionMagicNumberLength = 0x7A6F6E797301b193;
+pub const ZONE_TRANSMISSION_MAGIC_NUMBER: ZoneTransmissionMagicNumberLength = 0xFFF8E9750A50AD48;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -26,13 +23,4 @@ pub type ZoneTransmissionHeaderLength = u64;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ZoneTransmissionHeader {
     Version1(ZoneTransmissionVersion1Header),
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub fn create_bincode_configuration(
-) -> Configuration<LittleEndian, Fixint, WriteFixedArrayLength, NoLimit> {
-    standard()
-        .with_fixed_int_encoding()
-        .write_fixed_array_length()
 }

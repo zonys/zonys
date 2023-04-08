@@ -16,10 +16,10 @@ pub use transmission::*;
 
 use crate::namespace::NamespaceIdentifier;
 use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
-use bincode::serde::{decode_from_slice, encode_to_vec};
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
 use nix::unistd::{read, write};
+use postcard::{from_bytes, to_allocvec};
 use reqwest::blocking::get;
 use serde_yaml::{from_reader, to_vec, to_writer};
 use std::fs::{remove_file, File};
@@ -368,27 +368,21 @@ impl Zone {
             Some(f) => f,
         };
 
-        let bincode_configuration = create_bincode_configuration();
-
-        let header = encode_to_vec(
-            ZoneTransmissionHeader::Version1(ZoneTransmissionVersion1Header::new(
+        let header = to_allocvec(&ZoneTransmissionHeader::Version1(
+            ZoneTransmissionVersion1Header::new(
                 to_vec(&self.configuration()?.directive())?,
                 ZoneTransmissionVersion1Type::Zfs,
-            )),
-            bincode_configuration,
+            ),
+        ))?;
+
+        write(
+            writer.as_raw_fd(),
+            &to_allocvec(&ZONE_TRANSMISSION_MAGIC_NUMBER)?,
         )?;
 
         write(
             writer.as_raw_fd(),
-            &encode_to_vec(ZONE_TRANSMISSION_MAGIC_NUMBER, bincode_configuration)?,
-        )?;
-
-        write(
-            writer.as_raw_fd(),
-            &encode_to_vec(
-                header.len() as ZoneTransmissionHeaderLength,
-                bincode_configuration,
-            )?,
+            &to_allocvec(&(header.len() as ZoneTransmissionHeaderLength))?,
         )?;
 
         write(writer.as_raw_fd(), &header)?;
@@ -400,27 +394,23 @@ impl Zone {
     where
         T: AsRawFd,
     {
-        let bincode_configuration = create_bincode_configuration();
         let mut buffer: [u8; 8] = [0; 8];
 
         if read(reader.as_raw_fd(), &mut buffer)? == 0 {
             return Err(ReceiveZoneError::EmptyInput);
         }
 
-        let (magic_number, _): (ZoneTransmissionMagicNumberLength, _) =
-            decode_from_slice(&buffer, bincode_configuration)?;
+        let magic_number: ZoneTransmissionMagicNumberLength = from_bytes(&buffer)?;
         if magic_number != ZONE_TRANSMISSION_MAGIC_NUMBER {
             return Err(ReceiveZoneError::MissingMagicNumber);
         }
 
         read(reader.as_raw_fd(), &mut buffer)?;
-        let (header_len, _): (ZoneTransmissionHeaderLength, _) =
-            decode_from_slice(&buffer, bincode_configuration)?;
+        let header_len: ZoneTransmissionHeaderLength = from_bytes(&buffer)?;
 
         let mut header: Vec<u8> = vec![0; header_len as usize];
         read(reader.as_raw_fd(), &mut header)?;
-        let (header, _): (ZoneTransmissionHeader, _) =
-            decode_from_slice(&header, bincode_configuration)?;
+        let header: ZoneTransmissionHeader = from_bytes(&buffer)?;
 
         match header {
             ZoneTransmissionHeader::Version1(version1) => {

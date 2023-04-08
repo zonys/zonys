@@ -5,7 +5,6 @@ use crate::zone::executor::{
     CreateZoneExecutorEventError, DestroyZoneExecutorEventError, RunningZoneExecutorEventError,
     StartZoneExecutorEventError, StopZoneExecutorEventError,
 };
-use bincode::error::{DecodeError, EncodeError};
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
 use std::error;
@@ -932,6 +931,7 @@ impl From<io::Error> for UnlockZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub enum SendZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
@@ -942,33 +942,13 @@ pub enum SendZoneError {
     MissingFileSystem,
     OpenZoneConfigurationError(OpenZoneConfigurationError),
     YamlError(serde_yaml::Error),
-    BincodeEncodeError(EncodeError),
+    PostcardError(postcard::Error),
     IoError(io::Error),
     Errno(Errno),
     RetrieveRunningStatusError(RetrieveZoneRunningStatusError),
 }
 
 impl error::Error for SendZoneError {}
-
-impl Debug for SendZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::LockZoneError(error) => Debug::fmt(error, formatter),
-            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
-            Self::SendFileSystemError(error) => Display::fmt(error, formatter),
-            Self::TryIntoJailIdError(error) => Debug::fmt(error, formatter),
-            Self::ZoneIsRunning => write!(formatter, "Zone is running"),
-            Self::OpenFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::MissingFileSystem => write!(formatter, "File system is not existing"),
-            Self::OpenZoneConfigurationError(error) => Debug::fmt(error, formatter),
-            Self::YamlError(error) => Debug::fmt(error, formatter),
-            Self::BincodeEncodeError(error) => Debug::fmt(error, formatter),
-            Self::IoError(error) => Debug::fmt(error, formatter),
-            Self::Errno(error) => Debug::fmt(error, formatter),
-            Self::RetrieveRunningStatusError(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
 
 impl Display for SendZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
@@ -982,7 +962,7 @@ impl Display for SendZoneError {
             Self::MissingFileSystem => write!(formatter, "File system is not existing"),
             Self::OpenZoneConfigurationError(error) => Display::fmt(error, formatter),
             Self::YamlError(error) => Display::fmt(error, formatter),
-            Self::BincodeEncodeError(error) => Display::fmt(error, formatter),
+            Self::PostcardError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
             Self::Errno(error) => Display::fmt(error, formatter),
             Self::RetrieveRunningStatusError(error) => Display::fmt(error, formatter),
@@ -1032,9 +1012,9 @@ impl From<serde_yaml::Error> for SendZoneError {
     }
 }
 
-impl From<EncodeError> for SendZoneError {
-    fn from(error: EncodeError) -> Self {
-        Self::BincodeEncodeError(error)
+impl From<postcard::Error> for SendZoneError {
+    fn from(error: postcard::Error) -> Self {
+        Self::PostcardError(error)
     }
 }
 
@@ -1058,12 +1038,13 @@ impl From<RetrieveZoneRunningStatusError> for SendZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub enum ReceiveZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
     ReceiveFileSystemError(ReceiveFileSystemError),
     IoError(io::Error),
-    BincodeDecodeError(DecodeError),
+    PostcardError(postcard::Error),
     YamlError(serde_yaml::Error),
     MissingMagicNumber,
     Errno(Errno),
@@ -1072,22 +1053,6 @@ pub enum ReceiveZoneError {
 
 impl error::Error for ReceiveZoneError {}
 
-impl Debug for ReceiveZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::LockZoneError(error) => Debug::fmt(error, formatter),
-            Self::UnlockZoneError(error) => Debug::fmt(error, formatter),
-            Self::ReceiveFileSystemError(error) => Debug::fmt(error, formatter),
-            Self::IoError(error) => Debug::fmt(error, formatter),
-            Self::BincodeDecodeError(error) => Debug::fmt(error, formatter),
-            Self::YamlError(error) => Debug::fmt(error, formatter),
-            Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
-            Self::Errno(error) => Debug::fmt(error, formatter),
-            Self::EmptyInput => write!(formatter, "Input is empty"),
-        }
-    }
-}
-
 impl Display for ReceiveZoneError {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         match self {
@@ -1095,7 +1060,7 @@ impl Display for ReceiveZoneError {
             Self::UnlockZoneError(error) => Display::fmt(error, formatter),
             Self::ReceiveFileSystemError(error) => Display::fmt(error, formatter),
             Self::IoError(error) => Display::fmt(error, formatter),
-            Self::BincodeDecodeError(error) => Display::fmt(error, formatter),
+            Self::PostcardError(error) => Display::fmt(error, formatter),
             Self::YamlError(error) => Display::fmt(error, formatter),
             Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
             Self::Errno(error) => Display::fmt(error, formatter),
@@ -1128,9 +1093,9 @@ impl From<io::Error> for ReceiveZoneError {
     }
 }
 
-impl From<DecodeError> for ReceiveZoneError {
-    fn from(error: DecodeError) -> Self {
-        Self::BincodeDecodeError(error)
+impl From<postcard::Error> for ReceiveZoneError {
+    fn from(error: postcard::Error) -> Self {
+        Self::PostcardError(error)
     }
 }
 
