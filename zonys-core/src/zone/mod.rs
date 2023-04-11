@@ -21,7 +21,7 @@ use nix::fcntl::{flock, FlockArg};
 use nix::unistd::{read, write};
 use postcard::{from_bytes, to_allocvec};
 use reqwest::blocking::get;
-use serde_yaml::{from_reader, to_vec, to_writer};
+use serde_yaml::{from_reader, to_writer};
 use std::fs::{remove_file, File};
 use std::io::{BufReader, BufWriter, Seek, Write};
 use std::os::unix::io::AsRawFd;
@@ -370,7 +370,7 @@ impl Zone {
 
         let header = to_allocvec(&ZoneTransmissionHeader::Version1(
             ZoneTransmissionVersion1Header::new(
-                to_vec(&self.configuration()?.directive())?,
+                to_allocvec(&self.configuration()?.directive())?,
                 ZoneTransmissionVersion1Type::Zfs,
             ),
         ))?;

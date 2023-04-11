@@ -64,7 +64,7 @@ impl Display for ZoneIdentifier {
             "{}{}{}",
             self.namespace_identifier,
             ZONE_IDENTIFIER_SEPARATOR,
-            self.uuid.to_hyphenated_ref().to_string(),
+            self.uuid.hyphenated(),
         )
     }
 }
