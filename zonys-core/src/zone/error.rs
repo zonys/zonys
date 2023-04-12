@@ -17,6 +17,7 @@ use zfs::file_system::error::{
     ReadFileSystemMountStatusError, ReceiveFileSystemError, SendFileSystemError,
     UnmountAllFileSystemError,
 };
+use ztd::{Display, Error, From};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1038,7 +1039,8 @@ impl From<RetrieveZoneRunningStatusError> for SendZoneError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum ReceiveZoneError {
     LockZoneError(LockZoneError),
     UnlockZoneError(UnlockZoneError),
@@ -1046,69 +1048,11 @@ pub enum ReceiveZoneError {
     IoError(io::Error),
     PostcardError(postcard::Error),
     YamlError(serde_yaml::Error),
+    #[Display("Magic number is missing")]
     MissingMagicNumber,
     Errno(Errno),
+    #[Display("Input is empty")]
     EmptyInput,
-}
-
-impl error::Error for ReceiveZoneError {}
-
-impl Display for ReceiveZoneError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::LockZoneError(error) => Display::fmt(error, formatter),
-            Self::UnlockZoneError(error) => Display::fmt(error, formatter),
-            Self::ReceiveFileSystemError(error) => Display::fmt(error, formatter),
-            Self::IoError(error) => Display::fmt(error, formatter),
-            Self::PostcardError(error) => Display::fmt(error, formatter),
-            Self::YamlError(error) => Display::fmt(error, formatter),
-            Self::MissingMagicNumber => write!(formatter, "Magic number not existing"),
-            Self::Errno(error) => Display::fmt(error, formatter),
-            Self::EmptyInput => write!(formatter, "Input is empty"),
-        }
-    }
-}
-
-impl From<LockZoneError> for ReceiveZoneError {
-    fn from(error: LockZoneError) -> Self {
-        Self::LockZoneError(error)
-    }
-}
-
-impl From<UnlockZoneError> for ReceiveZoneError {
-    fn from(error: UnlockZoneError) -> Self {
-        Self::UnlockZoneError(error)
-    }
-}
-
-impl From<ReceiveFileSystemError> for ReceiveZoneError {
-    fn from(error: ReceiveFileSystemError) -> Self {
-        Self::ReceiveFileSystemError(error)
-    }
-}
-
-impl From<io::Error> for ReceiveZoneError {
-    fn from(error: io::Error) -> Self {
-        Self::IoError(error)
-    }
-}
-
-impl From<postcard::Error> for ReceiveZoneError {
-    fn from(error: postcard::Error) -> Self {
-        Self::PostcardError(error)
-    }
-}
-
-impl From<serde_yaml::Error> for ReceiveZoneError {
-    fn from(error: serde_yaml::Error) -> Self {
-        Self::YamlError(error)
-    }
-}
-
-impl From<Errno> for ReceiveZoneError {
-    fn from(error: Errno) -> Self {
-        Self::Errno(error)
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

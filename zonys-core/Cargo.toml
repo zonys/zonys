@@ -19,3 +19,4 @@ tempfile = "*"
 uuid = { version = "*", features = ["v4", "serde"] }
 xz2 = "*"
 zfs = { path = "../zfs" }
+ztd = { git = "https://github.com/Stazer/ztd.git", branch = "main" }
