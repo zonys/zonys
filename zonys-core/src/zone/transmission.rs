@@ -1,10 +1,5 @@
-pub mod version1;
-
-pub use version1::*;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 use serde::{Deserialize, Serialize};
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -23,4 +18,20 @@ pub type ZoneTransmissionHeaderLength = u64;
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ZoneTransmissionHeader {
     Version1(ZoneTransmissionVersion1Header),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ZoneTransmissionVersion1Type {
+    Zfs,
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Constructor, Debug, Deserialize, Method, Serialize)]
+#[Method(all)]
+pub struct ZoneTransmissionVersion1Header {
+    configuration: Vec<u8>,
+    r#type: ZoneTransmissionVersion1Type,
 }
