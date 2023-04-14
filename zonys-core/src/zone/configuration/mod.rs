@@ -11,6 +11,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::mem::replace;
 use std::path::PathBuf;
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -29,29 +30,14 @@ impl Default for ZoneConfigurationVersionDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug, Deserialize, Serialize)]
+#[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
+#[Method(all)]
 pub struct ZoneConfigurationDirective {
     #[serde(flatten)]
     version: ZoneConfigurationVersionDirective,
 }
 
 impl ZoneConfigurationDirective {
-    pub fn new(version: ZoneConfigurationVersionDirective) -> Self {
-        Self { version }
-    }
-
-    pub fn version(&self) -> &ZoneConfigurationVersionDirective {
-        &self.version
-    }
-
-    pub fn version_mut(&mut self) -> &mut ZoneConfigurationVersionDirective {
-        &mut self.version
-    }
-
-    pub fn set_version(&mut self, version: ZoneConfigurationVersionDirective) {
-        self.version = version
-    }
-
     pub fn from(&self) -> &Option<String> {
         match &self.version {
             ZoneConfigurationVersionDirective::Version1(version1) => version1.from(),
@@ -61,40 +47,11 @@ impl ZoneConfigurationDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Constructor, Default, Debug, Method)]
+#[Method(all)]
 pub struct ZoneConfiguration {
     directive: ZoneConfigurationDirective,
     path: PathBuf,
-}
-
-impl ZoneConfiguration {
-    pub fn new(directive: ZoneConfigurationDirective, path: PathBuf) -> Self {
-        Self { directive, path }
-    }
-
-    pub fn directive(&self) -> &ZoneConfigurationDirective {
-        &self.directive
-    }
-
-    pub fn directive_mut(&mut self) -> &mut ZoneConfigurationDirective {
-        &mut self.directive
-    }
-
-    pub fn set_directive(&mut self, directive: ZoneConfigurationDirective) {
-        self.directive = directive
-    }
-
-    pub fn path(&self) -> &PathBuf {
-        &self.path
-    }
-
-    pub fn path_mut(&mut self) -> &mut PathBuf {
-        &mut self.path
-    }
-
-    pub fn set_path(&mut self, path: PathBuf) {
-        self.path = path
-    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

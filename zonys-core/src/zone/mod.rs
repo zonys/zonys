@@ -209,7 +209,7 @@ impl Zone {
             ZoneConfigurationVersionDirective::Version1(version1) => version1
                 .variables()
                 .as_ref()
-                .map(|x| x.clone())
+                .cloned()
                 .unwrap_or_default(),
         };
 

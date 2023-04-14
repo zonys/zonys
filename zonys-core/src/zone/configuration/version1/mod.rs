@@ -6,6 +6,7 @@ pub use self::jail::*;
 
 use crate::template::TemplateObject;
 use serde::{Deserialize, Serialize};
+use ztd::{Constructor, Method};
 use serde_yaml::Value;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,7 +28,8 @@ impl Default for ZoneConfigurationTypeDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Constructor, Debug, Default, Deserialize, Method, Serialize)]
+#[Method(all)]
 pub struct ZoneConfigurationDirective {
     from: Option<String>,
     include: Option<Vec<String>>,
@@ -37,110 +39,4 @@ pub struct ZoneConfigurationDirective {
     r#type: ZoneConfigurationTypeDirective,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
-}
-
-impl ZoneConfigurationDirective {
-    pub fn new(
-        from: Option<String>,
-        include: Option<Vec<String>>,
-        variables: Option<TemplateObject>,
-        tags: Option<Vec<String>>,
-        r#type: ZoneConfigurationTypeDirective,
-        start_after_create: Option<bool>,
-        destroy_after_stop: Option<bool>,
-    ) -> Self {
-        Self {
-            from,
-            include,
-            variables,
-            tags,
-            r#type,
-            start_after_create,
-            destroy_after_stop,
-        }
-    }
-
-    pub fn from(&self) -> &Option<String> {
-        &self.from
-    }
-
-    pub fn from_mut(&mut self) -> &mut Option<String> {
-        &mut self.from
-    }
-
-    pub fn set_from(&mut self, from: Option<String>) {
-        self.from = from
-    }
-
-    pub fn include(&self) -> &Option<Vec<String>> {
-        &self.include
-    }
-
-    pub fn include_mut(&mut self) -> &mut Option<Vec<String>> {
-        &mut self.include
-    }
-
-    pub fn set_include(&mut self, include: Option<Vec<String>>) {
-        self.include = include
-    }
-
-    pub fn variables(&self) -> &Option<TemplateObject> {
-        &self.variables
-    }
-
-    pub fn variables_mut(&mut self) -> &mut Option<TemplateObject> {
-        &mut self.variables
-    }
-
-    pub fn set_variables(&mut self, variables: Option<TemplateObject>) {
-        self.variables = variables
-    }
-
-    pub fn tags(&self) -> &Option<Vec<String>> {
-        &self.tags
-    }
-
-    pub fn tags_mut(&mut self) -> &mut Option<Vec<String>> {
-        &mut self.tags
-    }
-
-    pub fn set_tags(&mut self, tags: Option<Vec<String>>) {
-        self.tags = tags
-    }
-
-    pub fn r#type(&self) -> &ZoneConfigurationTypeDirective {
-        &self.r#type
-    }
-
-    pub fn type_mut(&mut self) -> &mut ZoneConfigurationTypeDirective {
-        &mut self.r#type
-    }
-
-    pub fn set_type(&mut self, r#type: ZoneConfigurationTypeDirective) {
-        self.r#type = r#type
-    }
-
-    pub fn start_after_create(&self) -> &Option<bool> {
-        &self.start_after_create
-    }
-
-    pub fn start_after_create_mut(&mut self) -> &mut Option<bool> {
-        &mut self.start_after_create
-    }
-
-    pub fn set_start_after_create(&mut self, start_after_create: Option<bool>) {
-        self.start_after_create = start_after_create
-    }
-
-    pub fn destroy_after_stop(&self) -> &Option<bool> {
-        &self.destroy_after_stop
-    }
-
-    pub fn destroy_after_stop_mut(&mut self) -> &mut Option<bool> {
-        &mut self.destroy_after_stop
-    }
-
-    pub fn set_destroy_after_stop(&mut self, destroy_after_stop: Option<bool>) {
-        self.destroy_after_stop = destroy_after_stop
-    }
 }

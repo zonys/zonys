@@ -8,7 +8,7 @@ flate2 = "*"
 freebsd = { path = "../freebsd" }
 jail = { path = "../jail" }
 liquid = { version = "0.26" }
-nix = { version = "0.24", features = ["fs"] }
+nix = { version = "0.26", features = ["fs", "mount"] }
 postcard = { version = "1", features = ["alloc"] }
 regex = { version = "1" }
 reqwest = { version = "*", features = ["gzip", "blocking"] }
