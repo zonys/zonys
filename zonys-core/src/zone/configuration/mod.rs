@@ -159,6 +159,10 @@ impl ZoneConfigurationProcessor {
                 replace(left.destroy_after_stop_mut(), None),
                 replace(right.destroy_after_stop_mut(), None),
             )?,
+            self.merge_any(
+                replace(left.file_system_mut(), None),
+                replace(right.file_system_mut(), None),
+            )?,
         ))
     }
 

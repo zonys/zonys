@@ -6,8 +6,8 @@ pub use self::jail::*;
 
 use crate::template::TemplateObject;
 use serde::{Deserialize, Serialize};
-use ztd::{Constructor, Method};
 use serde_yaml::Value;
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -28,6 +28,24 @@ impl Default for ZoneConfigurationTypeDirective {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ZoneConfigurationFileSystemDirective {
+    #[serde(rename = "automatic")]
+    Automatic,
+    #[serde(rename = "zfs")]
+    Zfs,
+    #[serde(rename = "directory")]
+    Directory,
+}
+
+impl Default for ZoneConfigurationFileSystemDirective {
+    fn default() -> Self {
+        Self::Automatic
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Clone, Constructor, Debug, Default, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationDirective {
@@ -39,4 +57,6 @@ pub struct ZoneConfigurationDirective {
     r#type: ZoneConfigurationTypeDirective,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
+    #[serde(flatten, default = "ZoneConfigurationTypeDirective::Automatic")]
+    file_system: Option<ZoneConfigurationFileSystemDirective>,
 }

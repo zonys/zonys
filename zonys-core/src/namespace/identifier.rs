@@ -2,9 +2,11 @@ use super::error::ConvertNamespaceIdentifierFromStrError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
 use std::str::FromStr;
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::pool::identifier::PoolIdentifier;
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -16,46 +18,11 @@ pub type NamespaceIdentifierComponent = String;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Constructor, Debug, Default, Deserialize, Method, Serialize)]
+#[Method(all)]
 pub struct NamespaceIdentifier {
     root_component: NamespaceIdentifierComponent,
     child_components: Vec<NamespaceIdentifierComponent>,
-}
-
-impl NamespaceIdentifier {
-    pub fn new(
-        root_component: NamespaceIdentifierComponent,
-        child_components: Vec<NamespaceIdentifierComponent>,
-    ) -> Self {
-        Self {
-            root_component,
-            child_components,
-        }
-    }
-
-    pub fn root_component(&self) -> &NamespaceIdentifierComponent {
-        &self.root_component
-    }
-
-    pub fn root_component_mut(&mut self) -> &mut NamespaceIdentifierComponent {
-        &mut self.root_component
-    }
-
-    pub fn set_root_component(&mut self, root_component: NamespaceIdentifierComponent) {
-        self.root_component = root_component
-    }
-
-    pub fn child_components(&self) -> &Vec<NamespaceIdentifierComponent> {
-        &self.child_components
-    }
-
-    pub fn child_components_mut(&mut self) -> &mut Vec<NamespaceIdentifierComponent> {
-        &mut self.child_components
-    }
-
-    pub fn set_child_components(&mut self, child_components: Vec<NamespaceIdentifierComponent>) {
-        self.child_components = child_components
-    }
 }
 
 impl Display for NamespaceIdentifier {
@@ -98,5 +65,19 @@ impl From<NamespaceIdentifier> for FileSystemIdentifier {
             PoolIdentifier::new(identifier.root_component),
             identifier.child_components,
         )
+    }
+}
+
+impl From<NamespaceIdentifier> for PathBuf {
+    fn from(identifier: NamespaceIdentifier) -> Self {
+        let mut path = Self::with_capacity(identifier.child_components.len() + 1);
+
+        for child_component in identifier.child_components {
+            path.push(child_component);
+        }
+
+        path.push(identifier.root_component);
+
+        path
     }
 }

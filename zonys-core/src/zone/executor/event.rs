@@ -1,6 +1,7 @@
 use crate::template::{TemplateEngine, TemplateObject};
 use crate::zone::{ZoneConfiguration, ZoneIdentifier};
 use std::path::PathBuf;
+use ztd::Record;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -228,6 +229,7 @@ impl StopZoneExecutorEvent {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Record)]
 pub struct DestroyZoneExecutorEvent {
     identifier: ZoneIdentifier,
     configuration: ZoneConfiguration,

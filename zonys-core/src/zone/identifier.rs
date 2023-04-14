@@ -4,9 +4,11 @@ use crate::zone::error::ConvertZoneIdentifierFromFileSystemIdentifierError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::path::PathBuf;
 use std::str::FromStr;
 use zfs::file_system::identifier::{FileSystemIdentifier, FileSystemIdentifierComponents};
 use zfs::pool::identifier::{PoolIdentifier, PoolIdentifierName};
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -18,43 +20,11 @@ pub type ZoneIdentifierUuid = uuid::Uuid;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Constructor, Debug, Default, Deserialize, Method, Serialize)]
+#[Method(all)]
 pub struct ZoneIdentifier {
     namespace_identifier: NamespaceIdentifier,
     uuid: ZoneIdentifierUuid,
-}
-
-impl ZoneIdentifier {
-    pub fn new(namespace_identifier: NamespaceIdentifier, uuid: ZoneIdentifierUuid) -> Self {
-        Self {
-            namespace_identifier,
-            uuid,
-        }
-    }
-
-    pub fn namespace_identifier(&self) -> &NamespaceIdentifier {
-        &self.namespace_identifier
-    }
-
-    pub fn namespace_identifier_mut(&mut self) -> &mut NamespaceIdentifier {
-        &mut self.namespace_identifier
-    }
-
-    pub fn set_namespace_identifier(&mut self, namespace_identifier: NamespaceIdentifier) {
-        self.namespace_identifier = namespace_identifier
-    }
-
-    pub fn uuid(&self) -> &ZoneIdentifierUuid {
-        &self.uuid
-    }
-
-    pub fn uuid_mut(&mut self) -> &mut ZoneIdentifierUuid {
-        &mut self.uuid
-    }
-
-    pub fn set_uuid(&mut self, uuid: ZoneIdentifierUuid) {
-        self.uuid = uuid
-    }
 }
 
 impl Display for ZoneIdentifier {
@@ -101,6 +71,15 @@ impl From<ZoneIdentifier> for FileSystemIdentifier {
             .push(identifier.uuid.to_string());
 
         file_system_identifier
+    }
+}
+
+impl From<ZoneIdentifier> for PathBuf {
+    fn from(identifier: ZoneIdentifier) -> Self {
+        let mut path = PathBuf::from(identifier.namespace_identifier);
+        path.push(identifier.uuid.to_string());
+
+        path
     }
 }
 
