@@ -17,6 +17,7 @@ serde_yaml = "*"
 tar = "*"
 tempfile = "*"
 uuid = { version = "*", features = ["v4", "serde"] }
+url = { version = "2" }
 xz2 = "*"
 zfs = { path = "../zfs" }
 ztd = { git = "https://github.com/Stazer/ztd.git", branch = "main" }

@@ -177,6 +177,7 @@ impl Zone {
 
             let configuration = processor.process(ZoneConfiguration::new(
                 from_reader(&mut BufReader::new(File::open(&configuration_path)?))?,
+                Vec::default(),
                 configuration_path,
             ))?;
 
@@ -211,27 +212,31 @@ impl Zone {
         &mut self,
         configuration: &ZoneConfiguration,
     ) -> Result<(), CreateZoneError> {
-        match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                match version1.file_system() {
-                    Some(version1::ZoneConfigurationFileSystemDirective::Automatic) => {
-                        panic!("Currently unsupported");
+        let file_system =
+            configuration
+                .directives()
+                .read_first(|directive| match directive.version() {
+                    ZoneConfigurationVersionDirective::Version1(version1) => {
+                        version1.file_system().as_ref()
                     }
-                    // TODO
-                    Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
-                        let file_system_identifier =
-                            FileSystemIdentifier::from(self.identifier().clone());
-                        FileSystem::create(&file_system_identifier)?;
-                        let mut file_system = FileSystem::open(&file_system_identifier)?
-                            .ok_or(CreateZoneError::FileSystemNotExisting)?;
-                        file_system.mount()?;
-                    }
-                    Some(version1::ZoneConfigurationFileSystemDirective::Directory) => {
-                        create_dir_all(self.root_path())?;
-                    }
-                }
+                });
+
+        match file_system {
+            Some(version1::ZoneConfigurationFileSystemDirective::Automatic) => {
+                panic!("Currently unsupported");
             }
-        };
+            // TODO
+            Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
+                let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
+                FileSystem::create(&file_system_identifier)?;
+                let mut file_system = FileSystem::open(&file_system_identifier)?
+                    .ok_or(CreateZoneError::FileSystemNotExisting)?;
+                file_system.mount()?;
+            }
+            Some(version1::ZoneConfigurationFileSystemDirective::Directory) => {
+                create_dir_all(self.root_path())?;
+            }
+        }
 
         Ok(())
     }

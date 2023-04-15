@@ -24,3 +24,15 @@ pub enum MergeZoneConfigurationError {
     IncompatibleValues(Value, Value),
     YamlError(serde_yaml::Error),
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum ResolveZoneConfigurationDirectiveError {
+    IoError(io::Error),
+    YamlError(serde_yaml::Error),
+    ParseUrlError(url::ParseError),
+    #[Display("Scheme {value} is unsupported")]
+    UnsupportedScheme(String),
+}

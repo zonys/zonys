@@ -106,16 +106,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Create { include } => {
-            let mut configuration_directive = ZoneConfigurationDirective::default();
-
-            match configuration_directive.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
-                    version1.set_include(include);
-                }
-            };
-
-            let configuration_directive = configuration_directive;
-
             let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
                 Some(n) => n,
                 None => {
@@ -124,12 +114,26 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
+            let mut configuration_directive = ZoneConfigurationDirective::default();
+
+            match configuration_directive.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+                    version1.set_include(include);
+                }
+            };
+
+            let mut configuration = ZoneConfiguration::default();
+            configuration
+                .directives_mut()
+                .prepend(Some(&current_dir()?), configuration_directive.clone())?;
+
             println!(
                 "{}",
                 namespace
                     .zones_mut()
                     .create(ZoneConfiguration::new(
                         configuration_directive,
+                        Vec::default(),
                         current_dir()?,
                     ))?
                     .uuid()
@@ -340,6 +344,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
                 configuration_directive,
+                Vec::default(),
                 current_dir()?,
             ))?;
 
@@ -467,6 +472,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
                 configuration_directive,
+                Vec::default(),
                 current_dir()?,
             ))?;
 

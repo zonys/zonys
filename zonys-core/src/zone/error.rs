@@ -1,6 +1,6 @@
 use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template::RenderTemplateError;
-use crate::zone::configuration::error::ProcessZoneConfigurationError;
+use crate::zone::configuration::ProcessZoneConfigurationError;
 use crate::zone::executor::{
     CreateZoneExecutorEventError, DestroyZoneExecutorEventError, RunningZoneExecutorEventError,
     StartZoneExecutorEventError, StopZoneExecutorEventError,

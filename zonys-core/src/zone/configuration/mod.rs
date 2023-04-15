@@ -1,57 +1,92 @@
-pub mod error;
-pub mod version1;
+mod directive;
+mod error;
+
+pub use directive::*;
+pub use error::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use error::{MergeZoneConfigurationError, ProcessZoneConfigurationError};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_yaml::{from_reader, from_value, to_value, Value};
 use std::fs::File;
 use std::io::BufReader;
-use std::mem::replace;
-use std::path::PathBuf;
+use std::iter::once;
+use std::mem::{replace, take};
+use std::path::{Path, PathBuf};
 use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "version")]
-pub enum ZoneConfigurationVersionDirective {
-    #[serde(rename = "1")]
-    Version1(version1::ZoneConfigurationDirective),
-}
-
-impl Default for ZoneConfigurationVersionDirective {
-    fn default() -> Self {
-        Self::Version1(version1::ZoneConfigurationDirective::default())
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
-#[Method(all)]
-pub struct ZoneConfigurationDirective {
-    #[serde(flatten)]
-    version: ZoneConfigurationVersionDirective,
-}
-
-impl ZoneConfigurationDirective {
-    pub fn from(&self) -> &Option<String> {
-        match &self.version {
-            ZoneConfigurationVersionDirective::Version1(version1) => version1.from(),
-        }
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #[derive(Clone, Constructor, Default, Debug, Method)]
-#[Method(all)]
 pub struct ZoneConfiguration {
+    #[Method(all)]
     directive: ZoneConfigurationDirective,
+    directives: Vec<ZoneConfigurationDirective>,
+    #[Method(all)]
     path: PathBuf,
+}
+
+impl ZoneConfiguration {
+    pub fn directives(&self) -> ZoneConfigurationDirectives<&Self> {
+        ZoneConfigurationDirectives::new(self)
+    }
+
+    pub fn directives_mut(&mut self) -> ZoneConfigurationDirectives<&mut Self> {
+        ZoneConfigurationDirectives::new(self)
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Constructor)]
+pub struct ZoneConfigurationDirectives<T> {
+    configuration: T,
+}
+
+impl<'a> ZoneConfigurationDirectives<&'a mut ZoneConfiguration> {
+    pub fn prepend(
+        &mut self,
+        base_path: Option<&Path>,
+        directive: ZoneConfigurationDirective,
+    ) -> Result<(), ResolveZoneConfigurationDirectiveError> {
+        let directives = directive.resolve(base_path)?;
+        self.configuration.directives = once(directive)
+            .chain(directives.into_iter())
+            .chain(take(&mut self.configuration.directives).into_iter())
+            .collect();
+
+        Ok(())
+    }
+}
+
+impl<'a> ZoneConfigurationDirectives<&'a ZoneConfiguration> {
+    pub fn iter(&self) -> impl Iterator<Item = &ZoneConfigurationDirective> {
+        self.configuration.directives.iter()
+    }
+
+    pub fn read_first<F, T>(&self, function: F) -> Option<T>
+    where
+        F: FnMut(&'a ZoneConfigurationDirective) -> Option<T>,
+        T: 'a,
+    {
+        self.configuration
+            .directives
+            .iter()
+            .flat_map(function)
+            .next()
+    }
+
+    pub fn read_last<F, T>(&self, function: F) -> Option<T>
+    where
+        F: FnMut(&ZoneConfigurationDirective) -> Option<T>,
+    {
+        self.configuration
+            .directives
+            .iter()
+            .flat_map(function)
+            .last()
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,6 +234,7 @@ impl ZoneConfigurationProcessor {
 
         Ok(ZoneConfiguration::new(
             ZoneConfigurationDirective::new(left_version),
+            Vec::default(),
             left_path,
         ))
     }
@@ -211,7 +247,7 @@ impl ZoneConfigurationProcessor {
     ) -> Result<ZoneConfiguration, ProcessZoneConfigurationError> {
         loop {
             let include = match configuration.directive_mut().version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+                directive::ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
                     version1.include_mut().take().unwrap_or_default()
                 }
             };
@@ -241,6 +277,7 @@ impl ZoneConfigurationProcessor {
                     from_reader(&mut BufReader::new(File::open(
                         &included_configuration_path,
                     )?))?,
+                    Vec::default(),
                     included_configuration_path,
                 ))?;
 
