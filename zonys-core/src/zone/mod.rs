@@ -24,6 +24,7 @@ use reqwest::blocking::get;
 use serde_yaml::{from_reader, to_writer};
 use std::fs::{create_dir_all, remove_dir_all, remove_file, File};
 use std::io::{BufReader, BufWriter, Seek, Write};
+use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 use tar::Archive;
@@ -461,7 +462,8 @@ impl Zone {
     where
         T: AsRawFd,
     {
-        let mut buffer: [u8; 8] = [0; 8];
+        let mut buffer: [u8; size_of::<ZoneTransmissionMagicNumberLength>()] =
+            [0; size_of::<ZoneTransmissionMagicNumberLength>()];
 
         if read(reader.as_raw_fd(), &mut buffer)? == 0 {
             return Err(ReceiveZoneError::EmptyInput);
