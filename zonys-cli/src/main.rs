@@ -127,17 +127,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .directives_mut()
                 .prepend(Some(&current_dir()?), configuration_directive.clone())?;
 
-            println!(
-                "{}",
-                namespace
-                    .zones_mut()
-                    .create(ZoneConfiguration::new(
-                        configuration_directive,
-                        Vec::default(),
-                        current_dir()?,
-                    ))?
-                    .uuid()
-            );
+            println!("{}", namespace.zones_mut().create(configuration)?.uuid());
         }
         MainCommand::Destroy { regular_expression } => {
             match Namespace::open(arguments.namespace_identifier)? {

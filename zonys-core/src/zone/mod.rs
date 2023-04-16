@@ -26,9 +26,10 @@ use std::fs::{create_dir_all, remove_dir_all, remove_file, File};
 use std::io::{BufReader, BufWriter, Seek, Write};
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tar::Archive;
 use tempfile::tempfile;
+use url::{ParseError, Url};
 use uuid::Uuid;
 use xz2::read::XzDecoder;
 use zfs::file_system::identifier::FileSystemIdentifier;
@@ -241,22 +242,82 @@ impl Zone {
         Ok(())
     }
 
-    fn handle_create_from(&mut self, from: &str) -> Result<(), CreateZoneError> {
-        let mut response = get(from)?;
-        let mut file = tempfile()?;
-        response.copy_to(&mut file).unwrap();
-        file.sync_all()?;
-        file.rewind()?;
+    fn handle_create_from_path(
+        &self,
+        path: &Path,
+        overwritten_extension: Option<&str>,
+    ) -> Result<(), CreateZoneError> {
+        if path.is_file() {
+            self.handle_create_from_local_file(
+                File::open(path)?,
+                overwritten_extension
+                    .or(path
+                        .extension()
+                        .map(|extension| extension.to_str())
+                        .flatten())
+                    .unwrap_or(""),
+            )
+        } else {
+            todo!()
+        }
+    }
 
-        let mut archive = Archive::new(XzDecoder::new(file));
-        archive
-            .unpack(self.root_path())
-            .map_err(CreateZoneError::from)
+    fn handle_create_from_local_file(
+        &self,
+        file: File,
+        extension: &str,
+    ) -> Result<(), CreateZoneError> {
+        match extension {
+            "txz" => {
+                let mut archive = Archive::new(XzDecoder::new(file));
+
+                archive
+                    .unpack(self.root_path())
+                    .map_err(CreateZoneError::from)
+            }
+            extension => Err(CreateZoneError::UnsupportedExtension(String::from(
+                extension,
+            ))),
+        }
+    }
+
+    fn handle_create_from_remote_file(&self, url: &Url) -> Result<(), CreateZoneError> {
+        match url.scheme() {
+            "http" | "https" => {
+                let mut response = get(url.to_string())?;
+                let mut file = tempfile()?;
+                response.copy_to(&mut file)?;
+                file.sync_all()?;
+                file.rewind()?;
+
+                let path = PathBuf::from(url.path());
+
+                self.handle_create_from_local_file(
+                    file,
+                    path.extension()
+                        .map(|extension| extension.to_str())
+                        .flatten()
+                        .unwrap_or(""),
+                )
+            }
+            scheme => Err(CreateZoneError::UnsupportedScheme(String::from(scheme))),
+        }
+    }
+
+    fn handle_create_from(&mut self, from: &str) -> Result<(), CreateZoneError> {
+        match Url::parse(from) {
+            Ok(url) if matches!(url.scheme(), "" | "file") => {
+                self.handle_create_from_path(&PathBuf::from(url.path()), None)
+            }
+            Ok(url) => self.handle_create_from_remote_file(&url),
+            Err(ParseError::RelativeUrlWithoutBase) => {
+                self.handle_create_from_path(&PathBuf::from(from), None)
+            }
+            Err(error) => Err(CreateZoneError::from(error)),
+        }
     }
 
     fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
-        let configuration = ZoneConfigurationProcessor::default().process(configuration)?;
-
         self.handle_create_write_configuration(&configuration)?;
 
         self.handle_create_file_system(&configuration)?;
@@ -271,7 +332,13 @@ impl Zone {
 
         let template_engine = TemplateEngine::default();
 
-        if let Some(from) = configuration.directive().from() {
+        let from = configuration
+            .directives()
+            .read_first(|directive| match directive.version() {
+                ZoneConfigurationVersionDirective::Version1(version1) => version1.from().as_ref(),
+            });
+
+        if let Some(from) = from {
             self.handle_create_from(&template_engine.render(&variables, from)?)?;
         }
 

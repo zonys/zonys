@@ -1,9 +1,9 @@
+use super::error::ConvertNamespaceIdentifierFromStrError;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
 use std::path::{PathBuf, MAIN_SEPARATOR_STR};
 use std::str::FromStr;
-use super::error::ConvertNamespaceIdentifierFromStrError;
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::pool::identifier::PoolIdentifier;
 use ztd::{Constructor, Method};
