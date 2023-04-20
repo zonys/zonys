@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 nv-sys = { path = "../nv-sys" }
 libc = "0.2"
+
+[build-dependencies]
+bindgen = "*"

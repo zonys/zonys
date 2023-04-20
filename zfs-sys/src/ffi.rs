@@ -6,12 +6,14 @@ use crate::r#extern::{
 use libc::{c_int, c_void};
 use nv_sys::ffi::Nvlist;
 use std::error;
-use std::ffi::{CStr, CString, FromBytesWithNulError, IntoStringError, NulError};
+use std::ffi::{CStr
+, CString, FromBytesWithNulError, IntoStringError, NulError};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::num::TryFromIntError;
 use std::ptr::null_mut;
 use std::rc::Rc;
+use crate::r#extern::boolean_t;
 use std::str::Utf8Error;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,12 +104,12 @@ pub enum ZfsType {
 impl From<ZfsType> for zfs_type_t {
     fn from(value: ZfsType) -> zfs_type_t {
         match value {
-            ZfsType::FileSystem => zfs_type_t::FileSystem,
-            ZfsType::Snapshot => zfs_type_t::Snapshot,
-            ZfsType::Volume => zfs_type_t::Volume,
-            ZfsType::Pool => zfs_type_t::Pool,
-            ZfsType::Bookmark => zfs_type_t::Bookmark,
-            ZfsType::Vdev => zfs_type_t::Vdev,
+            ZfsType::FileSystem => crate::r#extern::zfs_type_t_ZFS_TYPE_FILESYSTEM,
+            ZfsType::Snapshot => crate::r#extern::zfs_type_t_ZFS_TYPE_SNAPSHOT,
+            ZfsType::Volume => crate::r#extern::zfs_type_t_ZFS_TYPE_VOLUME,
+            ZfsType::Pool => crate::r#extern::zfs_type_t_ZFS_TYPE_POOL,
+            ZfsType::Bookmark => crate::r#extern::zfs_type_t_ZFS_TYPE_BOOKMARK,
+            ZfsType::Vdev => crate::r#extern::zfs_type_t_ZFS_TYPE_VDEV,
         }
     }
 }
@@ -117,13 +119,13 @@ impl TryFrom<zfs_type_t> for ZfsType {
 
     fn try_from(value: zfs_type_t) -> Result<Self, Self::Error> {
         match value {
-            zfs_type_t::FileSystem => Ok(ZfsType::FileSystem),
-            zfs_type_t::Snapshot => Ok(ZfsType::Snapshot),
-            zfs_type_t::Volume => Ok(ZfsType::Volume),
-            zfs_type_t::Pool => Ok(ZfsType::Pool),
-            zfs_type_t::Bookmark => Ok(ZfsType::Bookmark),
-            zfs_type_t::Vdev => Ok(ZfsType::Vdev),
-            zfs_type_t::Invalid => Err(Error::UnknownZfsType),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_FILESYSTEM => Ok(ZfsType::FileSystem),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_SNAPSHOT => Ok(ZfsType::Snapshot),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_VOLUME => Ok(ZfsType::Volume),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_POOL => Ok(ZfsType::Pool),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_BOOKMARK => Ok(ZfsType::Bookmark),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_VDEV => Ok(ZfsType::Vdev),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_INVALID | _ => Err(Error::UnknownZfsType),
         }
     }
 }
@@ -282,7 +284,7 @@ where
     unsafe {
         r#extern::zfs_iter_root(
             param0.inner_libzfs_handle.handle(),
-            handler::<T>,
+            Some(handler::<T>),
             &mut user_data as *mut _ as *mut c_void,
         );
     }
@@ -325,7 +327,8 @@ where
     unsafe {
         r#extern::zfs_iter_children(
             param0.inner_zfs_handle().handle(),
-            handler::<T>,
+            0,
+            Some(handler::<T>),
             &mut user_data as *mut _ as *mut c_void,
         );
     }
@@ -368,8 +371,8 @@ where
     unsafe {
         r#extern::zfs_iter_snapshots(
             param0.inner_zfs_handle().handle(),
-            false,
-            handler::<T>,
+            0,
+            Some(handler::<T>),
             &mut user_data as *mut _ as *mut c_void,
             0,
             0,
@@ -410,7 +413,7 @@ pub fn zfs_open(
         r#extern::zfs_open(
             handle.inner_libzfs_handle().handle(),
             CString::new(name)?.as_ptr(),
-            r#type.into(),
+            zfs_type_t::from(r#type).try_into()?,
         )
     };
 
@@ -425,7 +428,7 @@ pub fn zfs_open(
 }
 
 pub fn zfs_destroy(handle: ZfsHandle, flag: bool) -> Result<i32, Error> {
-    Ok(unsafe { r#extern::zfs_destroy(handle.inner_zfs_handle().handle(), flag) })
+    Ok(unsafe { r#extern::zfs_destroy(handle.inner_zfs_handle().handle(), flag as i32) })
 }
 
 pub fn zfs_dataset_exists(
@@ -438,7 +441,7 @@ pub fn zfs_dataset_exists(
             param0.inner_libzfs_handle().handle(),
             CString::new(param1)?.as_ptr(),
             param2.into(),
-        )
+        ) != 0
     })
 }
 
@@ -454,7 +457,7 @@ pub fn zfs_is_mounted(param0: &ZfsHandle, param1: Option<&str>) -> Result<bool, 
         todo!()
     }
 
-    Ok(unsafe { r#extern::zfs_is_mounted(param0.inner_zfs_handle().handle(), null_mut()) })
+    Ok(unsafe { r#extern::zfs_is_mounted(param0.inner_zfs_handle().handle(), null_mut()) != 0 })
 }
 pub fn zfs_mount(param0: &mut ZfsHandle, param1: Option<&str>, param2: i32) -> Result<i32, Error> {
     if param1.is_some() {
@@ -494,7 +497,7 @@ pub fn zfs_snapshot(
         r#extern::zfs_snapshot(
             param0.inner_libzfs_handle().handle(),
             CString::new(param1)?.as_ptr(),
-            param2,
+            param2 as i32,
             0usize as _,
         )
     })
@@ -520,11 +523,11 @@ where
         todo!()
     }
 
-    extern "C" fn handler<'a, T>(_param0: *mut r#extern::zfs_handle_t, _param1: *mut c_void) -> bool
+    unsafe extern "C" fn handler<'a, T>(_param0: *mut r#extern::zfs_handle_t, _param1: *mut c_void) -> boolean_t
     where
         T: FnMut(ZfsHandle) -> bool,
     {
-        true
+        1
     }
 
     let fromsnap_value = CString::new(fromsnap.unwrap_or(""))?;
@@ -539,7 +542,7 @@ where
             CString::new(tosnap)?.as_ptr(),
             flags,
             outfd,
-            handler::<T>,
+            Some(handler::<T>),
             0usize as _,
             0usize as _,
         )
