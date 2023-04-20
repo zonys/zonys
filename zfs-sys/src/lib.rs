@@ -1,24 +1,13 @@
-#![feature(extern_types)]
+#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+#![allow(improper_ctypes)] // FFI u128 warning
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub mod ffi;
-pub mod wrapper;
+include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub use wrapper::*;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub mod r#extern {
-    #![allow(non_upper_case_globals)]
-    #![allow(non_camel_case_types)]
-    #![allow(non_snake_case)]
-    #![allow(improper_ctypes)] // FFI u128 warning
-
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-
-    #[link(name = "zfs")]
-    extern "C" {}
-}
+#[link(name = "zfs")]
+extern "C" {}

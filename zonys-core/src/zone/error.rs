@@ -12,8 +12,7 @@ use std::process::ExitStatusError;
 use url::ParseError;
 use zfs::file_system::error::{
     CreateFileSystemError, DestroyFileSystemError, MountFileSystemError, OpenFileSystemError,
-    ReadFileSystemMountStatusError, ReceiveFileSystemError, SendFileSystemError,
-    UnmountAllFileSystemError,
+    ReceiveFileSystemError, SendFileSystemError, UnmountAllFileSystemError,
 };
 use ztd::{Display, Error, From};
 
@@ -48,52 +47,34 @@ pub enum ExecuteZoneError {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum CreateZoneError {
-    #[From]
     IoError(io::Error),
     #[Display("File system is not existing")]
     FileSystemNotExisting,
-    #[From]
     CreateFileSystemError(CreateFileSystemError),
-    #[From]
     MountFileSystemError(MountFileSystemError),
-    #[From]
     OpenFileSystemError(OpenFileSystemError),
-    #[From]
     ExecuteZoneError(ExecuteZoneError),
-    #[From]
     YamlError(serde_yaml::Error),
-    #[From]
     CreateJailError(CreateJailError),
-    #[From]
     DestroyJailError(DestroyJailError),
-    #[From]
     LockZoneError(LockZoneError),
-    #[From]
     UnlockZoneError(UnlockZoneError),
-    #[From]
     StartZoneError(StartZoneError),
-    #[From]
     DestroyFileSystemError(DestroyFileSystemError),
-    #[From]
-    ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
-    #[From]
     UnmountAllFileSystemError(UnmountAllFileSystemError),
-    #[From]
     TryIntoJailIdError(TryIntoJailIdError),
-    #[From]
     ProcessZoneConfigurationError(ProcessZoneConfigurationError),
-    #[From]
     CreateZoneExecutorEventError(CreateZoneExecutorEventError),
-    #[From]
     RenderTemplateError(RenderTemplateError),
-    #[From]
     ReqwestError(reqwest::Error),
-    #[From]
     ParseUrlError(ParseError),
     #[Display("Scheme {value} is unsupported")]
+    #[From(skip)]
     UnsupportedScheme(String),
     #[Display("Extension {value} is unsupported")]
+    #[From(skip)]
     UnsupportedExtension(String),
 }
 
@@ -148,7 +129,6 @@ pub enum DestroyZoneError {
     DestroyFileSystemError(DestroyFileSystemError),
     OpenFileSystemError(OpenFileSystemError),
     FileSystemNotExisting,
-    ReadFileSystemMountStatusError(ReadFileSystemMountStatusError),
     UnmountAllFileSystemError(UnmountAllFileSystemError),
     DestroyZoneExecutorEventError(DestroyZoneExecutorEventError),
 }

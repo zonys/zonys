@@ -436,7 +436,7 @@ impl Zone {
                         let mut file_system = FileSystem::open(&file_system_identifier)?
                             .ok_or(DestroyZoneError::FileSystemNotExisting)?;
 
-                        if file_system.mount_status()?.is_mounted() {
+                        if file_system.mount_status().is_mounted() {
                             file_system.unmount_all()?;
                         }
 
@@ -610,7 +610,7 @@ impl Zone {
         let file_system_identifier = FileSystemIdentifier::from(zone.identifier().clone());
         match FileSystem::open(&file_system_identifier)? {
             Some(mut file_system) => {
-                if file_system.mount_status()?.is_mounted() {
+                if file_system.mount_status().is_mounted() {
                     file_system.unmount_all()?;
                 }
 

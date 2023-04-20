@@ -3,9 +3,7 @@ name = "zfs"
 version = "0.0.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-
 rand = "0.8"
 zfs-sys = { path = "../zfs-sys" }
+ztd = { git = "https://github.com/Stazer/ztd.git" }

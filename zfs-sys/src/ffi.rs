@@ -1,4 +1,5 @@
 use crate::r#extern;
+use crate::r#extern::boolean_t;
 use crate::r#extern::{
     avl_tree_t, libzfs_fini, libzfs_handle_t, recvflags_t, sendflags_t, zfs_close, zfs_handle_t,
     zfs_type_t,
@@ -6,14 +7,12 @@ use crate::r#extern::{
 use libc::{c_int, c_void};
 use nv_sys::ffi::Nvlist;
 use std::error;
-use std::ffi::{CStr
-, CString, FromBytesWithNulError, IntoStringError, NulError};
+use std::ffi::{CStr, CString, FromBytesWithNulError, IntoStringError, NulError};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::num::TryFromIntError;
 use std::ptr::null_mut;
 use std::rc::Rc;
-use crate::r#extern::boolean_t;
 use std::str::Utf8Error;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +124,8 @@ impl TryFrom<zfs_type_t> for ZfsType {
             crate::r#extern::zfs_type_t_ZFS_TYPE_POOL => Ok(ZfsType::Pool),
             crate::r#extern::zfs_type_t_ZFS_TYPE_BOOKMARK => Ok(ZfsType::Bookmark),
             crate::r#extern::zfs_type_t_ZFS_TYPE_VDEV => Ok(ZfsType::Vdev),
-            crate::r#extern::zfs_type_t_ZFS_TYPE_INVALID | _ => Err(Error::UnknownZfsType),
+            crate::r#extern::zfs_type_t_ZFS_TYPE_INVALID => Err(Error::UnknownZfsType),
+            _ => Err(Error::UnknownZfsType),
         }
     }
 }
@@ -173,7 +173,7 @@ impl LibzfsHandle {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-struct InnerZfsHandle {
+pub struct InnerZfsHandle {
     handle: *mut zfs_handle_t,
 }
 
@@ -182,7 +182,7 @@ impl InnerZfsHandle {
         Self { handle }
     }
 
-    fn handle(&self) -> *mut zfs_handle_t {
+    pub fn handle(&self) -> *mut zfs_handle_t {
         self.handle
     }
 }
@@ -213,7 +213,7 @@ impl ZfsHandle {
         &self.libzfs_handle
     }
 
-    fn inner_zfs_handle(&self) -> &Rc<InnerZfsHandle> {
+    pub fn inner_zfs_handle(&self) -> &Rc<InnerZfsHandle> {
         &self.inner_zfs_handle
     }
 }
@@ -523,7 +523,10 @@ where
         todo!()
     }
 
-    unsafe extern "C" fn handler<'a, T>(_param0: *mut r#extern::zfs_handle_t, _param1: *mut c_void) -> boolean_t
+    unsafe extern "C" fn handler<'a, T>(
+        _param0: *mut r#extern::zfs_handle_t,
+        _param1: *mut c_void,
+    ) -> boolean_t
     where
         T: FnMut(ZfsHandle) -> bool,
     {

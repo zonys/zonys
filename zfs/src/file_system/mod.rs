@@ -6,22 +6,27 @@ pub mod iterator;
 
 use crate::snapshot::identifier::{SnapshotIdentifier, SnapshotIdentifierName};
 use crate::snapshot::Snapshot;
+use crate::{ZfsError, ZFS};
+
 use error::{
     CreateFileSystemError, CreateFileSystemSnapshotError, DestroyFileSystemError,
     MountFileSystemError, OpenFileSystemChildError, OpenFileSystemChildIteratorError,
     OpenFileSystemError, OpenFileSystemSnapshotError, OpenFileSystemSnapshotIteratorError,
-    ReadFileSystemIdentifierError, ReadFileSystemMountStatusError, ReceiveFileSystemError,
-    SendFileSystemError, UnmountAllFileSystemError, UnmountFileSystemError,
+    ReadFileSystemIdentifierError, ReceiveFileSystemError, SendFileSystemError,
+    UnmountAllFileSystemError, UnmountFileSystemError,
 };
 use identifier::{FileSystemIdentifier, FileSystemIdentifierComponent};
 use iterator::{ChildFileSystemIterator, FileSystemSnapshotIterator};
 use rand::distributions::{Alphanumeric, DistString};
 use rand::thread_rng;
+use std::ffi::{c_int, c_void, CStr, CString};
 use std::os::unix::prelude::RawFd;
+use std::ptr::null_mut;
 use std::str::FromStr;
 use zfs_sys::{
-    libzfs_init, zfs_create, zfs_destroy, zfs_get_name, zfs_is_mounted, zfs_iter_children,
-    zfs_iter_snapshots, zfs_mount, zfs_open, zfs_unmount, zfs_unmountall, ZfsHandle, ZfsType,
+    zfs_close, zfs_create, zfs_destroy, zfs_get_name, zfs_handle_t, zfs_is_mounted,
+    zfs_iter_children, zfs_iter_snapshots, zfs_mount, zfs_open, zfs_type_t_ZFS_TYPE_FILESYSTEM,
+    zfs_unmount, zfs_unmountall,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,97 +56,137 @@ impl FileSystemMountStatus {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct FileSystem {
-    handle: ZfsHandle,
-    children: FileSystemChildren,
-    snapshots: FileSystemSnapshots,
+    handle: *mut zfs_handle_t,
 }
 
-impl FileSystem {
-    pub(crate) fn new(handle: ZfsHandle) -> Self {
-        Self {
-            handle: handle.clone(),
-            children: FileSystemChildren::new(handle.clone()),
-            snapshots: FileSystemSnapshots::new(handle),
-        }
-    }
-
-    pub(crate) fn handle_mut(&mut self) -> &mut ZfsHandle {
-        &mut self.handle
+impl Drop for FileSystem {
+    fn drop(&mut self) {
+        unsafe { zfs_close(self.handle) }
     }
 }
 
 impl FileSystem {
-    pub fn children(&self) -> &FileSystemChildren {
-        &self.children
+    pub(crate) fn new(handle: *mut zfs_handle_t) -> Self {
+        Self { handle }
+    }
+}
+
+impl FileSystem {
+    pub fn children(&self) -> FileSystemChildren<&'_ Self> {
+        FileSystemChildren::new(self)
     }
 
-    pub fn children_mut(&mut self) -> &mut FileSystemChildren {
-        &mut self.children
+    pub fn children_mut(&mut self) -> FileSystemChildren<&'_ mut Self> {
+        FileSystemChildren::new(self)
     }
 
-    pub fn snapshots(&self) -> &FileSystemSnapshots {
-        &self.snapshots
+    pub fn snapshots(&self) -> FileSystemSnapshots<&'_ Self> {
+        FileSystemSnapshots::new(self)
     }
 
-    pub fn snapshots_mut(&mut self) -> &mut FileSystemSnapshots {
-        &mut self.snapshots
+    pub fn snapshots_mut(&mut self) -> FileSystemSnapshots<&'_ mut Self> {
+        FileSystemSnapshots::new(self)
     }
 }
 
 impl FileSystem {
     pub fn identifier(&self) -> Result<FileSystemIdentifier, ReadFileSystemIdentifierError> {
-        Ok(FileSystemIdentifier::from_str(
-            &zfs_get_name(&self.handle).map_err(ReadFileSystemIdentifierError::from)?,
-        )?)
+        let result = unsafe { CStr::from_ptr(zfs_get_name(self.handle)).to_str()? };
+
+        Ok(FileSystemIdentifier::from_str(result)?)
     }
 
-    pub fn mount_status(&self) -> Result<FileSystemMountStatus, ReadFileSystemMountStatusError> {
-        match zfs_is_mounted(&self.handle, None)? {
-            true => Ok(FileSystemMountStatus::Mounted),
-            false => Ok(FileSystemMountStatus::Unmounted),
+    pub fn mount_status(&self) -> FileSystemMountStatus {
+        let result = unsafe { zfs_is_mounted(self.handle, null_mut()) };
+
+        if result == 0 {
+            return FileSystemMountStatus::Unmounted;
         }
+
+        FileSystemMountStatus::Mounted
     }
 }
 
 impl FileSystem {
     pub fn mount(&mut self) -> Result<(), MountFileSystemError> {
-        zfs_mount(&mut self.handle, None, 0)?;
+        let result = unsafe { zfs_mount(self.handle, null_mut(), 0) };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
 
         Ok(())
     }
 
     pub fn unmount(&mut self) -> Result<(), UnmountFileSystemError> {
-        Ok(zfs_unmount(&mut self.handle, None, 0)?)
+        let result = unsafe { zfs_unmount(self.handle, null_mut(), 0) };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
+
+        Ok(())
     }
 
     pub fn unmount_all(&mut self) -> Result<(), UnmountAllFileSystemError> {
-        Ok(zfs_unmountall(&mut self.handle, 0)?)
+        let result = unsafe { zfs_unmountall(self.handle, 0) };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
+
+        Ok(())
     }
 
     pub fn destroy(self) -> Result<(), DestroyFileSystemError> {
-        zfs_destroy(self.handle, false)?;
+        let result = unsafe { zfs_destroy(self.handle, 0) };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
 
         Ok(())
     }
 
     pub fn create(identifier: &FileSystemIdentifier) -> Result<(), CreateFileSystemError> {
-        zfs_create(
-            &libzfs_init()?,
-            &identifier.to_string(),
-            ZfsType::FileSystem,
-            None,
-        )?;
+        ZFS.with::<_, Result<_, CreateFileSystemError>>(|zfs| {
+            let string = CString::new(identifier.to_string())?;
 
-        Ok(())
+            let result = unsafe {
+                zfs_create(
+                    **zfs,
+                    string.as_ptr(),
+                    zfs_type_t_ZFS_TYPE_FILESYSTEM,
+                    null_mut(),
+                )
+            };
+
+            if result != 0 {
+                return Err(ZfsError::try_from(())?.into());
+            }
+
+            Ok(())
+        })
     }
 
     pub fn open(identifier: &FileSystemIdentifier) -> Result<Option<Self>, OpenFileSystemError> {
-        Ok(zfs_open(
-            &libzfs_init()?,
-            &identifier.to_string(),
-            ZfsType::FileSystem,
-        )?
-        .map(FileSystem::new))
+        ZFS.with::<_, Result<_, OpenFileSystemError>>(|zfs| {
+            let string = CString::new(identifier.to_string())?;
+
+            let result = unsafe {
+                zfs_open(
+                    **zfs,
+                    string.as_ptr(),
+                    zfs_type_t_ZFS_TYPE_FILESYSTEM.try_into()?,
+                )
+            };
+
+            if result.is_null() {
+                return Ok(None);
+            }
+
+            Ok(Some(Self::new(result)))
+        })
     }
 
     pub fn send(&mut self, file_descriptor: RawFd) -> Result<(), SendFileSystemError> {
@@ -149,7 +194,7 @@ impl FileSystem {
 
         self.snapshots_mut().create(name.clone())?;
         let mut snapshot = self
-            .snapshots_mut()
+            .snapshots()
             .open(name)?
             .ok_or(SendFileSystemError::SnapshotMissing)?;
         let result = snapshot.send(file_descriptor);
@@ -170,7 +215,7 @@ impl FileSystem {
 
         Snapshot::receive(&snapshot_identifier, file_descriptor)?;
         let snapshot =
-            Snapshot::open(&snapshot_identifier)?.ok_or(ReceiveFileSystemError::MissingSnapshot)?;
+            Snapshot::open(&snapshot_identifier)?.ok_or(ReceiveFileSystemError::SnapshotMissing)?;
 
         snapshot.destroy()?;
 
@@ -180,33 +225,55 @@ impl FileSystem {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct FileSystemChildren {
-    handle: ZfsHandle,
+pub struct FileSystemChildren<T> {
+    file_system: T,
 }
 
-impl FileSystemChildren {
-    fn new(handle: ZfsHandle) -> Self {
-        Self { handle }
+impl<T> FileSystemChildren<T> {
+    fn new(file_system: T) -> Self {
+        Self { file_system }
     }
 }
 
-impl FileSystemChildren {
+impl<'a> FileSystemChildren<&'a FileSystem> {
     pub fn iter(&self) -> Result<ChildFileSystemIterator, OpenFileSystemChildIteratorError> {
-        let mut result = Vec::new();
+        struct Data {
+            file_systems: Vec<FileSystem>,
+        }
 
-        zfs_iter_children(&self.handle, |handle| {
-            result.push(FileSystem::new(handle));
-            true
-        })?;
+        extern "C" fn handler(handle: *mut zfs_handle_t, data: *mut c_void) -> c_int {
+            let data: &mut Data = unsafe { &mut *(data as *mut Data) };
 
-        Ok(ChildFileSystemIterator::new(result.into_iter()))
+            data.file_systems.push(FileSystem::new(handle));
+
+            0
+        }
+
+        let mut data = Data {
+            file_systems: Vec::default(),
+        };
+
+        let result = unsafe {
+            zfs_iter_children(
+                self.file_system.handle,
+                0,
+                Some(handler),
+                &mut data as *mut _ as *mut c_void,
+            )
+        };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
+
+        Ok(ChildFileSystemIterator::new(data.file_systems.into_iter()))
     }
 
     pub fn open(
         &self,
         name: FileSystemIdentifierComponent,
     ) -> Result<Option<FileSystem>, OpenFileSystemChildError> {
-        let mut identifier = FileSystem::new(self.handle.clone()).identifier()?;
+        let mut identifier = self.file_system.identifier()?;
         identifier.components_mut().push(name);
         FileSystem::open(&identifier).map_err(OpenFileSystemChildError::OpenFileSystemError)
     }
@@ -214,47 +281,69 @@ impl FileSystemChildren {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct FileSystemSnapshots {
-    handle: ZfsHandle,
+pub struct FileSystemSnapshots<T> {
+    file_system: T,
 }
 
-impl FileSystemSnapshots {
-    fn new(handle: ZfsHandle) -> Self {
-        Self { handle }
-    }
-
-    fn file_system(&self) -> FileSystem {
-        FileSystem::new(self.handle.clone())
+impl<T> FileSystemSnapshots<T> {
+    fn new(file_system: T) -> Self {
+        Self { file_system }
     }
 }
 
-impl FileSystemSnapshots {
+impl<'a> FileSystemSnapshots<&'a FileSystem> {
     pub fn iter(&self) -> Result<FileSystemSnapshotIterator, OpenFileSystemSnapshotIteratorError> {
-        let mut result = Vec::new();
+        struct Data {
+            snapshots: Vec<Snapshot>,
+        }
 
-        zfs_iter_snapshots(&self.handle, |handle| {
-            result.push(Snapshot::new(handle));
-            true
-        })?;
+        extern "C" fn handler(handle: *mut zfs_handle_t, data: *mut c_void) -> c_int {
+            let data: &mut Data = unsafe { &mut *(data as *mut Data) };
 
-        Ok(FileSystemSnapshotIterator::new(result.into_iter()))
-    }
+            data.snapshots.push(Snapshot::new(handle));
 
-    pub fn create(
-        &mut self,
-        name: SnapshotIdentifierName,
-    ) -> Result<(), CreateFileSystemSnapshotError> {
-        let identifier = SnapshotIdentifier::new(self.file_system().identifier()?, name);
+            0
+        }
 
-        Ok(Snapshot::create(&identifier)?)
+        let mut data = Data {
+            snapshots: Vec::default(),
+        };
+
+        let result = unsafe {
+            zfs_iter_snapshots(
+                self.file_system.handle,
+                0,
+                Some(handler),
+                &mut data as *mut _ as *mut c_void,
+                0,
+                0,
+            )
+        };
+
+        if result != 0 {
+            return Err(ZfsError::try_from(())?.into());
+        }
+
+        Ok(FileSystemSnapshotIterator::new(data.snapshots.into_iter()))
     }
 
     pub fn open(
         &self,
         name: SnapshotIdentifierName,
     ) -> Result<Option<Snapshot>, OpenFileSystemSnapshotError> {
-        let identifier = SnapshotIdentifier::new(self.file_system().identifier()?, name);
+        let identifier = SnapshotIdentifier::new(self.file_system.identifier()?, name);
 
         Ok(Snapshot::open(&identifier)?)
+    }
+}
+
+impl<'a> FileSystemSnapshots<&'a mut FileSystem> {
+    pub fn create(
+        &mut self,
+        name: SnapshotIdentifierName,
+    ) -> Result<(), CreateFileSystemSnapshotError> {
+        let identifier = SnapshotIdentifier::new(self.file_system.identifier()?, name);
+
+        Ok(Snapshot::create(&identifier)?)
     }
 }
