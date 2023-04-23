@@ -1,13 +1,11 @@
-use crate::zone::{
-    ConvertZoneIdentifierFromFileSystemIdentifierError, OpenZoneConfigurationError, OpenZoneError,
-};
+use crate::zone::{OpenZoneConfigurationError, OpenZoneError, ParseZoneIdentifierError};
 use std::error;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use zfs::file_system::error::{
-    CreateFileSystemError, MountFileSystemError, OpenFileSystemChildIteratorError,
-    OpenFileSystemError, ReadFileSystemIdentifierError,
-};
+use std::io;
+use std::path::StripPrefixError;
+use zfs::file_system::error::{CreateFileSystemError, MountFileSystemError, OpenFileSystemError};
+use ztd::{Display, Error, From};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -65,86 +63,21 @@ impl From<OpenFileSystemError> for OpenNamespaceError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum OpenNamespaceZoneIteratorError {
-    OpenFileSystemChildIteratorError(OpenFileSystemChildIteratorError),
-}
-
-impl error::Error for OpenNamespaceZoneIteratorError {}
-
-impl Debug for OpenNamespaceZoneIteratorError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::OpenFileSystemChildIteratorError(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
-
-impl Display for OpenNamespaceZoneIteratorError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::OpenFileSystemChildIteratorError(error) => Display::fmt(error, formatter),
-        }
-    }
-}
-
-impl From<OpenFileSystemChildIteratorError> for OpenNamespaceZoneIteratorError {
-    fn from(error: OpenFileSystemChildIteratorError) -> Self {
-        Self::OpenFileSystemChildIteratorError(error)
-    }
+    IoError(io::Error),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum NextNamespaceZoneIteratorError {
-    ReadFileSystemIdentifierError(ReadFileSystemIdentifierError),
-    ConvertZoneIdentifierFromFileSystemIdentifierError(
-        ConvertZoneIdentifierFromFileSystemIdentifierError,
-    ),
     OpenZoneError(OpenZoneError),
-}
-
-impl Debug for NextNamespaceZoneIteratorError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ReadFileSystemIdentifierError(error) => Debug::fmt(error, formatter),
-            Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error) => {
-                Debug::fmt(error, formatter)
-            }
-            Self::OpenZoneError(error) => Debug::fmt(error, formatter),
-        }
-    }
-}
-
-impl Display for NextNamespaceZoneIteratorError {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::ReadFileSystemIdentifierError(error) => Display::fmt(error, formatter),
-            Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error) => {
-                Debug::fmt(error, formatter)
-            }
-            Self::OpenZoneError(error) => Display::fmt(error, formatter),
-        }
-    }
-}
-
-impl error::Error for NextNamespaceZoneIteratorError {}
-
-impl From<ReadFileSystemIdentifierError> for NextNamespaceZoneIteratorError {
-    fn from(error: ReadFileSystemIdentifierError) -> Self {
-        Self::ReadFileSystemIdentifierError(error)
-    }
-}
-
-impl From<ConvertZoneIdentifierFromFileSystemIdentifierError> for NextNamespaceZoneIteratorError {
-    fn from(error: ConvertZoneIdentifierFromFileSystemIdentifierError) -> Self {
-        Self::ConvertZoneIdentifierFromFileSystemIdentifierError(error)
-    }
-}
-
-impl From<OpenZoneError> for NextNamespaceZoneIteratorError {
-    fn from(error: OpenZoneError) -> Self {
-        Self::OpenZoneError(error)
-    }
+    IoError(io::Error),
+    ParseZoneIdentifierError(ParseZoneIdentifierError),
+    StripPrefixError(StripPrefixError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

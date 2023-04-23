@@ -1,16 +1,17 @@
 use super::error::{NextNamespaceMatchZoneIteratorError, NextNamespaceZoneIteratorError};
 use crate::zone::{Zone, ZoneConfigurationVersionDirective, ZoneIdentifier};
 use regex::Regex;
-use zfs::file_system::iterator::ChildFileSystemIterator;
+use std::fs::ReadDir;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub struct NamespaceZoneIterator {
-    iterator: ChildFileSystemIterator,
+    iterator: ReadDir,
 }
 
 impl NamespaceZoneIterator {
-    pub(super) fn new(iterator: ChildFileSystemIterator) -> Self {
+    pub(super) fn new(iterator: ReadDir) -> Self {
         Self { iterator }
     }
 }
@@ -20,26 +21,38 @@ impl Iterator for NamespaceZoneIterator {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let file_system = match self.iterator.next() {
-                None => return None,
-                Some(f) => f,
+            let next = match self.iterator.next() {
+                None => break None,
+                Some(Ok(next)) => next,
+                Some(Err(error)) => break Some(Err(NextNamespaceZoneIteratorError::from(error))),
             };
 
-            let file_system_identifier = match file_system.identifier() {
-                Err(e) => return Some(Err(e.into())),
-                Ok(i) => i,
+            let metadata = match next.metadata() {
+                Ok(metadata) => metadata,
+                Err(error) => break Some(Err(NextNamespaceZoneIteratorError::from(error))),
             };
 
-            let zone_identifier = match ZoneIdentifier::try_from(file_system_identifier) {
-                Err(e) => return Some(Err(e.into())),
-                Ok(i) => i,
-            };
-
-            match Zone::open(zone_identifier) {
-                Err(e) => return Some(Err(e.into())),
-                Ok(Some(zone)) => return Some(Ok(zone)),
-                Ok(None) => {}
+            if !metadata.is_file() {
+                continue;
             }
+
+            let path = match next.path().strip_prefix("/") {
+                Ok(path) => path.with_extension(""),
+                Err(error) => break Some(Err(NextNamespaceZoneIteratorError::from(error))),
+            };
+
+            let identifier = match ZoneIdentifier::try_from(path) {
+                Ok(identifier) => identifier,
+                Err(error) => break Some(Err(NextNamespaceZoneIteratorError::from(error))),
+            };
+
+            let zone = match Zone::open(identifier) {
+                Ok(Some(zone)) => Some(Ok(zone)),
+                Ok(None) => continue,
+                Err(error) => Some(Err(NextNamespaceZoneIteratorError::from(error))),
+            };
+
+            break zone;
         }
     }
 }

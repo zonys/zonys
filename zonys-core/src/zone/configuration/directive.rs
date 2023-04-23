@@ -159,7 +159,6 @@ pub mod version1 {
         r#type: ZoneConfigurationTypeDirective,
         start_after_create: Option<bool>,
         destroy_after_stop: Option<bool>,
-        #[serde(flatten, default = "ZoneConfigurationTypeDirective::Automatic")]
         file_system: Option<ZoneConfigurationFileSystemDirective>,
     }
 

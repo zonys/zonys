@@ -13,8 +13,10 @@ use crate::zone::{
     ZoneIdentifierUuid,
 };
 use regex::Regex;
+use std::fs::read_dir;
 use std::io::Read;
 use std::os::unix::prelude::AsRawFd;
+use std::path::PathBuf;
 use std::rc::Rc;
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
@@ -23,7 +25,6 @@ use zfs::file_system::FileSystem;
 
 struct NamespaceHandle {
     identifier: NamespaceIdentifier,
-    file_system: FileSystem,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,9 +65,8 @@ impl Namespace {
 
         match FileSystem::open(&file_system_identifier)? {
             None => Ok(None),
-            Some(file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle {
+            Some(_file_system) => Ok(Some(Self::new(Rc::new(NamespaceHandle {
                 identifier: namespace_identifier,
-                file_system,
             })))),
         }
     }
@@ -97,9 +97,9 @@ impl NamespaceZones {
 
 impl NamespaceZones {
     pub fn iter(&self) -> Result<NamespaceZoneIterator, OpenNamespaceZoneIteratorError> {
-        Ok(NamespaceZoneIterator::new(
-            self.handle.file_system.children().iter()?,
-        ))
+        Ok(NamespaceZoneIterator::new(read_dir(PathBuf::from(
+            self.handle.identifier.clone(),
+        ))?))
     }
 
     pub fn create(

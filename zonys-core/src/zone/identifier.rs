@@ -83,6 +83,15 @@ impl From<ZoneIdentifier> for PathBuf {
     }
 }
 
+impl TryFrom<PathBuf> for ZoneIdentifier {
+    type Error = ParseZoneIdentifierError;
+
+    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+        // TODO: Remove display() usage
+        ZoneIdentifier::from_str(&path.display().to_string())
+    }
+}
+
 impl TryFrom<FileSystemIdentifier> for ZoneIdentifier {
     type Error = ConvertZoneIdentifierFromFileSystemIdentifierError;
 

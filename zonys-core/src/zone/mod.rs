@@ -572,11 +572,14 @@ impl Zone {
 
 impl Zone {
     pub fn open(identifier: ZoneIdentifier) -> Result<Option<Self>, OpenZoneError> {
-        match FileSystem::open(&FileSystemIdentifier::from(identifier.clone())) {
-            Err(e) => Err(e.into()),
-            Ok(None) => Ok(None),
-            Ok(Some(_)) => Ok(Some(Self::new(identifier, None))),
+        let path =
+            PathBuf::from(identifier.clone()).with_extension(ZONE_CONFIGURATION_PATH_EXTENSION);
+
+        if !path.is_file() {
+            return Ok(None);
         }
+
+        Ok(Some(Self::new(identifier, None)))
     }
 
     pub fn create(
