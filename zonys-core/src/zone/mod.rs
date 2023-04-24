@@ -22,6 +22,7 @@ use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
 use nix::unistd::{read, write};
 use postcard::{from_bytes, to_allocvec};
+use regex::Regex;
 use reqwest::blocking::get;
 use serde_yaml::{from_reader, to_writer};
 use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File};
@@ -687,5 +688,15 @@ impl Zone {
 
     pub fn all(base_path: &Path) -> Result<AllZoneIterator, AllZoneIteratorError> {
         Ok(AllZoneIterator::new(read_dir(base_path)?))
+    }
+
+    pub fn r#match(
+        base_path: &Path,
+        regular_expression: &String,
+    ) -> Result<MatchZoneIterator, MatchZoneIteratorError> {
+        Ok(MatchZoneIterator::new(
+            AllZoneIterator::new(read_dir(base_path)?),
+            Regex::new(&format!("^{}$", regular_expression))?,
+        ))
     }
 }

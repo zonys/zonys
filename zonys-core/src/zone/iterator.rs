@@ -1,4 +1,6 @@
-use crate::zone::{NextAllZoneIteratorError, Zone, ZoneIdentifier};
+use crate::zone::ZoneConfigurationVersionDirective;
+use crate::zone::{NextAllZoneIteratorError, NextMatchZoneIteratorError, Zone, ZoneIdentifier};
+use regex::Regex;
 use std::fs::ReadDir;
 use ztd::Constructor;
 
@@ -46,6 +48,49 @@ impl Iterator for AllZoneIterator {
             };
 
             break zone;
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Constructor, Debug)]
+pub struct MatchZoneIterator {
+    iterator: AllZoneIterator,
+    regex: Regex,
+}
+
+impl Iterator for MatchZoneIterator {
+    type Item = Result<Zone, NextMatchZoneIteratorError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let zone = match self.iterator.next() {
+                Some(Err(error)) => return Some(Err(NextMatchZoneIteratorError::from(error))),
+                None => return None,
+                Some(Ok(zone)) => zone,
+            };
+
+            if self.regex.is_match(&zone.identifier().uuid().to_string()) {
+                return Some(Ok(zone));
+            }
+
+            let configuration = match zone.configuration() {
+                Err(error) => return Some(Err(NextMatchZoneIteratorError::from(error))),
+                Ok(configuration) => configuration,
+            };
+
+            let tags = match configuration.directive().version() {
+                ZoneConfigurationVersionDirective::Version1(ref version1) => version1.tags(),
+            };
+
+            if let Some(tags) = tags {
+                for tag in tags.iter() {
+                    if self.regex.is_match(tag) {
+                        return Some(Ok(zone));
+                    }
+                }
+            }
         }
     }
 }

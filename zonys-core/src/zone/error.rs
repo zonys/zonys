@@ -254,6 +254,14 @@ pub enum ConvertZoneIdentifierFromFileSystemIdentifierError {
 
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
+pub enum AllZoneIteratorError {
+    IoError(io::Error),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum NextAllZoneIteratorError {
     IoError(io::Error),
     OpenZoneError(OpenZoneError),
@@ -265,6 +273,17 @@ pub enum NextAllZoneIteratorError {
 
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
-pub enum AllZoneIteratorError {
+pub enum MatchZoneIteratorError {
     IoError(io::Error),
+    RegexError(regex::Error),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum NextMatchZoneIteratorError {
+    IoError(io::Error),
+    NextAllZoneIteratorError(NextAllZoneIteratorError),
+    OpenZoneConfigurationError(OpenZoneConfigurationError),
 }
