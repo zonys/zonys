@@ -2,6 +2,7 @@ pub mod configuration;
 pub mod error;
 pub mod executor;
 pub mod identifier;
+mod iterator;
 pub mod transmission;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -10,6 +11,7 @@ pub use configuration::*;
 pub use error::*;
 pub use executor::*;
 pub use identifier::*;
+pub use iterator::*;
 pub use transmission::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,7 +24,7 @@ use nix::unistd::{read, write};
 use postcard::{from_bytes, to_allocvec};
 use reqwest::blocking::get;
 use serde_yaml::{from_reader, to_writer};
-use std::fs::{create_dir_all, remove_dir_all, remove_file, File};
+use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File};
 use std::io::{BufReader, BufWriter, Seek, Write};
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
@@ -681,5 +683,9 @@ impl Zone {
         result?;
 
         Ok(zone.identifier)
+    }
+
+    pub fn all(base_path: &Path) -> Result<AllZoneIterator, AllZoneIteratorError> {
+        Ok(AllZoneIterator::new(read_dir(base_path)?))
     }
 }

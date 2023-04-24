@@ -8,6 +8,7 @@ use crate::zone::executor::{
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
 use std::io;
+use std::path::StripPrefixError;
 use std::process::ExitStatusError;
 use url::ParseError;
 use zfs::file_system::error::{
@@ -145,15 +146,6 @@ pub enum OpenZoneError {
 
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
-pub enum NextAllZoneIteratorError {
-    ParseZoneIdentifierError(ParseZoneIdentifierError),
-    OpenZoneError(OpenZoneError),
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Display, Error, From)]
-#[From(unnamed)]
 pub enum ParseZoneIdentifierBaseError {
     #[Display("Input is empty")]
     EmptyInput,
@@ -256,4 +248,23 @@ pub enum ConvertZoneIdentifierFromFileSystemIdentifierError {
     #[Display("Zone identifier is missing")]
     MissingZoneIdentifier,
     UuidError(uuid::Error),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum NextAllZoneIteratorError {
+    IoError(io::Error),
+    OpenZoneError(OpenZoneError),
+    ParseZoneIdentifierError(ParseZoneIdentifierError),
+    StripPrefixError(StripPrefixError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum AllZoneIteratorError {
+    IoError(io::Error),
 }

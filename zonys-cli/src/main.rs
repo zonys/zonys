@@ -7,9 +7,10 @@ use std::env::current_dir;
 use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
+use std::path::PathBuf;
 use zonys_core::namespace::{Namespace, NamespaceIdentifier};
 use zonys_core::zone::{
-    ReceiveZoneError, ZoneConfiguration, ZoneConfigurationDirective,
+    ReceiveZoneError, Zone, ZoneConfiguration, ZoneConfigurationDirective,
     ZoneConfigurationVersionDirective,
 };
 
@@ -22,6 +23,9 @@ use zonys_core::zone::{
 struct MainArguments {
     #[clap(default_value = "zroot/zonys")]
     namespace_identifier: NamespaceIdentifier,
+
+    #[clap(default_value = "/zroot/zonys")]
+    base_path: PathBuf,
 
     #[clap(subcommand)]
     command: MainCommand,
@@ -476,14 +480,11 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
             None => {}
         },
-        MainCommand::List => match Namespace::open(arguments.namespace_identifier)? {
-            Some(namespace) => {
-                for zone in namespace.zones().iter()? {
-                    println!("{:?}", zone?.identifier().uuid());
-                }
+        MainCommand::List => {
+            for zone in Zone::all(&arguments.base_path)? {
+                println!("{:?}", zone?.identifier().uuid());
             }
-            None => {}
-        },
+        }
     };
 
     Ok(())
