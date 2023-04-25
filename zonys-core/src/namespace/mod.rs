@@ -106,7 +106,10 @@ impl NamespaceZones {
         &mut self,
         configuration: ZoneConfiguration,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
-        Zone::create(self.handle.identifier.clone(), configuration)
+        Zone::create(
+            &PathBuf::from(self.handle.identifier.clone()),
+            configuration,
+        )
     }
 
     pub fn open(&self, uuid: ZoneIdentifierUuid) -> Result<Option<Zone>, OpenZoneError> {
@@ -117,7 +120,7 @@ impl NamespaceZones {
     where
         T: Read + AsRawFd,
     {
-        Zone::receive(self.handle.identifier.clone(), reader)
+        Zone::receive(&PathBuf::from(self.handle.identifier.clone()), reader)
     }
 
     pub fn r#match(

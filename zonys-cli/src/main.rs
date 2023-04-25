@@ -8,7 +8,6 @@ use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
 use std::path::PathBuf;
-use zonys_core::namespace::{Namespace, NamespaceIdentifier};
 use zonys_core::zone::{
     ReceiveZoneError, Zone, ZoneConfiguration, ZoneConfigurationDirective,
     ZoneConfigurationVersionDirective,
@@ -21,9 +20,6 @@ use zonys_core::zone::{
 #[clap(about = "Another execution environment manager for the FreeBSD operating system.")]
 #[clap(author, version, long_about = None)]
 struct MainArguments {
-    #[clap(default_value = "zroot/zonys")]
-    namespace_identifier: NamespaceIdentifier,
-
     #[clap(default_value = "/zroot/zonys")]
     base_path: PathBuf,
 
@@ -95,29 +91,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
     match arguments.command {
         MainCommand::Show { regular_expression } => {
-            match Namespace::open(arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    let matched_zones = namespace
-                        .zones()
-                        .r#match(&regular_expression)?
-                        .collect::<Result<Vec<_>, _>>()?;
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-                    for zone in matched_zones {
-                        println!("{}", zone.identifier().uuid());
-                    }
-                }
-                None => {}
+            for zone in matched_zones {
+                println!("{}", zone.identifier().uuid());
             }
         }
         MainCommand::Create { include } => {
-            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
-                Some(n) => n,
-                None => {
-                    Namespace::create(arguments.namespace_identifier.clone())?;
-                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
-                }
-            };
-
             let mut configuration_directive = ZoneConfigurationDirective::default();
 
             match configuration_directive.version_mut() {
@@ -131,34 +112,25 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .directives_mut()
                 .prepend(Some(&current_dir()?), configuration_directive.clone())?;
 
-            println!("{}", namespace.zones_mut().create(configuration)?.uuid());
+            println!(
+                "{}",
+                Zone::create(&arguments.base_path, configuration)?.uuid()
+            );
         }
         MainCommand::Destroy { regular_expression } => {
-            match Namespace::open(arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    let matched_zones = namespace
-                        .zones()
-                        .r#match(&regular_expression)?
-                        .collect::<Result<Vec<_>, _>>()?;
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-                    for zone in matched_zones {
-                        let uuid = zone.identifier().uuid().to_string();
+            for zone in matched_zones {
+                let uuid = zone.identifier().uuid().to_string();
 
-                        zone.destroy()?;
+                zone.destroy()?;
 
-                        println!("{}", uuid);
-                    }
-                }
-                None => {}
+                println!("{}", uuid);
             }
         }
         MainCommand::Recreate { regular_expression } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
@@ -166,49 +138,33 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
                 zone.destroy()?;
 
-                println!("{}", namespace.zones_mut().create(configuration)?.uuid());
+                println!(
+                    "{}",
+                    Zone::create(&arguments.base_path, configuration)?.uuid()
+                );
             }
         }
         MainCommand::Start { regular_expression } => {
-            match Namespace::open(arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    let matched_zones = namespace
-                        .zones()
-                        .r#match(&regular_expression)?
-                        .collect::<Result<Vec<_>, _>>()?;
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-                    for mut zone in matched_zones {
-                        zone.start()?;
-                        println!("{}", zone.identifier().uuid().to_string());
-                    }
-                }
-                None => {}
+            for mut zone in matched_zones {
+                zone.start()?;
+                println!("{}", zone.identifier().uuid().to_string());
             }
         }
         MainCommand::Stop { regular_expression } => {
-            match Namespace::open(arguments.namespace_identifier)? {
-                Some(namespace) => {
-                    let matched_zones = namespace
-                        .zones()
-                        .r#match(&regular_expression)?
-                        .collect::<Result<Vec<_>, _>>()?;
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
+                .collect::<Result<Vec<_>, _>>()?;
 
-                    for zone in matched_zones {
-                        let uuid = zone.identifier().uuid().to_string();
-                        zone.stop()?;
-                        println!("{}", uuid);
-                    }
-                }
-                None => {}
+            for zone in matched_zones {
+                let uuid = zone.identifier().uuid().to_string();
+                zone.stop()?;
+                println!("{}", uuid);
             }
         }
         MainCommand::Restart { regular_expression } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
@@ -221,12 +177,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         zone
                     }
                     None => {
-                        let identifier = namespace.zones_mut().create(configuration)?;
-
-                        let mut zone = namespace
-                            .zones_mut()
-                            .open(*identifier.uuid())?
-                            .expect("Zone not found");
+                        let identifier = Zone::create(&arguments.base_path, configuration)?;
+                        let mut zone = Zone::open(identifier)?.expect("Zone not found");
 
                         zone.start()?;
 
@@ -238,12 +190,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Up { regular_expression } => {
-            let namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
@@ -257,12 +204,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Down { regular_expression } => {
-            let namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
@@ -277,12 +219,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Reup { regular_expression } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
@@ -296,12 +233,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                             zone
                         }
                         None => {
-                            let identifier = namespace.zones_mut().create(configuration)?;
+                            let identifier = Zone::create(&arguments.base_path, configuration)?;
 
-                            let mut zone = namespace
-                                .zones_mut()
-                                .open(*identifier.uuid())?
-                                .expect("Zone not found");
+                            let mut zone = Zone::open(identifier)?.expect("Zone not found");
 
                             zone.start()?;
 
@@ -328,36 +262,19 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let configuration_directive = configuration_directive;
 
-            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
-                Some(n) => n,
-                None => {
-                    Namespace::create(arguments.namespace_identifier.clone())?;
-                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
-                }
-            };
+            let zone_identifier = Zone::create(
+                &arguments.base_path,
+                ZoneConfiguration::new(configuration_directive, Vec::default(), current_dir()?),
+            )?;
 
-            let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
-                configuration_directive,
-                Vec::default(),
-                current_dir()?,
-            ))?;
-
-            let mut zone = namespace
-                .zones_mut()
-                .open(*zone_identifier.uuid())?
-                .expect("Zone not found");
+            let mut zone = Zone::open(zone_identifier.clone())?.expect("Zone not found");
 
             zone.start()?;
 
             println!("{}", zone_identifier);
         }
         MainCommand::Undeploy { regular_expression } => {
-            let namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
@@ -376,12 +293,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Redeploy { regular_expression } => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
@@ -396,12 +308,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     zone.destroy()?;
                 }
 
-                let zone_identifier = namespace.zones_mut().create(configuration)?;
+                let zone_identifier = Zone::create(&arguments.base_path, configuration)?;
 
-                let mut zone = namespace
-                    .zones_mut()
-                    .open(*zone_identifier.uuid())?
-                    .expect("Zone not found");
+                let mut zone = Zone::open(zone_identifier.clone())?.expect("Zone not found");
 
                 zone.start()?;
 
@@ -409,12 +318,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Send { regular_expression } => {
-            let namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
-            let matched_zones = namespace
-                .zones()
-                .r#match(&regular_expression)?
+            let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
+
             let mut stdout = stdout();
 
             for mut zone in matched_zones {
@@ -422,12 +328,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Receive => {
-            let mut namespace =
-                Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found");
             let mut stdin = io_stdin();
 
             loop {
-                match namespace.zones_mut().receive(&mut stdin) {
+                match Zone::receive(&arguments.base_path, &mut stdin) {
                     Ok(z) => {
                         println!("{}", z.uuid().to_string());
                     }
@@ -449,14 +353,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             };
 
-            let mut namespace = match Namespace::open(arguments.namespace_identifier.clone())? {
-                Some(n) => n,
-                None => {
-                    Namespace::create(arguments.namespace_identifier.clone())?;
-                    Namespace::open(arguments.namespace_identifier)?.expect("Namespace not found")
-                }
-            };
-
             match configuration_directive.version_mut() {
                 ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
                     version1.set_start_after_create(Some(true));
@@ -464,22 +360,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 }
             }
 
-            let zone_identifier = namespace.zones_mut().create(ZoneConfiguration::new(
-                configuration_directive,
-                Vec::default(),
-                current_dir()?,
-            ))?;
+            let zone_identifier = Zone::create(
+                &arguments.base_path,
+                ZoneConfiguration::new(configuration_directive, Vec::default(), current_dir()?),
+            )?;
 
             println!("{}", zone_identifier.uuid());
         }
-        MainCommand::Status => match Namespace::open(arguments.namespace_identifier)? {
-            Some(namespace) => {
-                for zone in namespace.zones().iter()? {
-                    println!("{:?}", zone?.identifier().uuid());
-                }
+        MainCommand::Status => {
+            for zone in Zone::all(&arguments.base_path)? {
+                println!("{:?}", zone?.identifier().uuid());
             }
-            None => {}
-        },
+        }
         MainCommand::List => {
             for zone in Zone::all(&arguments.base_path)? {
                 println!("{:?}", zone?.identifier().uuid());

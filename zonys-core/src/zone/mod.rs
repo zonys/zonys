@@ -30,6 +30,7 @@ use std::io::{BufReader, BufWriter, Seek, Write};
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use tar::Archive;
 use tempfile::tempfile;
 use url::{ParseError, Url};
@@ -586,11 +587,15 @@ impl Zone {
     }
 
     pub fn create(
-        namespace_identifier: NamespaceIdentifier,
+        base_path: &Path,
         configuration: ZoneConfiguration,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
         let mut zone = Self::new(
-            ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),
+            ZoneIdentifier::new(
+                NamespaceIdentifier::from_str(base_path.to_str().expect("valid path"))
+                    .expect("valid identifier"),
+                Uuid::new_v4(),
+            ),
             None,
         );
 
@@ -666,15 +671,16 @@ impl Zone {
         result
     }
 
-    pub fn receive<T>(
-        namespace_identifier: NamespaceIdentifier,
-        reader: &mut T,
-    ) -> Result<ZoneIdentifier, ReceiveZoneError>
+    pub fn receive<T>(base_path: &Path, reader: &mut T) -> Result<ZoneIdentifier, ReceiveZoneError>
     where
         T: AsRawFd,
     {
         let mut zone = Self::new(
-            ZoneIdentifier::new(namespace_identifier, Uuid::new_v4()),
+            ZoneIdentifier::new(
+                NamespaceIdentifier::from_str(base_path.to_str().expect("valid path"))
+                    .expect("valid identifier"),
+                Uuid::new_v4(),
+            ),
             None,
         );
         zone.lock()?;
