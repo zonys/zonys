@@ -1,9 +1,11 @@
-use crate::namespace::ConvertNamespaceIdentifierFromStrError;
 use crate::template::RenderTemplateError;
 use crate::zone::configuration::ProcessZoneConfigurationError;
 use crate::zone::executor::{
     CreateZoneExecutorEventError, DestroyZoneExecutorEventError, RunningZoneExecutorEventError,
     StartZoneExecutorEventError, StopZoneExecutorEventError,
+};
+use crate::zone::identifier::{
+    FileSystemIdentifierTryFromZoneIdentifierError, ZoneIdentifierTryFromPathError,
 };
 use jail::{CreateJailError, DestroyJailError, ExecuteJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -77,6 +79,8 @@ pub enum CreateZoneError {
     #[Display("Extension {value} is unsupported")]
     #[From(skip)]
     UnsupportedExtension(String),
+    ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,6 +136,7 @@ pub enum DestroyZoneError {
     FileSystemNotExisting,
     UnmountAllFileSystemError(UnmountAllFileSystemError),
     DestroyZoneExecutorEventError(DestroyZoneExecutorEventError),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,7 +164,6 @@ pub enum ParseZoneIdentifierError {
     UuidError(uuid::Error),
     #[Display("Input is empty")]
     EmptyInput,
-    ConvertNamespaceIdentifierFromStrError(ConvertNamespaceIdentifierFromStrError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -220,6 +224,7 @@ pub enum SendZoneError {
     IoError(io::Error),
     Errno(Errno),
     RetrieveRunningStatusError(RetrieveZoneRunningStatusError),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -238,6 +243,8 @@ pub enum ReceiveZoneError {
     Errno(Errno),
     #[Display("Input is empty")]
     EmptyInput,
+    ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

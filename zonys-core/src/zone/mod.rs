@@ -16,7 +16,6 @@ pub use transmission::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::namespace::NamespaceIdentifier;
 use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
 use nix::errno::Errno;
 use nix::fcntl::{flock, FlockArg};
@@ -30,7 +29,6 @@ use std::io::{BufReader, BufWriter, Seek, Write};
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use tar::Archive;
 use tempfile::tempfile;
 use url::{ParseError, Url};
@@ -232,7 +230,8 @@ impl Zone {
             }
             // TODO
             Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
-                let file_system_identifier = FileSystemIdentifier::from(self.identifier().clone());
+                let file_system_identifier =
+                    FileSystemIdentifier::try_from(self.identifier().clone())?;
                 FileSystem::create(&file_system_identifier)?;
                 let mut file_system = FileSystem::open(&file_system_identifier)?
                     .ok_or(CreateZoneError::FileSystemNotExisting)?;
@@ -436,7 +435,7 @@ impl Zone {
                     // TODO
                     Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
                         let file_system_identifier =
-                            FileSystemIdentifier::from(self.identifier().clone());
+                            FileSystemIdentifier::try_from(self.identifier().clone())?;
                         let mut file_system = FileSystem::open(&file_system_identifier)?
                             .ok_or(DestroyZoneError::FileSystemNotExisting)?;
 
@@ -507,7 +506,7 @@ impl Zone {
             return Err(SendZoneError::ZoneIsRunning);
         }
 
-        let mut file_system = match FileSystem::open(&self.identifier().clone().into())? {
+        let mut file_system = match FileSystem::open(&self.identifier().clone().try_into()?)? {
             None => return Err(SendZoneError::MissingFileSystem),
             Some(f) => f,
         };
@@ -561,7 +560,10 @@ impl Zone {
             ZoneTransmissionHeader::Version1(version1) => {
                 match version1.r#type() {
                     ZoneTransmissionVersion1Type::Zfs => {
-                        FileSystem::receive(self.identifier.clone().into(), reader.as_raw_fd())?;
+                        FileSystem::receive(
+                            self.identifier.clone().try_into()?,
+                            reader.as_raw_fd(),
+                        )?;
                     }
                 };
 
@@ -591,11 +593,7 @@ impl Zone {
         configuration: ZoneConfiguration,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
         let mut zone = Self::new(
-            ZoneIdentifier::new(
-                NamespaceIdentifier::from_str(base_path.to_str().expect("valid path"))
-                    .expect("valid identifier"),
-                Uuid::new_v4(),
-            ),
+            ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()),
             None,
         );
 
@@ -618,7 +616,7 @@ impl Zone {
             remove_file(lock_path)?;
         }
 
-        let file_system_identifier = FileSystemIdentifier::from(zone.identifier().clone());
+        let file_system_identifier = FileSystemIdentifier::try_from(zone.identifier().clone())?;
         match FileSystem::open(&file_system_identifier)? {
             Some(mut file_system) => {
                 if file_system.mount_status().is_mounted() {
@@ -676,11 +674,7 @@ impl Zone {
         T: AsRawFd,
     {
         let mut zone = Self::new(
-            ZoneIdentifier::new(
-                NamespaceIdentifier::from_str(base_path.to_str().expect("valid path"))
-                    .expect("valid identifier"),
-                Uuid::new_v4(),
-            ),
+            ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()),
             None,
         );
         zone.lock()?;

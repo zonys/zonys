@@ -1,18 +1,74 @@
 use super::error::ParseZoneIdentifierError;
-use crate::namespace::NamespaceIdentifier;
 use crate::zone::error::ConvertZoneIdentifierFromFileSystemIdentifierError;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::iter::once;
+use std::os::unix::ffi::OsStrExt;
+use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR_STR};
+use std::str::{from_utf8, FromStr, Utf8Error};
 use zfs::file_system::identifier::{FileSystemIdentifier, FileSystemIdentifierComponents};
 use zfs::pool::identifier::{PoolIdentifier, PoolIdentifierName};
-use ztd::{Constructor, Method};
+use ztd::{Constructor, Display, Error, From, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const ZONE_IDENTIFIER_SEPARATOR: &str = "/";
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub type ZoneIdentifierBaseComponent = String;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum ZoneIdentifierTryFromPathError {
+    Utf8Error(Utf8Error),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum FileSystemIdentifierTryFromZoneIdentifierError {
+    #[Display("Components are empty")]
+    ComponentsEmpty,
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Constructor, Debug, Default, Deserialize, Serialize, Method)]
+#[Method(all)]
+pub struct ZoneIdentifierBase {
+    components: Vec<ZoneIdentifierBaseComponent>,
+}
+
+impl Display for ZoneIdentifierBase {
+    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
+        write!(
+            formatter,
+            "{}",
+            self.components.join(ZONE_IDENTIFIER_SEPARATOR)
+        )
+    }
+}
+
+impl<'a> TryFrom<&'a Path> for ZoneIdentifierBase {
+    type Error = ZoneIdentifierTryFromPathError;
+
+    fn try_from(path: &'a Path) -> Result<Self, Self::Error> {
+        let mut components = Vec::default();
+
+        for component in path.components() {
+            if let Component::Normal(normal) = component {
+                components.push(from_utf8(normal.as_bytes())?.to_string())
+            }
+        }
+
+        Ok(Self::new(components))
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -23,7 +79,7 @@ pub type ZoneIdentifierUuid = uuid::Uuid;
 #[derive(Clone, Constructor, Debug, Default, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneIdentifier {
-    namespace_identifier: NamespaceIdentifier,
+    base: ZoneIdentifierBase,
     uuid: ZoneIdentifierUuid,
 }
 
@@ -32,7 +88,7 @@ impl Display for ZoneIdentifier {
         write!(
             formatter,
             "{}{}{}",
-            self.namespace_identifier,
+            self.base,
             ZONE_IDENTIFIER_SEPARATOR,
             self.uuid.hyphenated(),
         )
@@ -53,30 +109,32 @@ impl FromStr for ZoneIdentifier {
             Some(u) => ZoneIdentifierUuid::parse_str(&u)?,
         };
 
-        let value = components.join(ZONE_IDENTIFIER_SEPARATOR);
-
         Ok(ZoneIdentifier::new(
-            NamespaceIdentifier::from_str(&value)?,
+            ZoneIdentifierBase::new(components),
             uuid,
         ))
     }
 }
 
-impl From<ZoneIdentifier> for FileSystemIdentifier {
-    fn from(identifier: ZoneIdentifier) -> Self {
-        let mut file_system_identifier =
-            FileSystemIdentifier::from(identifier.namespace_identifier);
-        file_system_identifier
-            .components_mut()
-            .push(identifier.uuid.to_string());
+impl TryFrom<ZoneIdentifier> for FileSystemIdentifier {
+    type Error = FileSystemIdentifierTryFromZoneIdentifierError;
 
-        file_system_identifier
+    fn try_from(identifier: ZoneIdentifier) -> Result<Self, Self::Error> {
+        let mut iterator = identifier.base.components.into_iter();
+
+        Ok(Self::new(
+            PoolIdentifier::new(match iterator.next() {
+                Some(pool_identifier) => pool_identifier,
+                None => return Err(Self::Error::ComponentsEmpty),
+            }),
+            iterator.chain(once(identifier.uuid.to_string())).collect(),
+        ))
     }
 }
 
 impl From<ZoneIdentifier> for PathBuf {
     fn from(identifier: ZoneIdentifier) -> Self {
-        let mut path = PathBuf::from(identifier.namespace_identifier);
+        let mut path = PathBuf::from(identifier.base.components.join(MAIN_SEPARATOR_STR));
         path.push(identifier.uuid.to_string());
 
         path
@@ -111,8 +169,12 @@ impl TryFrom<FileSystemIdentifier> for ZoneIdentifier {
             Some(c) => ZoneIdentifierUuid::parse_str(&c)?,
         };
 
+        let mut components = Vec::with_capacity(1 + file_system_identifier_components.len());
+        components.push(pool_identifier_name);
+        components.extend(file_system_identifier_components);
+
         Ok(Self::new(
-            NamespaceIdentifier::new(pool_identifier_name, file_system_identifier_components),
+            ZoneIdentifierBase::new(components),
             zone_identifier,
         ))
     }
