@@ -134,7 +134,10 @@ impl TryFrom<ZoneIdentifier> for FileSystemIdentifier {
 
 impl From<ZoneIdentifier> for PathBuf {
     fn from(identifier: ZoneIdentifier) -> Self {
-        let mut path = PathBuf::from(identifier.base.components.join(MAIN_SEPARATOR_STR));
+        let mut path = PathBuf::from(MAIN_SEPARATOR_STR);
+        for component in identifier.base.components {
+            path.push(component);
+        }
         path.push(identifier.uuid.to_string());
 
         path
