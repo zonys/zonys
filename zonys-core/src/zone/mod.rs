@@ -1,9 +1,12 @@
-pub mod configuration;
-pub mod error;
-pub mod executor;
-pub mod identifier;
+mod configuration;
+mod error;
+mod executor;
+mod identifier;
 mod iterator;
-pub mod transmission;
+mod lock;
+mod paths;
+mod transmission;
+mod volume;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -12,35 +15,41 @@ pub use error::*;
 pub use executor::*;
 pub use identifier::*;
 pub use iterator::*;
+pub use lock::*;
+pub use paths::*;
 pub use transmission::*;
+pub use volume::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::template::{TemplateEngine, TemplateObject, TemplateScalar, TemplateValue};
-use nix::errno::Errno;
-use nix::fcntl::{flock, FlockArg};
+use crate::template::TemplateEngine;
 use nix::unistd::{read, write};
 use postcard::{from_bytes, to_allocvec};
 use regex::Regex;
 use reqwest::blocking::get;
-use serde_yaml::{from_reader, to_writer};
-use std::fs::{create_dir_all, read_dir, remove_dir_all, remove_file, File};
-use std::io::{BufReader, BufWriter, Seek, Write};
+use std::fmt::Debug;
+use std::fs::{read_dir, File};
+use std::io::{BufWriter, Seek, Write};
 use std::mem::size_of;
 use std::os::unix::io::AsRawFd;
+use std::panic::{catch_unwind, resume_unwind};
 use std::path::{Path, PathBuf};
 use tar::Archive;
 use tempfile::tempfile;
 use url::{ParseError, Url};
 use uuid::Uuid;
 use xz2::read::XzDecoder;
-use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
+use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub const ZONE_CONFIGURATION_PATH_EXTENSION: &str = "yaml";
-pub const ZONE_LOCK_PATH_EXTENSION: &str = "lock";
+#[derive(Debug, Constructor, Method)]
+#[Constructor(visibility = pub(self))]
+#[Method(accessors)]
+pub struct ZoneStatus {
+    running: bool,
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -52,91 +61,14 @@ pub enum ZoneFileSystem {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub struct Zone {
     identifier: ZoneIdentifier,
-    lock_file: Option<File>,
 }
 
 impl Zone {
-    fn new(identifier: ZoneIdentifier, lock_file: Option<File>) -> Self {
-        Self {
-            identifier,
-            lock_file,
-        }
-    }
-}
-
-impl Zone {
-    fn executor(&self) -> Box<dyn ZoneExecutor> {
-        Box::new(JailZoneExecutor::new())
-    }
-
-    fn zone_paths_variables(&self) -> TemplateObject {
-        let mut paths = TemplateObject::default();
-
-        paths.insert(
-            "root".into(),
-            TemplateValue::Scalar(TemplateScalar::new(self.root_path().display().to_string())),
-        );
-
-        paths
-    }
-
-    fn zone_variables(&self) -> TemplateObject {
-        let mut zone = TemplateObject::default();
-
-        zone.insert(
-            "identifier".into(),
-            TemplateValue::Scalar(TemplateScalar::new(self.identifier().to_string())),
-        );
-
-        zone.insert(
-            "paths".into(),
-            TemplateValue::Object(self.zone_paths_variables()),
-        );
-
-        zone
-    }
-
-    fn variables(&self) -> TemplateObject {
-        let mut root = TemplateObject::default();
-
-        root.insert("zone".into(), TemplateValue::Object(self.zone_variables()));
-
-        root
-    }
-
-    fn lock(&mut self) -> Result<(), LockZoneError> {
-        if self.lock_file.is_some() {
-            return Err(LockZoneError::AlreadyLocked);
-        }
-
-        let file = File::create(self.lock_path())?;
-        let raw_fd = file.as_raw_fd();
-        self.lock_file = Some(file);
-
-        match flock(raw_fd, FlockArg::LockExclusiveNonblock) {
-            Err(Errno::EAGAIN) => Err(LockZoneError::AlreadyLocked),
-            Err(e) => Err(e.into()),
-            Ok(()) => Ok(()),
-        }
-    }
-
-    fn unlock(&mut self) -> Result<(), UnlockZoneError> {
-        match &self.lock_file {
-            None => return Err(UnlockZoneError::NotLocked),
-            Some(file) => {
-                flock(file.as_raw_fd(), FlockArg::UnlockNonblock)?;
-            }
-        };
-
-        let lock_path = self.lock_path();
-        self.lock_file = None;
-        if lock_path.exists() {
-            remove_file(self.lock_path())?;
-        }
-
-        Ok(())
+    fn new(identifier: ZoneIdentifier) -> Self {
+        Self { identifier }
     }
 }
 
@@ -145,106 +77,36 @@ impl Zone {
         &self.identifier
     }
 
-    pub fn root_path(&self) -> PathBuf {
-        self.identifier.clone().into()
+    pub fn paths(&self) -> ZonePaths<&Self> {
+        ZonePaths::new(self)
     }
 
-    pub fn configuration_path(&self) -> PathBuf {
-        self.root_path()
-            .parent()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/"))
-            .join(format!(
-                "{}.{}",
-                self.identifier.uuid(),
-                ZONE_CONFIGURATION_PATH_EXTENSION
-            ))
+    pub fn configuration(&self) -> ZoneConfiguration<&Self> {
+        ZoneConfiguration::new(self)
     }
 
-    pub fn lock_path(&self) -> PathBuf {
-        self.root_path()
-            .parent()
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/"))
-            .join(format!(
-                "{}.{}",
-                self.identifier.uuid(),
-                ZONE_LOCK_PATH_EXTENSION
-            ))
+    pub fn lock(&self) -> ZoneLock<&Self> {
+        ZoneLock::new(self)
     }
 
-    pub fn configuration(&self) -> Result<ZoneConfiguration, OpenZoneConfigurationError> {
-        let configuration_path = self.configuration_path();
-        if configuration_path.exists() {
-            let processor = ZoneConfigurationProcessor::default();
-
-            let configuration = processor.process(ZoneConfiguration::new(
-                from_reader(&mut BufReader::new(File::open(&configuration_path)?))?,
-                Vec::default(),
-                configuration_path,
-            ))?;
-
-            Ok(configuration)
-        } else {
-            Ok(ZoneConfiguration::default())
-        }
+    pub fn lock_owned(self) -> ZoneLock<Self> {
+        ZoneLock::new(self)
     }
 
-    pub fn running(&self) -> Result<bool, RetrieveZoneRunningStatusError> {
-        Ok(self
-            .executor()
-            .running(RunningZoneExecutorEvent::new(
-                self.identifier.clone(),
-                false,
-            ))?
-            .running())
+    pub fn status(&self) -> Result<ZoneStatus, ReadZoneStatusError> {
+        Ok(ZoneStatus::new(false))
+    }
+
+    pub fn volume(&self) -> ZoneVolume<&Self> {
+        ZoneVolume::new(self)
+    }
+
+    fn executor(&self) -> ZoneExecutor<&Self> {
+        ZoneExecutor::new(self)
     }
 }
 
 impl Zone {
-    fn handle_create_write_configuration(
-        &mut self,
-        configuration: &ZoneConfiguration,
-    ) -> Result<(), CreateZoneError> {
-        let mut writer = &mut BufWriter::new(File::create(self.configuration_path())?);
-        to_writer(&mut writer, configuration.directive())?;
-        writer.flush().map_err(CreateZoneError::from)
-    }
-
-    fn handle_create_file_system(
-        &mut self,
-        configuration: &ZoneConfiguration,
-    ) -> Result<(), CreateZoneError> {
-        let file_system =
-            configuration
-                .directives()
-                .read_first(|directive| match directive.version() {
-                    ZoneConfigurationVersionDirective::Version1(version1) => {
-                        version1.file_system().as_ref()
-                    }
-                });
-
-        match file_system {
-            Some(version1::ZoneConfigurationFileSystemDirective::Automatic) => {
-                panic!("Currently unsupported");
-            }
-            // TODO
-            Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
-                let file_system_identifier =
-                    FileSystemIdentifier::try_from(self.identifier().clone())?;
-                FileSystem::create(&file_system_identifier)?;
-                let mut file_system = FileSystem::open(&file_system_identifier)?
-                    .ok_or(CreateZoneError::FileSystemNotExisting)?;
-                file_system.mount()?;
-            }
-            Some(version1::ZoneConfigurationFileSystemDirective::Directory) => {
-                create_dir_all(self.root_path())?;
-            }
-        }
-
-        Ok(())
-    }
-
     fn handle_create_from_path(
         &self,
         path: &Path,
@@ -275,7 +137,7 @@ impl Zone {
                 let mut archive = Archive::new(XzDecoder::new(file));
 
                 archive
-                    .unpack(self.root_path())
+                    .unpack(self.paths().root_directory())
                     .map_err(CreateZoneError::from)
             }
             extension => Err(CreateZoneError::UnsupportedExtension(String::from(
@@ -307,7 +169,7 @@ impl Zone {
         }
     }
 
-    fn handle_create_from(&mut self, from: &str) -> Result<(), CreateZoneError> {
+    fn handle_create_handle_from(&self, from: &str) -> Result<(), CreateZoneError> {
         match Url::parse(from) {
             Ok(url) if matches!(url.scheme(), "" | "file") => {
                 self.handle_create_from_path(&PathBuf::from(url.path()), None)
@@ -320,192 +182,93 @@ impl Zone {
         }
     }
 
-    fn handle_create(&mut self, configuration: ZoneConfiguration) -> Result<(), CreateZoneError> {
-        self.handle_create_write_configuration(&configuration)?;
+    fn handle_create(
+        &self,
+        configuration_path: &Path,
+        configuration_directive: ZoneConfigurationDirective,
+    ) -> Result<(), CreateZoneError> {
+        let variables = configuration_directive
+            .variables()
+            .clone()
+            .unwrap_or_default();
+        let configuration_unit =
+            configuration_directive.transform(&mut TransformZoneConfigurationContext::new(
+                TemplateEngine::default(),
+                variables,
+                vec![configuration_path.to_path_buf()],
+            ))?;
 
-        self.handle_create_file_system(&configuration)?;
+        self.volume().create(&configuration_unit)?;
 
-        let mut variables = match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.variables().as_ref().cloned().unwrap_or_default()
-            }
-        };
-
-        variables.extend(self.variables().into_iter());
-
-        let template_engine = TemplateEngine::default();
-
-        let from = configuration
-            .directives()
-            .read_first(|directive| match directive.version() {
-                ZoneConfigurationVersionDirective::Version1(version1) => version1.from().as_ref(),
-            });
-
-        if let Some(from) = from {
-            self.handle_create_from(&template_engine.render(&variables, from)?)?;
+        if let Some(from) = configuration_unit
+            .traverser()
+            .inorder()
+            .flat_map(|unit| unit.from().as_ref())
+            .next()
+        {
+            self.handle_create_handle_from(from)?;
         }
 
-        let event = self.executor().create(CreateZoneExecutorEvent::new(
-            self.identifier.clone(),
-            configuration,
-            self.root_path(),
-            template_engine,
-            variables,
-        ))?;
+        self.configuration().set_unit(&configuration_unit)?;
 
-        let start_after_create = match event.configuration().directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.start_after_create().unwrap_or(false)
-            }
-        };
+        self.executor().trigger_create()?;
 
-        if start_after_create {
+        if configuration_unit
+            .merged_start_after_create()
+            .unwrap_or(false)
+        {
             self.handle_start()?;
         }
 
         Ok(())
     }
 
-    fn handle_start(&mut self) -> Result<(), StartZoneError> {
-        let configuration = self.configuration()?;
+    fn handle_start(&self) -> Result<(), StartZoneError> {
+        if self.status()?.running() {
+            return Err(StartZoneError::AlreadyRunning);
+        }
 
-        let mut variables = match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.variables().as_ref().cloned().unwrap_or_default()
-            }
-        };
-
-        variables.extend(self.variables().into_iter());
-
-        self.executor().start(StartZoneExecutorEvent::new(
-            self.identifier.clone(),
-            configuration,
-            self.root_path(),
-            TemplateEngine::default(),
-            variables,
-        ))?;
+        self.executor().trigger_start()?;
 
         Ok(())
     }
 
-    fn handle_stop(self) -> Result<Option<Self>, StopZoneError> {
-        let configuration = self.configuration()?;
+    fn handle_stop(&self) -> Result<bool, StopZoneError> {
+        if !self.status()?.running() {
+            return Err(StopZoneError::NotRunning);
+        }
 
-        let mut variables = match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.variables().as_ref().cloned().unwrap_or_default()
-            }
-        };
+        self.executor().trigger_stop()?;
 
-        variables.extend(self.variables().into_iter());
-
-        let event = self.executor().stop(StopZoneExecutorEvent::new(
-            self.identifier.clone(),
-            configuration,
-            self.root_path(),
-            TemplateEngine::default(),
-            variables,
-        ))?;
-
-        let destroy_after_stop = match event.configuration().directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.destroy_after_stop().unwrap_or(false)
-            }
-        };
-
-        if destroy_after_stop {
+        if self
+            .configuration()
+            .unit()?
+            .merged_destroy_after_stop()
+            .unwrap_or(false)
+        {
             self.handle_destroy()?;
-
-            Ok(None)
-        } else {
-            Ok(Some(self))
-        }
-    }
-
-    fn handle_destroy_file_system(
-        &self,
-        configuration: &ZoneConfiguration,
-    ) -> Result<(), DestroyZoneError> {
-        match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                match version1.file_system() {
-                    Some(version1::ZoneConfigurationFileSystemDirective::Automatic) => {
-                        panic!("Currently unsupported");
-                    }
-                    // TODO
-                    Some(version1::ZoneConfigurationFileSystemDirective::Zfs) | None => {
-                        let file_system_identifier =
-                            FileSystemIdentifier::try_from(self.identifier().clone())?;
-                        let mut file_system = FileSystem::open(&file_system_identifier)?
-                            .ok_or(DestroyZoneError::FileSystemNotExisting)?;
-
-                        if file_system.mount_status().is_mounted() {
-                            file_system.unmount_all()?;
-                        }
-
-                        file_system.destroy()?;
-                    }
-                    Some(version1::ZoneConfigurationFileSystemDirective::Directory) => {
-                        remove_dir_all(self.root_path())?;
-                    }
-                }
-            }
+            return Ok(true);
         };
 
-        Ok(())
+        Ok(false)
     }
 
-    fn handle_destroy_remove_configuration(&self) -> Result<(), DestroyZoneError> {
-        let configuration_path = self.configuration_path();
-        if configuration_path.exists() {
-            remove_file(configuration_path)?;
+    fn handle_destroy(&self) -> Result<(), DestroyZoneError> {
+        if self.status()?.running() {
+            return Err(DestroyZoneError::IsRunning);
         }
 
-        Ok(())
-    }
-
-    fn handle_destroy(self) -> Result<(), DestroyZoneError> {
-        let configuration = self.configuration()?;
-
-        let mut variables = match configuration.directive().version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => {
-                version1.variables().as_ref().cloned().unwrap_or_default()
-            }
-        };
-
-        variables.extend(self.variables().into_iter());
-
-        let event = self
-            .executor()
-            .destroy(DestroyZoneExecutorEvent::new(
-                self.identifier.clone(),
-                configuration,
-                self.root_path(),
-                TemplateEngine::default(),
-                variables,
-            ))?
-            .into_record();
-
-        self.handle_destroy_file_system(&event.configuration)?;
-
-        self.handle_destroy_remove_configuration()?;
-
-        let lock_path = self.lock_path();
-        if lock_path.exists() {
-            remove_file(lock_path)?;
-        }
+        self.executor().trigger_destroy()?;
+        self.configuration().destroy()?;
+        self.volume().destroy()?;
 
         Ok(())
     }
 
-    fn handle_send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
+    fn handle_send<T>(&self, writer: &mut T) -> Result<(), SendZoneError>
     where
         T: AsRawFd,
     {
-        if self.running()? {
-            return Err(SendZoneError::ZoneIsRunning);
-        }
-
         let mut file_system = match FileSystem::open(&self.identifier().clone().try_into()?)? {
             None => return Err(SendZoneError::MissingFileSystem),
             Some(f) => f,
@@ -513,7 +276,7 @@ impl Zone {
 
         let header = to_allocvec(&ZoneTransmissionHeader::Version1(
             ZoneTransmissionVersion1Header::new(
-                to_allocvec(&self.configuration()?.directive())?,
+                to_allocvec(&self.configuration().unit()?)?,
                 ZoneTransmissionVersion1Type::Zfs,
             ),
         ))?;
@@ -533,7 +296,7 @@ impl Zone {
         Ok(file_system.send(writer.as_raw_fd())?)
     }
 
-    fn handle_receive<T>(&mut self, reader: &mut T) -> Result<(), ReceiveZoneError>
+    fn handle_receive<T>(&self, reader: &mut T) -> Result<(), ReceiveZoneError>
     where
         T: AsRawFd,
     {
@@ -567,10 +330,36 @@ impl Zone {
                     }
                 };
 
-                let writer = &mut BufWriter::new(File::create(self.configuration_path())?);
+                let writer = &mut BufWriter::new(File::create(self.configuration().file_path())?);
                 writer.write(version1.configuration())?;
             }
         };
+
+        Ok(())
+    }
+
+    fn cleanup(&self) -> Result<(), CleanupZoneError> {
+        let mut cleanup_errors = Vec::default();
+
+        if let Err(error) = self.configuration().cleanup() {
+            cleanup_errors.push(CleanupZoneError::from(error));
+        }
+
+        if let Err(error) = self.volume().cleanup() {
+            cleanup_errors.push(CleanupZoneError::from(error));
+        }
+
+        if let Err(error) = self.lock().cleanup() {
+            cleanup_errors.push(CleanupZoneError::from(error));
+        }
+
+        if cleanup_errors.len() > 1 {
+            return Err(CleanupZoneError::from(cleanup_errors));
+        }
+
+        if let Some(error) = cleanup_errors.pop() {
+            return Err(error);
+        }
 
         Ok(())
     }
@@ -578,110 +367,76 @@ impl Zone {
 
 impl Zone {
     pub fn open(identifier: ZoneIdentifier) -> Result<Option<Self>, OpenZoneError> {
-        let path =
-            PathBuf::from(identifier.clone()).with_extension(ZONE_CONFIGURATION_PATH_EXTENSION);
+        let zone = Self::new(identifier);
 
-        if !path.is_file() {
+        if !zone.paths().configuration_file().is_file() {
             return Ok(None);
         }
 
-        Ok(Some(Self::new(identifier, None)))
+        Ok(Some(zone))
     }
 
     pub fn create(
         base_path: &Path,
-        configuration: ZoneConfiguration,
+        configuration_path: &Path,
+        configuration_directive: ZoneConfigurationDirective,
     ) -> Result<ZoneIdentifier, CreateZoneError> {
-        let mut zone = Self::new(
-            ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()),
-            None,
-        );
+        let identifier = ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4());
+        let zone = Self::new(identifier.clone());
 
-        zone.lock()?;
-        let result = zone.handle_create(configuration);
-        zone.unlock()?;
+        let result = catch_unwind(move || {
+            zone.lock()
+                .hold(move |zone| zone.handle_create(configuration_path, configuration_directive))?
+        });
 
-        let error = match result {
-            Ok(()) => return Ok(zone.identifier),
-            Err(e) => e,
-        };
-
-        let configuration_path = zone.configuration_path();
-        if configuration_path.exists() {
-            remove_file(configuration_path)?;
-        }
-
-        let lock_path = zone.lock_path();
-        if lock_path.exists() {
-            remove_file(lock_path)?;
-        }
-
-        let file_system_identifier = FileSystemIdentifier::try_from(zone.identifier().clone())?;
-        match FileSystem::open(&file_system_identifier)? {
-            Some(mut file_system) => {
-                if file_system.mount_status().is_mounted() {
-                    file_system.unmount_all()?;
-                }
-
-                file_system.destroy()?;
+        match result {
+            Ok(Ok(())) => Ok(identifier),
+            Ok(Err(error)) => {
+                Self::new(identifier).cleanup()?;
+                Err(error)
             }
-            None => {}
-        };
-
-        Err(error)
+            Err(error) => {
+                // TODO: Check
+                Self::new(identifier).cleanup()?;
+                resume_unwind(error)
+            }
+        }
     }
 }
 
 impl Zone {
     pub fn start(&mut self) -> Result<(), StartZoneError> {
-        self.lock()?;
-        let result = self.handle_start();
-        self.unlock()?;
-
-        result
+        self.lock().hold(|zone| zone.handle_start())?
     }
 
-    pub fn stop(mut self) -> Result<Option<Self>, StopZoneError> {
-        self.lock()?;
-        match self.handle_stop()? {
-            Some(mut zone) => {
-                zone.unlock()?;
+    pub fn stop(self) -> Result<Option<Self>, StopZoneError> {
+        let result = self.lock().hold(|zone| zone.handle_stop())??;
 
-                Ok(Some(zone))
-            }
-            None => Ok(None),
+        if result {
+            return Ok(None);
         }
+
+        Ok(Some(self))
     }
 
-    pub fn destroy(mut self) -> Result<(), DestroyZoneError> {
-        self.lock()?;
-        self.handle_destroy()
+    pub fn destroy(self) -> Result<(), DestroyZoneError> {
+        self.lock().hold(|zone| zone.handle_destroy())?
     }
 
     pub fn send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
     where
         T: AsRawFd,
     {
-        self.lock()?;
-        let result = self.handle_send(writer);
-        self.unlock()?;
-
-        result
+        self.lock().hold(|zone| zone.handle_send(writer))?
     }
 
     pub fn receive<T>(base_path: &Path, reader: &mut T) -> Result<ZoneIdentifier, ReceiveZoneError>
     where
         T: AsRawFd,
     {
-        let mut zone = Self::new(
-            ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()),
-            None,
-        );
-        zone.lock()?;
-        let result = zone.handle_receive(reader);
-        zone.unlock()?;
+        let zone = Self::new(ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()));
 
-        result?;
+        zone.lock().hold(|zone| zone.handle_receive(reader))??;
 
         Ok(zone.identifier)
     }

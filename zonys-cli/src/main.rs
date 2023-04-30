@@ -9,8 +9,8 @@ use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
 use std::path::PathBuf;
 use zonys_core::zone::{
-    ReceiveZoneError, Zone, ZoneConfiguration, ZoneConfigurationDirective,
-    ZoneConfigurationVersionDirective,
+    ReceiveZoneError, Zone, ZoneConfigurationDirective, ZoneConfigurationVersionDirective,
+    ZoneConfigurationVersionUnit,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,22 +99,17 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Create { include } => {
-            let mut configuration_directive = ZoneConfigurationDirective::default();
+            let mut configuration = ZoneConfigurationDirective::default();
 
-            match configuration_directive.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
-                    version1.set_include(include);
+            match &mut configuration.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
+                    version1.set_includes(include);
                 }
-            };
-
-            let mut configuration = ZoneConfiguration::default();
-            configuration
-                .directives_mut()
-                .prepend(Some(&current_dir()?), configuration_directive.clone())?;
+            }
 
             println!(
                 "{}",
-                Zone::create(&arguments.base_path, configuration)?.uuid()
+                Zone::create(&arguments.base_path, &current_dir()?, configuration)?.uuid()
             );
         }
         MainCommand::Destroy { regular_expression } => {
@@ -134,14 +129,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let configuration = zone.configuration()?;
+                let new_zone = Zone::create(
+                    &arguments.base_path,
+                    &current_dir()?,
+                    zone.configuration().unit()?.transform()?,
+                )?;
 
                 zone.destroy()?;
 
-                println!(
-                    "{}",
-                    Zone::create(&arguments.base_path, configuration)?.uuid()
-                );
+                println!("{}", new_zone);
             }
         }
         MainCommand::Start { regular_expression } => {
@@ -168,7 +164,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let configuration = zone.configuration()?;
+                let mut configuration = zone.configuration().unit()?;
+                let destroy_after_stop = match configuration.version_mut() {
+                    ZoneConfigurationVersionUnit::Version1(version1) => {
+                        let destroy_after_stop = version1.destroy_after_stop().clone();
+                        version1.set_destroy_after_stop(Some(false));
+
+                        destroy_after_stop
+                    }
+                };
+                zone.configuration().set_unit(&configuration)?;
 
                 let zone = match zone.stop()? {
                     Some(mut zone) => {
@@ -177,14 +182,17 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                         zone
                     }
                     None => {
-                        let identifier = Zone::create(&arguments.base_path, configuration)?;
-                        let mut zone = Zone::open(identifier)?.expect("Zone not found");
-
-                        zone.start()?;
-
-                        zone
+                        unreachable!()
                     }
                 };
+
+                let mut configuration = zone.configuration().unit()?;
+                match configuration.version_mut() {
+                    ZoneConfigurationVersionUnit::Version1(version1) => {
+                        version1.set_destroy_after_stop(destroy_after_stop);
+                    }
+                };
+                zone.configuration().set_unit(&configuration)?;
 
                 println!("{}", zone.identifier().uuid().to_string());
             }
@@ -193,11 +201,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             let matched_zones = Zone::r#match(&arguments.base_path, &regular_expression)?
                 .collect::<Result<Vec<_>, _>>()?;
 
-            for mut zone in matched_zones {
-                match zone.running()? {
+            for zone in matched_zones {
+                match zone.status()?.running() {
                     true => {}
                     false => {
-                        zone.start()?;
                         println!("{}", zone.identifier().uuid().to_string());
                     }
                 }
@@ -208,7 +215,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                match zone.running()? {
+                match zone.status()?.running() {
                     true => {
                         let uuid = zone.identifier().uuid().to_string();
                         zone.stop()?;
@@ -223,9 +230,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
-                let configuration = zone.configuration()?;
+                let configuration = zone.configuration().unit()?.transform()?;
 
-                let zone = if zone.running()? {
+                let zone = if zone.status()?.running() {
                     match zone.stop()? {
                         Some(mut zone) => {
                             zone.start()?;
@@ -233,7 +240,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                             zone
                         }
                         None => {
-                            let identifier = Zone::create(&arguments.base_path, configuration)?;
+                            let identifier =
+                                Zone::create(&arguments.base_path, &current_dir()?, configuration)?;
 
                             let mut zone = Zone::open(identifier)?.expect("Zone not found");
 
@@ -252,20 +260,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Deploy { include } => {
-            let mut configuration_directive = ZoneConfigurationDirective::default();
+            let mut configuration = ZoneConfigurationDirective::default();
 
-            match configuration_directive.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
-                    version1.set_include(include);
+            match &mut configuration.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
+                    version1.set_includes(include);
                 }
-            };
+            }
 
-            let configuration_directive = configuration_directive;
-
-            let zone_identifier = Zone::create(
-                &arguments.base_path,
-                ZoneConfiguration::new(configuration_directive, Vec::default(), current_dir()?),
-            )?;
+            let zone_identifier =
+                Zone::create(&arguments.base_path, &current_dir()?, configuration)?;
 
             let mut zone = Zone::open(zone_identifier.clone())?.expect("Zone not found");
 
@@ -280,7 +284,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             for zone in matched_zones {
                 let uuid = zone.identifier().uuid().to_string();
 
-                if zone.running()? {
+                if zone.status()?.running() {
                     match zone.stop()? {
                         Some(zone) => zone.destroy()?,
                         None => {}
@@ -297,9 +301,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let configuration = zone.configuration()?;
+                let configuration = zone.configuration().unit()?.transform()?;
 
-                if zone.running()? {
+                if zone.status()?.running() {
                     match zone.stop()? {
                         Some(zone) => zone.destroy()?,
                         None => {}
@@ -308,7 +312,8 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     zone.destroy()?;
                 }
 
-                let zone_identifier = Zone::create(&arguments.base_path, configuration)?;
+                let zone_identifier =
+                    Zone::create(&arguments.base_path, &current_dir()?, configuration)?;
 
                 let mut zone = Zone::open(zone_identifier.clone())?.expect("Zone not found");
 
@@ -345,27 +350,20 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             }
         }
         MainCommand::Run { include } => {
-            let mut configuration_directive = ZoneConfigurationDirective::default();
+            let mut configuration = ZoneConfigurationDirective::default();
 
-            match configuration_directive.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
-                    version1.set_include(include);
-                }
-            };
-
-            match configuration_directive.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(ref mut version1) => {
+            match &mut configuration.version_mut() {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     version1.set_start_after_create(Some(true));
                     version1.set_destroy_after_stop(Some(true));
+                    version1.set_includes(include);
                 }
             }
 
-            let zone_identifier = Zone::create(
-                &arguments.base_path,
-                ZoneConfiguration::new(configuration_directive, Vec::default(), current_dir()?),
-            )?;
-
-            println!("{}", zone_identifier.uuid());
+            println!(
+                "{}",
+                Zone::create(&arguments.base_path, &current_dir()?, configuration)?.uuid()
+            );
         }
         MainCommand::Status => {
             for zone in Zone::all(&arguments.base_path)? {

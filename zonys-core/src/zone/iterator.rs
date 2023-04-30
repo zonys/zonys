@@ -1,4 +1,3 @@
-use crate::zone::ZoneConfigurationVersionDirective;
 use crate::zone::{NextAllZoneIteratorError, NextMatchZoneIteratorError, Zone, ZoneIdentifier};
 use regex::Regex;
 use std::fs::ReadDir;
@@ -75,20 +74,14 @@ impl Iterator for MatchZoneIterator {
                 return Some(Ok(zone));
             }
 
-            let configuration = match zone.configuration() {
+            let configuration = match zone.configuration().unit() {
                 Err(error) => return Some(Err(NextMatchZoneIteratorError::from(error))),
                 Ok(configuration) => configuration,
             };
 
-            let tags = match configuration.directive().version() {
-                ZoneConfigurationVersionDirective::Version1(ref version1) => version1.tags(),
-            };
-
-            if let Some(tags) = tags {
-                for tag in tags.iter() {
-                    if self.regex.is_match(tag) {
-                        return Some(Ok(zone));
-                    }
+            for tag in configuration.tags() {
+                if self.regex.is_match(tag) {
+                    return Some(Ok(zone));
                 }
             }
         }

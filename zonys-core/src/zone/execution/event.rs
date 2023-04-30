@@ -1,5 +1,5 @@
 use crate::template::{TemplateEngine, TemplateObject};
-use crate::zone::{ZoneConfiguration, ZoneIdentifier};
+use crate::zone::{ZoneConfigurationPersistence, ZoneIdentifier};
 use std::path::PathBuf;
 use ztd::Record;
 
@@ -39,7 +39,7 @@ impl RunningZoneExecutorEvent {
 
 pub struct CreateZoneExecutorEvent {
     identifier: ZoneIdentifier,
-    configuration: ZoneConfiguration,
+    configuration: ZoneConfigurationPersistence,
     root_path: PathBuf,
     template_engine: TemplateEngine,
     variables: TemplateObject,
@@ -48,7 +48,7 @@ pub struct CreateZoneExecutorEvent {
 impl CreateZoneExecutorEvent {
     pub fn new(
         identifier: ZoneIdentifier,
-        configuration: ZoneConfiguration,
+        configuration: ZoneConfigurationPersistence,
         root_path: PathBuf,
         template_engine: TemplateEngine,
         variables: TemplateObject,
@@ -66,15 +66,15 @@ impl CreateZoneExecutorEvent {
         &self.identifier
     }
 
-    pub fn configuration(&self) -> &ZoneConfiguration {
+    pub fn configuration(&self) -> &ZoneConfigurationPersistence {
         &self.configuration
     }
 
-    pub fn configuration_mut(&mut self) -> &mut ZoneConfiguration {
+    pub fn configuration_mut(&mut self) -> &mut ZoneConfigurationPersistence {
         &mut self.configuration
     }
 
-    pub fn set_configuration(&mut self, configuration: ZoneConfiguration) {
+    pub fn set_configuration(&mut self, configuration: ZoneConfigurationPersistence) {
         self.configuration = configuration
     }
 
@@ -103,7 +103,7 @@ impl CreateZoneExecutorEvent {
 
 pub struct StartZoneExecutorEvent {
     identifier: ZoneIdentifier,
-    configuration: ZoneConfiguration,
+    configuration: ZoneConfigurationPersistence,
     root_path: PathBuf,
     template_engine: TemplateEngine,
     variables: TemplateObject,
@@ -112,7 +112,7 @@ pub struct StartZoneExecutorEvent {
 impl StartZoneExecutorEvent {
     pub fn new(
         identifier: ZoneIdentifier,
-        configuration: ZoneConfiguration,
+        configuration: ZoneConfigurationPersistence,
         root_path: PathBuf,
         template_engine: TemplateEngine,
         variables: TemplateObject,
@@ -130,15 +130,15 @@ impl StartZoneExecutorEvent {
         &self.identifier
     }
 
-    pub fn configuration(&self) -> &ZoneConfiguration {
+    pub fn configuration(&self) -> &ZoneConfigurationPersistence {
         &self.configuration
     }
 
-    pub fn configuration_mut(&mut self) -> &mut ZoneConfiguration {
+    pub fn configuration_mut(&mut self) -> &mut ZoneConfigurationPersistence {
         &mut self.configuration
     }
 
-    pub fn set_configuration(&mut self, configuration: ZoneConfiguration) {
+    pub fn set_configuration(&mut self, configuration: ZoneConfigurationPersistence) {
         self.configuration = configuration
     }
 
@@ -167,7 +167,7 @@ impl StartZoneExecutorEvent {
 
 pub struct StopZoneExecutorEvent {
     identifier: ZoneIdentifier,
-    configuration: ZoneConfiguration,
+    configuration: ZoneConfigurationPersistence,
     root_path: PathBuf,
     template_engine: TemplateEngine,
     variables: TemplateObject,
@@ -176,7 +176,7 @@ pub struct StopZoneExecutorEvent {
 impl StopZoneExecutorEvent {
     pub fn new(
         identifier: ZoneIdentifier,
-        configuration: ZoneConfiguration,
+        configuration: ZoneConfigurationPersistence,
         root_path: PathBuf,
         template_engine: TemplateEngine,
         variables: TemplateObject,
@@ -194,15 +194,15 @@ impl StopZoneExecutorEvent {
         &self.identifier
     }
 
-    pub fn configuration(&self) -> &ZoneConfiguration {
+    pub fn configuration(&self) -> &ZoneConfigurationPersistence {
         &self.configuration
     }
 
-    pub fn configuration_mut(&mut self) -> &mut ZoneConfiguration {
+    pub fn configuration_mut(&mut self) -> &mut ZoneConfigurationPersistence {
         &mut self.configuration
     }
 
-    pub fn set_configuration(&mut self, configuration: ZoneConfiguration) {
+    pub fn set_configuration(&mut self, configuration: ZoneConfigurationPersistence) {
         self.configuration = configuration
     }
 
@@ -232,7 +232,7 @@ impl StopZoneExecutorEvent {
 #[derive(Record)]
 pub struct DestroyZoneExecutorEvent {
     identifier: ZoneIdentifier,
-    configuration: ZoneConfiguration,
+    configuration: ZoneConfigurationPersistence,
     root_path: PathBuf,
     template_engine: TemplateEngine,
     variables: TemplateObject,
@@ -241,7 +241,7 @@ pub struct DestroyZoneExecutorEvent {
 impl DestroyZoneExecutorEvent {
     pub fn new(
         identifier: ZoneIdentifier,
-        configuration: ZoneConfiguration,
+        configuration: ZoneConfigurationPersistence,
         root_path: PathBuf,
         template_engine: TemplateEngine,
         variables: TemplateObject,
@@ -259,15 +259,15 @@ impl DestroyZoneExecutorEvent {
         &self.identifier
     }
 
-    pub fn configuration(&self) -> &ZoneConfiguration {
+    pub fn configuration(&self) -> &ZoneConfigurationPersistence {
         &self.configuration
     }
 
-    pub fn configuration_mut(&mut self) -> &mut ZoneConfiguration {
+    pub fn configuration_mut(&mut self) -> &mut ZoneConfigurationPersistence {
         &mut self.configuration
     }
 
-    pub fn set_configuration(&mut self, configuration: ZoneConfiguration) {
+    pub fn set_configuration(&mut self, configuration: ZoneConfigurationPersistence) {
         self.configuration = configuration
     }
 

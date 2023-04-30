@@ -1,5 +1,5 @@
 use crate::zone::jail::JailZoneExecuteSpecification;
-use crate::zone::{configuration::version1, ZoneConfiguration, ZoneConfigurationVersionDirective};
+use crate::zone::{ZoneConfigurationPersistence, ZoneConfigurationVersionDirective};
 use std::iter::empty;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8,9 +8,10 @@ pub struct CreateJailZoneExecutorIterator;
 
 impl CreateJailZoneExecutorIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationPersistence,
     ) -> Box<dyn Iterator<Item = JailZoneExecuteSpecification> + 'a> {
-        match configuration.directive().version() {
+        todo!()
+        /*match configuration.directive().version() {
             ZoneConfigurationVersionDirective::Version1(version) => {
                 let jail = match version.r#type() {
                     version1::ZoneConfigurationTypeDirective::Undefined(_) => {
@@ -40,7 +41,7 @@ impl CreateJailZoneExecutorIterator {
                     )
                 }))
             }
-        }
+        }*/
     }
 }
 
@@ -50,9 +51,9 @@ pub struct StartJailZoneExecutorIterator;
 
 impl StartJailZoneExecutorIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationPersistence,
     ) -> Box<dyn Iterator<Item = JailZoneExecuteSpecification> + 'a> {
-        match configuration.directive().version() {
+        /*match configuration.directive().version() {
             ZoneConfigurationVersionDirective::Version1(version) => {
                 let jail = match version.r#type() {
                     version1::ZoneConfigurationTypeDirective::Undefined(_) => {
@@ -82,7 +83,8 @@ impl StartJailZoneExecutorIterator {
                     )
                 }))
             }
-        }
+        }*/
+        todo!()
     }
 }
 
@@ -92,9 +94,9 @@ pub struct StopJailZoneExecutorIterator;
 
 impl StopJailZoneExecutorIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationPersistence,
     ) -> Box<dyn Iterator<Item = JailZoneExecuteSpecification> + 'a> {
-        match configuration.directive().version() {
+        /*match configuration.directive().version() {
             ZoneConfigurationVersionDirective::Version1(version) => {
                 let jail = match version.r#type() {
                     version1::ZoneConfigurationTypeDirective::Undefined(_) => {
@@ -124,7 +126,9 @@ impl StopJailZoneExecutorIterator {
                     )
                 }))
             }
-        }
+        }*/
+
+        todo!()
     }
 }
 
@@ -134,9 +138,9 @@ pub struct DestroyJailZoneExecutorIterator;
 
 impl DestroyJailZoneExecutorIterator {
     pub fn new<'a>(
-        configuration: &'a ZoneConfiguration,
+        configuration: &'a ZoneConfigurationPersistence,
     ) -> Box<dyn Iterator<Item = JailZoneExecuteSpecification> + 'a> {
-        match configuration.directive().version() {
+        /*match configuration.directive().version() {
             ZoneConfigurationVersionDirective::Version1(version) => {
                 let jail = match version.r#type() {
                     version1::ZoneConfigurationTypeDirective::Undefined(_) => {
@@ -166,6 +170,8 @@ impl DestroyJailZoneExecutorIterator {
                     )
                 }))
             }
-        }
+        }*/
+
+        todo!()
     }
 }

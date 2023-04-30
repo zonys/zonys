@@ -5,3 +5,5 @@
 
 pub mod template;
 pub mod zone;
+
+pub use zone::*;

@@ -83,7 +83,7 @@ impl JailZoneExecuteSpecification {
 pub struct JailZoneExecutor {}
 
 impl ZoneExecutor for JailZoneExecutor {
-    fn running(
+    /*fn running(
         &self,
         mut event: RunningZoneExecutorEvent,
     ) -> Result<RunningZoneExecutorEvent, RunningZoneExecutorEventError> {
@@ -284,7 +284,7 @@ impl ZoneExecutor for JailZoneExecutor {
             .map_err(DestroyJailZoneExecutorEventError::DestroyJail)?;
 
         Ok(event)
-    }
+    }*/
 }
 
 impl JailZoneExecutor {
