@@ -66,13 +66,18 @@ impl FileSystemIdentifier {
 
 impl Display for FileSystemIdentifier {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        write!(
-            formatter,
-            "{}{}{}",
-            self.pool_identifier(),
-            FILE_SYSTEM_IDENTIFIER_SEPARATOR,
-            self.name(),
-        )
+        write!(formatter, "{}", self.pool_identifier)?;
+
+        if !self.components.is_empty() {
+            write!(
+                formatter,
+                "{}{}",
+                FILE_SYSTEM_IDENTIFIER_SEPARATOR,
+                self.name(),
+            )?;
+        }
+
+        Ok(())
     }
 }
 
