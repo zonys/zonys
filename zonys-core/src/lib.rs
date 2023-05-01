@@ -61,14 +61,6 @@ pub struct ZoneStatus {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
-pub enum ZoneFileSystem {
-    Zfs,
-    Directory,
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug)]
 pub struct Zone {
     identifier: ZoneIdentifier,
 }
@@ -93,10 +85,6 @@ impl Zone {
     }
 
     pub fn lock(&self) -> ZoneLock<&Self> {
-        ZoneLock::new(self)
-    }
-
-    pub fn lock_owned(self) -> ZoneLock<Self> {
         ZoneLock::new(self)
     }
 
