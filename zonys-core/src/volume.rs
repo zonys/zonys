@@ -1,6 +1,6 @@
 use crate::{
     FileSystemIdentifierTryFromZoneIdentifierError, Zone, ZoneConfigurationUnit,
-    ZoneConfigurationVersion1FileSystemUnit,
+    ZoneConfigurationVersion1VolumeUnit,
 };
 use std::fs::{create_dir_all, remove_dir_all};
 use std::io;
@@ -102,10 +102,10 @@ impl ZoneVolume<&Zone> {
             .next();
 
         match file_system {
-            Some(ZoneConfigurationVersion1FileSystemUnit::Automatic) | None => {
+            Some(ZoneConfigurationVersion1VolumeUnit::Automatic) | None => {
                 unimplemented!()
             }
-            Some(ZoneConfigurationVersion1FileSystemUnit::Zfs) => {
+            Some(ZoneConfigurationVersion1VolumeUnit::Zfs) => {
                 let file_system_identifier =
                     FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
                 FileSystem::create(&file_system_identifier)?;
@@ -113,7 +113,7 @@ impl ZoneVolume<&Zone> {
                     .ok_or(CreateZoneVolumeError::FileSystemNotExisting)?;
                 file_system.mount()?;
             }
-            Some(ZoneConfigurationVersion1FileSystemUnit::Directory) => {
+            Some(ZoneConfigurationVersion1VolumeUnit::Directory) => {
                 create_dir_all(self.directory_path())?;
             }
         }

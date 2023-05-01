@@ -2,11 +2,11 @@ use crate::{
     TemplateObject, TransformZoneConfiguration, TransformZoneConfigurationContext,
     TransformZoneConfigurationError, ZoneConfigurationDirective, ZoneConfigurationTraversable,
     ZoneConfigurationTraverser, ZoneConfigurationVersion1Directive,
-    ZoneConfigurationVersion1FileSystemDirective, ZoneConfigurationVersion1JailCreateDirective,
-    ZoneConfigurationVersion1JailDestroyDirective, ZoneConfigurationVersion1JailDirective,
-    ZoneConfigurationVersion1JailExecuteDirective, ZoneConfigurationVersion1JailProgramDirective,
-    ZoneConfigurationVersion1JailStartDirective, ZoneConfigurationVersion1JailStopDirective,
-    ZoneConfigurationVersion1TypeDirective, ZoneConfigurationVersionDirective,
+    ZoneConfigurationVersion1JailCreateDirective, ZoneConfigurationVersion1JailDestroyDirective,
+    ZoneConfigurationVersion1JailDirective, ZoneConfigurationVersion1JailExecuteDirective,
+    ZoneConfigurationVersion1JailProgramDirective, ZoneConfigurationVersion1JailStartDirective,
+    ZoneConfigurationVersion1JailStopDirective, ZoneConfigurationVersion1TypeDirective,
+    ZoneConfigurationVersion1VolumeDirective, ZoneConfigurationVersionDirective,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -63,9 +63,9 @@ impl ZoneConfigurationUnit {
         }
     }
 
-    pub fn file_system(&self) -> &Option<ZoneConfigurationVersion1FileSystemUnit> {
+    pub fn file_system(&self) -> &Option<ZoneConfigurationVersion1VolumeUnit> {
         match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => version1.file_system(),
+            ZoneConfigurationVersionUnit::Version1(version1) => version1.volume(),
         }
     }
 
@@ -189,7 +189,7 @@ pub struct ZoneConfigurationVersion1Unit {
     tags: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     r#type: ZoneConfigurationVersion1TypeUnit,
-    file_system: Option<ZoneConfigurationVersion1FileSystemUnit>,
+    volume: Option<ZoneConfigurationVersion1VolumeUnit>,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
@@ -207,8 +207,8 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Directive>
             self.tags,
             self.variables,
             self.r#type.transform(context)?,
-            match self.file_system {
-                Some(file_system) => Some(file_system.transform(context)?),
+            match self.volume {
+                Some(volume) => Some(volume.transform(context)?),
                 None => None,
             },
             self.start_after_create,
@@ -220,23 +220,23 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Directive>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ZoneConfigurationVersion1FileSystemUnit {
+pub enum ZoneConfigurationVersion1VolumeUnit {
     Automatic,
     Zfs,
     Directory,
 }
 
-impl TransformZoneConfiguration<ZoneConfigurationVersion1FileSystemDirective>
-    for ZoneConfigurationVersion1FileSystemUnit
+impl TransformZoneConfiguration<ZoneConfigurationVersion1VolumeDirective>
+    for ZoneConfigurationVersion1VolumeUnit
 {
     fn transform(
         self,
         _context: &mut TransformZoneConfigurationContext,
-    ) -> Result<ZoneConfigurationVersion1FileSystemDirective, TransformZoneConfigurationError> {
+    ) -> Result<ZoneConfigurationVersion1VolumeDirective, TransformZoneConfigurationError> {
         match self {
-            Self::Automatic => Ok(ZoneConfigurationVersion1FileSystemDirective::Automatic),
-            Self::Zfs => Ok(ZoneConfigurationVersion1FileSystemDirective::Zfs),
-            Self::Directory => Ok(ZoneConfigurationVersion1FileSystemDirective::Directory),
+            Self::Automatic => Ok(ZoneConfigurationVersion1VolumeDirective::Automatic),
+            Self::Zfs => Ok(ZoneConfigurationVersion1VolumeDirective::Zfs),
+            Self::Directory => Ok(ZoneConfigurationVersion1VolumeDirective::Directory),
         }
     }
 }

@@ -1,12 +1,12 @@
 use crate::TemplateObject;
 use crate::{
     TransformZoneConfiguration, TransformZoneConfigurationContext, TransformZoneConfigurationError,
-    ZoneConfigurationUnit, ZoneConfigurationVersion1FileSystemUnit,
-    ZoneConfigurationVersion1JailCreateUnit, ZoneConfigurationVersion1JailDestroyUnit,
-    ZoneConfigurationVersion1JailExecuteUnit, ZoneConfigurationVersion1JailProgramUnit,
-    ZoneConfigurationVersion1JailStartUnit, ZoneConfigurationVersion1JailStopUnit,
-    ZoneConfigurationVersion1JailUnit, ZoneConfigurationVersion1TypeUnit,
-    ZoneConfigurationVersion1Unit, ZoneConfigurationVersionUnit,
+    ZoneConfigurationUnit, ZoneConfigurationVersion1JailCreateUnit,
+    ZoneConfigurationVersion1JailDestroyUnit, ZoneConfigurationVersion1JailExecuteUnit,
+    ZoneConfigurationVersion1JailProgramUnit, ZoneConfigurationVersion1JailStartUnit,
+    ZoneConfigurationVersion1JailStopUnit, ZoneConfigurationVersion1JailUnit,
+    ZoneConfigurationVersion1TypeUnit, ZoneConfigurationVersion1Unit,
+    ZoneConfigurationVersion1VolumeUnit, ZoneConfigurationVersionUnit,
 };
 use serde::{Deserialize, Serialize};
 use serde_yaml::from_reader;
@@ -97,7 +97,7 @@ pub struct ZoneConfigurationVersion1Directive {
     variables: Option<TemplateObject>,
     #[serde(flatten)]
     r#type: ZoneConfigurationVersion1TypeDirective,
-    file_system: Option<ZoneConfigurationVersion1FileSystemDirective>,
+    volume: Option<ZoneConfigurationVersion1VolumeDirective>,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
@@ -182,8 +182,8 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Unit>
             self.tags,
             self.variables,
             self.r#type.transform(context)?,
-            match self.file_system {
-                Some(file_system) => Some(file_system.transform(context)?),
+            match self.volume {
+                Some(volume) => Some(volume.transform(context)?),
                 None => None,
             },
             self.start_after_create,
@@ -195,7 +195,7 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Unit>
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ZoneConfigurationVersion1FileSystemDirective {
+pub enum ZoneConfigurationVersion1VolumeDirective {
     #[serde(alias = "auto", rename = "automatic")]
     Automatic,
     #[serde(rename = "zfs")]
@@ -204,17 +204,17 @@ pub enum ZoneConfigurationVersion1FileSystemDirective {
     Directory,
 }
 
-impl TransformZoneConfiguration<ZoneConfigurationVersion1FileSystemUnit>
-    for ZoneConfigurationVersion1FileSystemDirective
+impl TransformZoneConfiguration<ZoneConfigurationVersion1VolumeUnit>
+    for ZoneConfigurationVersion1VolumeDirective
 {
     fn transform(
         self,
         _context: &mut TransformZoneConfigurationContext,
-    ) -> Result<ZoneConfigurationVersion1FileSystemUnit, TransformZoneConfigurationError> {
+    ) -> Result<ZoneConfigurationVersion1VolumeUnit, TransformZoneConfigurationError> {
         match self {
-            Self::Automatic => Ok(ZoneConfigurationVersion1FileSystemUnit::Automatic),
-            Self::Zfs => Ok(ZoneConfigurationVersion1FileSystemUnit::Zfs),
-            Self::Directory => Ok(ZoneConfigurationVersion1FileSystemUnit::Directory),
+            Self::Automatic => Ok(ZoneConfigurationVersion1VolumeUnit::Automatic),
+            Self::Zfs => Ok(ZoneConfigurationVersion1VolumeUnit::Zfs),
+            Self::Directory => Ok(ZoneConfigurationVersion1VolumeUnit::Directory),
         }
     }
 }
