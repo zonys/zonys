@@ -74,7 +74,7 @@ impl ZoneConfiguration<&Zone> {
         persistence: &ZoneConfigurationUnit,
     ) -> Result<(), WriteZoneConfigurationError> {
         Ok(to_writer(
-            BufWriter::new(File::open(self.file_path())?),
+            BufWriter::new(File::create(self.file_path())?),
             persistence,
         )?)
     }
