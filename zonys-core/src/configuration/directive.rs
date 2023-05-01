@@ -1,5 +1,5 @@
-use crate::template::TemplateObject;
-use crate::zone::configuration::{
+use crate::TemplateObject;
+use crate::{
     TransformZoneConfiguration, TransformZoneConfigurationContext, TransformZoneConfigurationError,
     ZoneConfigurationUnit, ZoneConfigurationVersion1FileSystemUnit,
     ZoneConfigurationVersion1JailCreateUnit, ZoneConfigurationVersion1JailDestroyUnit,

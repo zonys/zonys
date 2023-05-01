@@ -1,5 +1,5 @@
-use crate::template::{RenderTemplateError, TemplateEngine, TemplateObject};
-use crate::zone::configuration::ReadZoneConfigurationDirectiveError;
+use crate::configuration::ReadZoneConfigurationDirectiveError;
+use crate::{RenderTemplateError, TemplateEngine, TemplateObject};
 use std::path::PathBuf;
 use url::ParseError;
 use ztd::{Constructor, Display, Error, From, Method};

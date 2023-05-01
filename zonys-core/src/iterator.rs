@@ -1,4 +1,4 @@
-use crate::zone::{NextAllZoneIteratorError, NextMatchZoneIteratorError, Zone, ZoneIdentifier};
+use crate::{NextAllZoneIteratorError, NextMatchZoneIteratorError, Zone, ZoneIdentifier};
 use regex::Regex;
 use std::fs::ReadDir;
 use ztd::Constructor;

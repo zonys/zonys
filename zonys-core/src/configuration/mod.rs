@@ -12,7 +12,7 @@ pub use unit::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::zone::Zone;
+use crate::Zone;
 use serde_yaml::{from_reader, to_writer};
 use std::fs::{remove_file, File};
 use std::io::{self, BufReader, BufWriter};

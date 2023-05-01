@@ -8,7 +8,7 @@ use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
 use std::path::PathBuf;
-use zonys_core::zone::{
+use zonys_core::{
     ReceiveZoneError, Zone, ZoneConfigurationDirective, ZoneConfigurationVersionDirective,
     ZoneConfigurationVersionUnit,
 };

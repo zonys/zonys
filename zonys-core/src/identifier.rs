@@ -1,5 +1,4 @@
-use super::error::ParseZoneIdentifierError;
-use crate::zone::error::ConvertZoneIdentifierFromFileSystemIdentifierError;
+use crate::{ConvertZoneIdentifierFromFileSystemIdentifierError, ParseZoneIdentifierError};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};

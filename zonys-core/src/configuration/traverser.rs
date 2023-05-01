@@ -2,7 +2,7 @@ use ztd::Constructor;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub(super) trait ZoneConfigurationTraversable<T> {
+pub(crate) trait ZoneConfigurationTraversable<T> {
     fn children(&self) -> Vec<T>;
 }
 
