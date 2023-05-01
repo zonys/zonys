@@ -91,6 +91,23 @@ impl ZoneVolume<&Zone> {
         }
     }
 
+    fn create_zfs(&self) -> Result<(), CreateZoneVolumeError> {
+        let file_system_identifier =
+            FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
+        FileSystem::create(&file_system_identifier)?;
+        let mut file_system = FileSystem::open(&file_system_identifier)?
+            .ok_or(CreateZoneVolumeError::FileSystemNotExisting)?;
+        file_system.mount()?;
+
+        Ok(())
+    }
+
+    fn create_directory(&self) -> Result<(), CreateZoneVolumeError> {
+        create_dir_all(self.directory_path())?;
+
+        Ok(())
+    }
+
     pub(super) fn create(
         &self,
         configuration: &ZoneConfigurationUnit,
@@ -103,18 +120,22 @@ impl ZoneVolume<&Zone> {
 
         match file_system {
             Some(ZoneConfigurationVersion1VolumeUnit::Automatic) | None => {
-                unimplemented!()
+                let mut file_system_identifier =
+                    FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
+
+                file_system_identifier.set_components(Vec::default());
+
+                if FileSystem::open(&file_system_identifier)?.is_some() {
+                    self.create_zfs()?;
+                } else {
+                    self.create_directory()?;
+                }
             }
             Some(ZoneConfigurationVersion1VolumeUnit::Zfs) => {
-                let file_system_identifier =
-                    FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
-                FileSystem::create(&file_system_identifier)?;
-                let mut file_system = FileSystem::open(&file_system_identifier)?
-                    .ok_or(CreateZoneVolumeError::FileSystemNotExisting)?;
-                file_system.mount()?;
+                self.create_zfs()?;
             }
             Some(ZoneConfigurationVersion1VolumeUnit::Directory) => {
-                create_dir_all(self.directory_path())?;
+                self.create_directory()?;
             }
         }
 
