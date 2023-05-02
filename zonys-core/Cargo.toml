@@ -4,6 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+byteorder = "1"
 flate2 = "*"
 freebsd = { path = "../freebsd" }
 jail = { path = "../jail" }
@@ -16,8 +17,8 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "*"
 tar = "*"
 tempfile = "*"
-uuid = { version = "*", features = ["v4", "serde"] }
 url = { version = "2" }
+uuid = { version = "*", features = ["v4", "serde"] }
 xz2 = "*"
 zfs = { path = "../zfs" }
 ztd = { git = "https://github.com/Stazer/ztd.git", branch = "main" }

@@ -328,7 +328,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
 
             let mut stdout = stdout();
 
-            for mut zone in matched_zones {
+            for zone in matched_zones {
                 zone.send(&mut stdout)?;
             }
         }

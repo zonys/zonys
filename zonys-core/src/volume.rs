@@ -1,13 +1,19 @@
 use crate::{
-    FileSystemIdentifierTryFromZoneIdentifierError, Zone, ZoneConfigurationUnit,
-    ZoneConfigurationVersion1VolumeUnit,
+    DeserializeZoneTransmissionError, FileSystemIdentifierTryFromZoneIdentifierError, RawFdReader,
+    RawFdWriter, SerializeZoneTransmissionError, Zone, ZoneConfigurationUnit,
+    ZoneConfigurationVersion1VolumeUnit, ZoneTransmissionReader, ZoneTransmissionWriter,
 };
+use nix::errno::Errno;
+use serde::{Deserialize, Serialize};
 use std::fs::{create_dir_all, remove_dir_all};
-use std::io;
+use std::io::{self, BufReader, BufWriter};
+use std::num::TryFromIntError;
+use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
+use tar::{Archive, Builder};
 use zfs::file_system::error::{
     CreateFileSystemError, DestroyFileSystemError, MountFileSystemError, OpenFileSystemError,
-    UnmountAllFileSystemError,
+    ReceiveFileSystemError, SendFileSystemError, UnmountAllFileSystemError,
 };
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
@@ -62,10 +68,44 @@ pub enum CleanupZoneVolumeError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum SendZoneVolumeError {
+    IOError(io::Error),
+    OpenFileSystemError(OpenFileSystemError),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
+    NotExisting,
+    SendFileSystemError(SendFileSystemError),
+    PostcardError(postcard::Error),
+    Errno(Errno),
+    TryFromIntError(TryFromIntError),
+    SerializeZoneTransmissionError(SerializeZoneTransmissionError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum ReceiveZoneVolumeError {
+    IOError(io::Error),
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
+    ReceiveFileSystemError(ReceiveFileSystemError),
+    DeserializeZoneTransmissionError(DeserializeZoneTransmissionError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ZoneVolumeType {
     Zfs,
     Directory,
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Deserialize, Serialize)]
+enum ZoneVolumeTransmissionHeader {
+    Version1 { r#type: ZoneVolumeType },
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,6 +197,7 @@ impl ZoneVolume<&Zone> {
 
         Ok(())
     }
+
     pub(super) fn cleanup(&self) -> Result<(), CleanupZoneVolumeError> {
         match FileSystem::open(&FileSystemIdentifier::try_from(
             self.zone.identifier().clone(),
@@ -172,6 +213,64 @@ impl ZoneVolume<&Zone> {
                 }
             }
         };
+
+        Ok(())
+    }
+
+    pub(super) fn send(
+        &self,
+        writer: &mut ZoneTransmissionWriter,
+    ) -> Result<(), SendZoneVolumeError> {
+        match FileSystem::open(&FileSystemIdentifier::try_from(
+            self.zone.identifier().clone(),
+        )?)? {
+            Some(mut file_system) => {
+                writer.serialize(&ZoneVolumeTransmissionHeader::Version1 {
+                    r#type: ZoneVolumeType::Zfs,
+                })?;
+                file_system.send(writer.as_raw_fd())?;
+            }
+            None => {
+                writer.serialize(&ZoneVolumeTransmissionHeader::Version1 {
+                    r#type: ZoneVolumeType::Directory,
+                })?;
+
+                let mut builder =
+                    Builder::new(BufWriter::new(RawFdWriter::new(writer.as_raw_fd())));
+
+                builder.follow_symlinks(false);
+                builder.append_dir_all(".", &self.directory_path())?;
+                builder.into_inner()?;
+            }
+        };
+
+        Ok(())
+    }
+
+    pub(super) fn receive(
+        &self,
+        reader: &mut ZoneTransmissionReader,
+    ) -> Result<(), ReceiveZoneVolumeError> {
+        let header = reader.deserialize::<ZoneVolumeTransmissionHeader>()?;
+
+        let r#type = match header {
+            ZoneVolumeTransmissionHeader::Version1 { r#type } => r#type,
+        };
+
+        match r#type {
+            ZoneVolumeType::Zfs => {
+                FileSystem::receive(
+                    self.zone.identifier().clone().try_into()?,
+                    reader.as_raw_fd(),
+                )?;
+            }
+            ZoneVolumeType::Directory => {
+                let mut archive =
+                    Archive::new(BufReader::new(RawFdReader::new(reader.as_raw_fd())));
+
+                archive.unpack(self.directory_path())?;
+            }
+        }
 
         Ok(())
     }

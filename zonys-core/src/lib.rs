@@ -30,14 +30,12 @@ pub use volume::*;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use crate::template::TemplateEngine;
-use nix::unistd::{read, write};
-use postcard::{from_bytes, to_allocvec};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use regex::Regex;
 use reqwest::blocking::get;
 use std::fmt::Debug;
 use std::fs::{read_dir, File};
-use std::io::{BufWriter, Seek, Write};
-use std::mem::size_of;
+use std::io::Seek;
 use std::os::unix::io::AsRawFd;
 use std::panic::{catch_unwind, resume_unwind};
 use std::path::{Path, PathBuf};
@@ -46,7 +44,6 @@ use tempfile::tempfile;
 use url::{ParseError, Url};
 use uuid::Uuid;
 use xz2::read::XzDecoder;
-use zfs::file_system::FileSystem;
 use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -193,6 +190,8 @@ impl Zone {
                 vec![configuration_path.to_path_buf()],
             ))?;
 
+        self.configuration().set_unit(&configuration_unit)?;
+
         self.volume().create(&configuration_unit)?;
 
         if let Some(from) = configuration_unit
@@ -203,8 +202,6 @@ impl Zone {
         {
             self.handle_create_handle_from(from)?;
         }
-
-        self.configuration().set_unit(&configuration_unit)?;
 
         self.executor().trigger_create()?;
 
@@ -262,9 +259,23 @@ impl Zone {
 
     fn handle_send<T>(&self, writer: &mut T) -> Result<(), SendZoneError>
     where
-        T: AsRawFd,
+        T: AsRawFd + 'static,
     {
-        let mut file_system = match FileSystem::open(&self.identifier().clone().try_into()?)? {
+        let mut writer = ZoneTransmissionWriter::new(writer.as_raw_fd());
+        writer.write_u64::<ZoneTransmissionEndian>(ZONE_TRANSMISSION_MAGIC_NUMBER)?;
+        self.configuration().send(&mut writer)?;
+        self.volume().send(&mut writer)?;
+
+        /*write(
+            writer.as_raw_fd(),
+            &to_allocvec(&ZONE_TRANSMISSION_MAGIC_NUMBER)?,
+        )?;*/
+
+        //fsync(writer.as_raw_fd())?;
+
+        Ok(())
+
+        /*let mut file_system = match FileSystem::open(&self.identifier().clone().try_into()?)? {
             None => return Err(SendZoneError::MissingFileSystem),
             Some(f) => f,
         };
@@ -288,26 +299,27 @@ impl Zone {
 
         write(writer.as_raw_fd(), &header)?;
 
-        Ok(file_system.send(writer.as_raw_fd())?)
+        Ok(file_system.send(writer.as_raw_fd())?)*/
     }
 
     fn handle_receive<T>(&self, reader: &mut T) -> Result<(), ReceiveZoneError>
     where
-        T: AsRawFd,
+        T: AsRawFd + 'static,
     {
-        let mut buffer: [u8; size_of::<ZoneTransmissionMagicNumberLength>()] =
-            [0; size_of::<ZoneTransmissionMagicNumberLength>()];
+        let mut reader = ZoneTransmissionReader::new(reader.as_raw_fd());
 
-        if read(reader.as_raw_fd(), &mut buffer)? == 0 {
-            return Err(ReceiveZoneError::EmptyInput);
-        }
+        let magic_number: ZoneTransmissionMagicNumberLength =
+            reader.read_u64::<ZoneTransmissionEndian>()?;
 
-        let magic_number: ZoneTransmissionMagicNumberLength = from_bytes(&buffer)?;
         if magic_number != ZONE_TRANSMISSION_MAGIC_NUMBER {
             return Err(ReceiveZoneError::MissingMagicNumber);
         }
 
-        read(reader.as_raw_fd(), &mut buffer)?;
+        self.configuration().receive(&mut reader)?;
+
+        self.volume().receive(&mut reader)?;
+
+        /*read(reader.as_raw_fd(), &mut buffer)?;
         let header_len: ZoneTransmissionHeaderLength = from_bytes(&buffer)?;
 
         let mut header: Vec<u8> = vec![0; header_len as usize];
@@ -328,7 +340,7 @@ impl Zone {
                 let writer = &mut BufWriter::new(File::create(self.configuration().file_path())?);
                 writer.write(version1.configuration())?;
             }
-        };
+        };*/
 
         Ok(())
     }
@@ -418,16 +430,16 @@ impl Zone {
         self.lock().hold(|zone| zone.handle_destroy())?
     }
 
-    pub fn send<T>(&mut self, writer: &mut T) -> Result<(), SendZoneError>
+    pub fn send<T>(&self, writer: &mut T) -> Result<(), SendZoneError>
     where
-        T: AsRawFd,
+        T: AsRawFd + 'static,
     {
         self.lock().hold(|zone| zone.handle_send(writer))?
     }
 
     pub fn receive<T>(base_path: &Path, reader: &mut T) -> Result<ZoneIdentifier, ReceiveZoneError>
     where
-        T: AsRawFd,
+        T: AsRawFd + 'static,
     {
         let zone = Self::new(ZoneIdentifier::new(base_path.try_into()?, Uuid::new_v4()));
 

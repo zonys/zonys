@@ -1,16 +1,12 @@
 use crate::{
-    AcquireZoneLockError, CleanupZoneLockError, CreateZoneVolumeError,
-    DestroyZoneConfigurationError, ReleaseZoneLockError, TriggerZoneExecutorCreateError,
+    AcquireZoneLockError, CleanupZoneConfigurationError, CleanupZoneLockError,
+    CleanupZoneVolumeError, CreateZoneVolumeError, DestroyZoneConfigurationError,
+    DestroyZoneVolumeError, FileSystemIdentifierTryFromZoneIdentifierError, HoldZoneLockError,
+    ReadZoneConfigurationError, ReceiveZoneConfigurationError, ReceiveZoneVolumeError,
+    ReleaseZoneLockError, RenderTemplateError, SendZoneConfigurationError, SendZoneVolumeError,
+    TransformZoneConfigurationError, TriggerZoneExecutorCreateError,
     TriggerZoneExecutorDestroyError, TriggerZoneExecutorStartError, TriggerZoneExecutorStopError,
-};
-use crate::{
-    CleanupZoneConfigurationError, CleanupZoneVolumeError, DestroyZoneVolumeError,
-    HoldZoneLockError, ReadZoneConfigurationError, TransformZoneConfigurationError,
-    WriteZoneConfigurationError,
-};
-use crate::{
-    FileSystemIdentifierTryFromZoneIdentifierError, RenderTemplateError,
-    ZoneIdentifierTryFromPathError,
+    WriteZoneConfigurationError, ZoneIdentifierTryFromPathError,
 };
 use jail::{CreateJailError, DestroyJailError, TryIntoJailIdError};
 use nix::errno::Errno;
@@ -182,6 +178,8 @@ pub enum SendZoneError {
     Errno(Errno),
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
     ReadZoneConfigurationError(ReadZoneConfigurationError),
+    SendZoneVolumeError(SendZoneVolumeError),
+    SendZoneConfigurationError(SendZoneConfigurationError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -201,6 +199,8 @@ pub enum ReceiveZoneError {
     EmptyInput,
     ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
+    ReceiveZoneVolumeError(ReceiveZoneVolumeError),
+    ReceiveZoneConfigurationError(ReceiveZoneConfigurationError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

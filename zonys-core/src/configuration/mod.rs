@@ -12,7 +12,10 @@ pub use unit::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-use crate::Zone;
+use crate::{
+    DeserializeZoneTransmissionError, SerializeZoneTransmissionError, Zone, ZoneTransmissionReader,
+    ZoneTransmissionWriter,
+};
 use serde_yaml::{from_reader, to_writer};
 use std::fs::{remove_file, File};
 use std::io::{self, BufReader, BufWriter};
@@ -55,6 +58,24 @@ pub enum CleanupZoneConfigurationError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum SendZoneConfigurationError {
+    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    SerializeZoneTransmissionError(SerializeZoneTransmissionError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum ReceiveZoneConfigurationError {
+    WriteZoneConfigurationError(WriteZoneConfigurationError),
+    DeserializeZoneTransmissionError(DeserializeZoneTransmissionError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Constructor, Debug)]
 pub struct ZoneConfiguration<T> {
     zone: T,
@@ -90,6 +111,24 @@ impl ZoneConfiguration<&Zone> {
         if path.exists() {
             remove_file(path)?;
         }
+
+        Ok(())
+    }
+
+    pub(super) fn send(
+        &self,
+        writer: &mut ZoneTransmissionWriter,
+    ) -> Result<(), SendZoneConfigurationError> {
+        writer.serialize(&self.unit()?)?;
+
+        Ok(())
+    }
+
+    pub(super) fn receive(
+        &self,
+        reader: &mut ZoneTransmissionReader,
+    ) -> Result<(), ReceiveZoneConfigurationError> {
+        self.set_unit(&reader.deserialize::<ZoneConfigurationUnit>()?)?;
 
         Ok(())
     }
