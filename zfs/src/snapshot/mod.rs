@@ -16,7 +16,7 @@ use std::ptr::{null, null_mut};
 use std::str::FromStr;
 use zfs_sys::{
     recvflags_t, sendflags_t, zfs_close, zfs_destroy, zfs_get_name, zfs_handle_t, zfs_open,
-    zfs_receive, zfs_send, zfs_snapshot, zfs_type_t_ZFS_TYPE_SNAPSHOT,
+    zfs_receive, zfs_send_one, zfs_snapshot, zfs_type_t_ZFS_TYPE_SNAPSHOT,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,13 +100,11 @@ impl Snapshot {
     }
 
     pub fn send(&mut self, file_descriptor: RawFd) -> Result<(), SendSnapshotError> {
-        let string = CString::new(self.identifier()?.to_string())?;
-
         let result = unsafe {
-            zfs_send(
+            zfs_send_one(
                 self.handle,
                 null(),
-                string.as_ptr(),
+                file_descriptor,
                 &mut sendflags_t {
                     verbosity: 0,
                     replicate: 0,
@@ -127,9 +125,6 @@ impl Snapshot {
                     holds: 0,
                     saved: 0,
                 },
-                file_descriptor,
-                None,
-                null_mut(),
                 null_mut(),
             )
         };

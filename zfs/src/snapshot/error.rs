@@ -31,8 +31,6 @@ pub enum DestroySnapshotError {
 pub enum SendSnapshotError {
     ZfsError(ZfsError),
     TryIntoZfsError(TryIntoZfsError),
-    NulError(NulError),
-    ReadSnapshotIdentifierError(ReadSnapshotIdentifierError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
