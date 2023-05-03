@@ -13,10 +13,12 @@ use std::path::PathBuf;
 use tar::{Archive, Builder};
 use zfs::file_system::error::{
     CreateFileSystemError, DestroyFileSystemError, MountFileSystemError, OpenFileSystemError,
-    ReceiveFileSystemError, SendFileSystemError, UnmountAllFileSystemError,
+    OpenFileSystemSnapshotIteratorError, ReceiveFileSystemError, SendFileSystemError,
+    UnmountAllFileSystemError,
 };
 use zfs::file_system::identifier::FileSystemIdentifier;
 use zfs::file_system::FileSystem;
+use zfs::snapshot::error::DestroySnapshotError;
 use ztd::{Constructor, Display, Error, From};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -52,6 +54,8 @@ pub enum DestroyZoneVolumeError {
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
     UnmountAllFileSystemError(UnmountAllFileSystemError),
     DestroyFileSystemError(DestroyFileSystemError),
+    OpenFileSystemSnapshotIteratorError(OpenFileSystemSnapshotIteratorError),
+    DestroySnapshotError(DestroySnapshotError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -187,6 +191,10 @@ impl ZoneVolume<&Zone> {
             self.zone.identifier().clone(),
         )?)? {
             Some(mut file_system) => {
+                for snapshot in file_system.snapshots().iter()? {
+                    snapshot.destroy()?;
+                }
+
                 file_system.unmount_all()?;
                 file_system.destroy()?;
             }
