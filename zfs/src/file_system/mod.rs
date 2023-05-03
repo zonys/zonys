@@ -256,7 +256,6 @@ impl<'a> FileSystemChildren<&'a FileSystem> {
         let result = unsafe {
             zfs_iter_children(
                 self.file_system.handle,
-                0,
                 Some(handler),
                 &mut data as *mut _ as *mut c_void,
             )
