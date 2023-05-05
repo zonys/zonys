@@ -263,43 +263,11 @@ impl Zone {
     {
         let mut writer = ZoneTransmissionWriter::new(writer.as_raw_fd());
         writer.write_u64::<ZoneTransmissionEndian>(ZONE_TRANSMISSION_MAGIC_NUMBER)?;
+
         self.configuration().send(&mut writer)?;
         self.volume().send(&mut writer)?;
 
-        /*write(
-            writer.as_raw_fd(),
-            &to_allocvec(&ZONE_TRANSMISSION_MAGIC_NUMBER)?,
-        )?;*/
-
-        //fsync(writer.as_raw_fd())?;
-
         Ok(())
-
-        /*let mut file_system = match FileSystem::open(&self.identifier().clone().try_into()?)? {
-            None => return Err(SendZoneError::MissingFileSystem),
-            Some(f) => f,
-        };
-
-        let header = to_allocvec(&ZoneTransmissionHeader::Version1(
-            ZoneTransmissionVersion1Header::new(
-                to_allocvec(&self.configuration().unit()?)?,
-                ZoneTransmissionVersion1Type::Zfs,
-            ),
-        ))?;
-
-        write(
-            writer.as_raw_fd(),
-            &to_allocvec(&ZONE_TRANSMISSION_MAGIC_NUMBER)?,
-        )?;
-
-        write(
-            writer.as_raw_fd(),
-            &to_allocvec(&(header.len() as ZoneTransmissionHeaderLength))?,
-        )?;
-
-        write(writer.as_raw_fd(), &header)?;
-
-        Ok(file_system.send(writer.as_raw_fd())?)*/
     }
 
     fn handle_receive<T>(&self, reader: &mut T) -> Result<(), ReceiveZoneError>
@@ -316,31 +284,7 @@ impl Zone {
         }
 
         self.configuration().receive(&mut reader)?;
-
         self.volume().receive(&mut reader)?;
-
-        /*read(reader.as_raw_fd(), &mut buffer)?;
-        let header_len: ZoneTransmissionHeaderLength = from_bytes(&buffer)?;
-
-        let mut header: Vec<u8> = vec![0; header_len as usize];
-        read(reader.as_raw_fd(), &mut header)?;
-        let header: ZoneTransmissionHeader = from_bytes(&buffer)?;
-
-        match header {
-            ZoneTransmissionHeader::Version1(version1) => {
-                match version1.r#type() {
-                    ZoneTransmissionVersion1Type::Zfs => {
-                        FileSystem::receive(
-                            self.identifier.clone().try_into()?,
-                            reader.as_raw_fd(),
-                        )?;
-                    }
-                };
-
-                let writer = &mut BufWriter::new(File::create(self.configuration().file_path())?);
-                writer.write(version1.configuration())?;
-            }
-        };*/
 
         Ok(())
     }
