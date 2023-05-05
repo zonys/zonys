@@ -79,7 +79,7 @@ impl Iterator for MatchZoneIterator {
                 Ok(configuration) => configuration,
             };
 
-            for tag in configuration.tags() {
+            for tag in configuration.merged_tags() {
                 if self.regex.is_match(tag) {
                     return Some(Ok(zone));
                 }

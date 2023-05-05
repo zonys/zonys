@@ -194,19 +194,14 @@ impl Zone {
 
         self.volume().create(&configuration_unit)?;
 
-        if let Some(from) = configuration_unit
-            .traverser()
-            .inorder()
-            .flat_map(|unit| unit.from().as_ref())
-            .next()
-        {
-            self.handle_create_handle_from(from)?;
+        if let Some(from) = configuration_unit.overlayed_from() {
+            self.handle_create_handle_from(&from)?;
         }
 
         self.executor().trigger_create()?;
 
         if configuration_unit
-            .merged_start_after_create()
+            .overlayed_start_after_create()
             .unwrap_or(false)
         {
             self.handle_start()?;
@@ -235,7 +230,7 @@ impl Zone {
         if self
             .configuration()
             .unit()?
-            .merged_destroy_after_stop()
+            .overlayed_destroy_after_stop()
             .unwrap_or(false)
         {
             self.handle_destroy()?;

@@ -9,9 +9,18 @@ use crate::{
     ZoneConfigurationVersion1VolumeDirective, ZoneConfigurationVersionDirective,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::iter::empty;
 use ztd::{Constructor, Method};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ZoneConfigurationVolume {
+    Automatic,
+    Zfs,
+    Directory,
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -45,6 +54,19 @@ impl ZoneConfigurationUnit {
         }
     }
 
+    pub fn overlayed_from(&self) -> Option<String> {
+        self.from().clone().or_else(|| {
+            for unit in self.traverser().inorder() {
+                let from = unit.from();
+                if from.is_some() {
+                    return from.clone();
+                }
+            }
+
+            None
+        })
+    }
+
     pub fn units<'a>(&'a self) -> Box<dyn Iterator<Item = &'a ZoneConfigurationUnit> + 'a> {
         match &self.version {
             ZoneConfigurationVersionUnit::Version1(version1) => match version1.units() {
@@ -63,10 +85,16 @@ impl ZoneConfigurationUnit {
         }
     }
 
-    pub fn file_system(&self) -> &Option<ZoneConfigurationVersion1VolumeUnit> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => version1.volume(),
+    pub fn merged_tags(&self) -> HashSet<&String> {
+        let mut tags = HashSet::default();
+
+        for unit in self.traverser().inorder() {
+            for tag in unit.tags() {
+                tags.insert(tag);
+            }
         }
+
+        tags
     }
 
     pub fn variables(&self) -> &Option<TemplateObject> {
@@ -75,23 +103,56 @@ impl ZoneConfigurationUnit {
         }
     }
 
-    pub fn inherited_variables(&self) -> TemplateObject {
+    pub fn merged_variables(&self) -> TemplateObject {
         let mut object = TemplateObject::default();
 
-        for persistence in self.traverser().inorder() {
-            if let Some(variables) = persistence.variables() {
+        for unit in self.traverser().inorder() {
+            if let Some(variables) = unit.variables() {
                 object.extend(variables.clone().into_iter());
             }
         }
 
+        object.extend(
+            self.variables()
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter(),
+        );
+
         object
     }
 
-    pub fn merged_variables(&self) -> TemplateObject {
-        let mut variables = self.variables().as_ref().cloned().unwrap_or_default();
-        variables.extend(self.inherited_variables().into_iter());
+    pub fn volume(&self) -> Option<ZoneConfigurationVolume> {
+        match &self.version {
+            ZoneConfigurationVersionUnit::Version1(version1) => match version1.volume() {
+                None => None,
+                Some(ZoneConfigurationVersion1VolumeUnit::Automatic) => {
+                    Some(ZoneConfigurationVolume::Automatic)
+                }
+                Some(ZoneConfigurationVersion1VolumeUnit::Zfs) => {
+                    Some(ZoneConfigurationVolume::Zfs)
+                }
+                Some(ZoneConfigurationVersion1VolumeUnit::Directory) => {
+                    Some(ZoneConfigurationVolume::Directory)
+                }
+            },
+        }
+    }
 
-        variables
+    pub fn overlayed_volume(&self) -> Option<ZoneConfigurationVolume> {
+        self.volume().or_else(|| {
+            let mut volume = None;
+
+            for unit in self.traverser().inorder() {
+                volume = match unit.volume() {
+                    Some(volume) => Some(volume),
+                    None => volume,
+                };
+            }
+
+            volume
+        })
     }
 
     pub fn start_after_create(&self) -> Option<bool> {
@@ -100,20 +161,17 @@ impl ZoneConfigurationUnit {
         }
     }
 
-    pub fn inherited_start_after_create(&self) -> Option<bool> {
-        for persistence in self.traverser().inorder() {
-            let start_after_create = persistence.start_after_create();
-            if start_after_create.is_some() {
-                return start_after_create;
+    pub fn overlayed_start_after_create(&self) -> Option<bool> {
+        self.start_after_create().or_else(|| {
+            for unit in self.traverser().inorder() {
+                let start_after_create = unit.start_after_create();
+                if start_after_create.is_some() {
+                    return start_after_create;
+                }
             }
-        }
 
-        None
-    }
-
-    pub fn merged_start_after_create(&self) -> Option<bool> {
-        self.start_after_create()
-            .or_else(|| self.inherited_start_after_create())
+            None
+        })
     }
 
     pub fn destroy_after_stop(&self) -> Option<bool> {
@@ -122,20 +180,17 @@ impl ZoneConfigurationUnit {
         }
     }
 
-    pub fn inherited_destroy_after_stop(&self) -> Option<bool> {
-        for persistence in self.traverser().inorder() {
-            let destroy_after_stop = persistence.destroy_after_stop();
-            if destroy_after_stop.is_some() {
-                return destroy_after_stop;
+    pub fn overlayed_destroy_after_stop(&self) -> Option<bool> {
+        self.destroy_after_stop().or_else(|| {
+            for unit in self.traverser().inorder() {
+                let destroy_after_stop = unit.destroy_after_stop();
+                if destroy_after_stop.is_some() {
+                    return destroy_after_stop;
+                }
             }
-        }
 
-        None
-    }
-
-    pub fn merged_destroy_after_stop(&self) -> Option<bool> {
-        self.destroy_after_stop()
-            .or_else(|| self.inherited_destroy_after_stop())
+            None
+        })
     }
 
     pub fn traverser(&self) -> ZoneConfigurationTraverser<&Self> {

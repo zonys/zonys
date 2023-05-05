@@ -1,7 +1,7 @@
 use crate::{
     DeserializeZoneTransmissionError, FileSystemIdentifierTryFromZoneIdentifierError, RawFdReader,
     RawFdWriter, SerializeZoneTransmissionError, Zone, ZoneConfigurationUnit,
-    ZoneConfigurationVersion1VolumeUnit, ZoneTransmissionReader, ZoneTransmissionWriter,
+    ZoneConfigurationVolume, ZoneTransmissionReader, ZoneTransmissionWriter,
 };
 use nix::errno::Errno;
 use serde::{Deserialize, Serialize};
@@ -156,14 +156,8 @@ impl ZoneVolume<&Zone> {
         &self,
         configuration: &ZoneConfigurationUnit,
     ) -> Result<(), CreateZoneVolumeError> {
-        let file_system = configuration
-            .traverser()
-            .inorder()
-            .flat_map(|unit| unit.file_system())
-            .next();
-
-        match file_system {
-            Some(ZoneConfigurationVersion1VolumeUnit::Automatic) | None => {
+        match configuration.overlayed_volume() {
+            Some(ZoneConfigurationVolume::Automatic) | None => {
                 let mut file_system_identifier =
                     FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
 
@@ -175,10 +169,10 @@ impl ZoneVolume<&Zone> {
                     self.create_directory()?;
                 }
             }
-            Some(ZoneConfigurationVersion1VolumeUnit::Zfs) => {
+            Some(ZoneConfigurationVolume::Zfs) => {
                 self.create_zfs()?;
             }
-            Some(ZoneConfigurationVersion1VolumeUnit::Directory) => {
+            Some(ZoneConfigurationVolume::Directory) => {
                 self.create_directory()?;
             }
         }
