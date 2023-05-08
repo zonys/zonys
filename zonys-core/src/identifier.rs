@@ -6,8 +6,6 @@ use std::iter::once;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Component, Path, PathBuf, MAIN_SEPARATOR_STR};
 use std::str::{from_utf8, FromStr, Utf8Error};
-use zfs::file_system::identifier::{FileSystemIdentifier, FileSystemIdentifierComponents};
-use zfs::pool::identifier::{PoolIdentifier, PoolIdentifierName};
 use ztd::{Constructor, Display, Error, From, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -115,14 +113,15 @@ impl FromStr for ZoneIdentifier {
     }
 }
 
-impl TryFrom<ZoneIdentifier> for FileSystemIdentifier {
+#[cfg(target_os = "freebsd")]
+impl TryFrom<ZoneIdentifier> for zfs::file_system::identifier::FileSystemIdentifier {
     type Error = FileSystemIdentifierTryFromZoneIdentifierError;
 
     fn try_from(identifier: ZoneIdentifier) -> Result<Self, Self::Error> {
         let mut iterator = identifier.base.components.into_iter();
 
         Ok(Self::new(
-            PoolIdentifier::new(match iterator.next() {
+            zfs::pool::identifier::PoolIdentifier::new(match iterator.next() {
                 Some(pool_identifier) => pool_identifier,
                 None => return Err(Self::Error::ComponentsEmpty),
             }),
@@ -152,15 +151,19 @@ impl TryFrom<PathBuf> for ZoneIdentifier {
     }
 }
 
-impl TryFrom<FileSystemIdentifier> for ZoneIdentifier {
+#[cfg(target_os = "freebsd")]
+impl TryFrom<zfs::file_system::identifier::FileSystemIdentifier> for ZoneIdentifier {
     type Error = ConvertZoneIdentifierFromFileSystemIdentifierError;
 
-    fn try_from(identifier: FileSystemIdentifier) -> Result<Self, Self::Error> {
+    fn try_from(
+        identifier: zfs::file_system::identifier::FileSystemIdentifier,
+    ) -> Result<Self, Self::Error> {
         let (pool_identifier, mut file_system_identifier_components): (
-            PoolIdentifier,
-            FileSystemIdentifierComponents,
+            zfs::pool::identifier::PoolIdentifier,
+            zfs::file_system::identifier::FileSystemIdentifierComponents,
         ) = identifier.into();
-        let (pool_identifier_name,): (PoolIdentifierName,) = pool_identifier.into();
+        let (pool_identifier_name,): (zfs::pool::identifier::PoolIdentifierName,) =
+            pool_identifier.into();
 
         let zone_identifier = match file_system_identifier_components.pop() {
             None => {

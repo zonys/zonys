@@ -74,12 +74,12 @@ impl Iterator for MatchZoneIterator {
                 return Some(Ok(zone));
             }
 
-            let configuration = match zone.configuration().unit() {
+            let reader = match zone.configuration().reader() {
                 Err(error) => return Some(Err(NextMatchZoneIteratorError::from(error))),
                 Ok(configuration) => configuration,
             };
 
-            for tag in configuration.merged_tags() {
+            for tag in reader.tags() {
                 if self.regex.is_match(tag) {
                     return Some(Ok(zone));
                 }

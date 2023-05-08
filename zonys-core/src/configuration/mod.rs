@@ -1,13 +1,13 @@
 mod directive;
+mod reader;
 mod transform;
-mod traverser;
 mod unit;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub use directive::*;
+pub use reader::*;
 pub use transform::*;
-pub use traverser::*;
 pub use unit::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,9 +81,13 @@ pub struct ZoneConfiguration<T> {
     zone: T,
 }
 
-impl ZoneConfiguration<&Zone> {
+impl<'a> ZoneConfiguration<&'a Zone> {
     pub fn file_path(&self) -> PathBuf {
         self.zone.paths().configuration_file()
+    }
+
+    pub fn reader(&self) -> Result<ZoneConfigurationReader, ReadZoneConfigurationError> {
+        Ok(ZoneConfigurationReader::new(self.unit()?))
     }
 
     pub fn unit(&self) -> Result<ZoneConfigurationUnit, ReadZoneConfigurationError> {
@@ -125,11 +129,12 @@ impl ZoneConfiguration<&Zone> {
     }
 
     pub(super) fn receive(
-        &self,
+        zone: &'a Zone,
         reader: &mut ZoneTransmissionReader,
-    ) -> Result<(), ReceiveZoneConfigurationError> {
-        self.set_unit(&reader.deserialize::<ZoneConfigurationUnit>()?)?;
+    ) -> Result<Self, ReceiveZoneConfigurationError> {
+        let configuration = Self::new(zone);
+        configuration.set_unit(&reader.deserialize::<ZoneConfigurationUnit>()?)?;
 
-        Ok(())
+        Ok(configuration)
     }
 }

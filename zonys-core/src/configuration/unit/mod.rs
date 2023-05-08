@@ -1,26 +1,16 @@
 use crate::{
     TemplateObject, TransformZoneConfiguration, TransformZoneConfigurationContext,
-    TransformZoneConfigurationError, ZoneConfigurationDirective, ZoneConfigurationTraversable,
-    ZoneConfigurationTraverser, ZoneConfigurationVersion1Directive,
-    ZoneConfigurationVersion1JailCreateDirective, ZoneConfigurationVersion1JailDestroyDirective,
-    ZoneConfigurationVersion1JailDirective, ZoneConfigurationVersion1JailExecuteDirective,
-    ZoneConfigurationVersion1JailProgramDirective, ZoneConfigurationVersion1JailStartDirective,
-    ZoneConfigurationVersion1JailStopDirective, ZoneConfigurationVersion1TypeDirective,
-    ZoneConfigurationVersion1VolumeDirective, ZoneConfigurationVersionDirective,
+    TransformZoneConfigurationError, ZoneConfigurationDirective,
+    ZoneConfigurationVersion1Directive, ZoneConfigurationVersion1JailCreateDirective,
+    ZoneConfigurationVersion1JailDestroyDirective, ZoneConfigurationVersion1JailDirective,
+    ZoneConfigurationVersion1JailExecuteDirective, ZoneConfigurationVersion1JailProgramDirective,
+    ZoneConfigurationVersion1JailStartDirective, ZoneConfigurationVersion1JailStopDirective,
+    ZoneConfigurationVersion1TypeDirective, ZoneConfigurationVersion1VolumeDirective,
+    ZoneConfigurationVersionDirective,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::iter::empty;
+use std::collections::HashMap;
 use ztd::{Constructor, Method};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ZoneConfigurationVolume {
-    Automatic,
-    Zfs,
-    Directory,
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -28,12 +18,6 @@ pub enum ZoneConfigurationVolume {
 #[Method(all)]
 pub struct ZoneConfigurationUnit {
     version: ZoneConfigurationVersionUnit,
-}
-
-impl<'a> ZoneConfigurationTraversable<&'a ZoneConfigurationUnit> for &'a ZoneConfigurationUnit {
-    fn children(&self) -> Vec<&'a ZoneConfigurationUnit> {
-        self.units().collect()
-    }
 }
 
 impl TransformZoneConfiguration<ZoneConfigurationDirective> for ZoneConfigurationUnit {
@@ -48,155 +32,6 @@ impl TransformZoneConfiguration<ZoneConfigurationDirective> for ZoneConfiguratio
 }
 
 impl ZoneConfigurationUnit {
-    pub fn from(&self) -> &Option<String> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => version1.from(),
-        }
-    }
-
-    pub fn overlayed_from(&self) -> Option<String> {
-        self.from().clone().or_else(|| {
-            for unit in self.traverser().inorder() {
-                let from = unit.from();
-                if from.is_some() {
-                    return from.clone();
-                }
-            }
-
-            None
-        })
-    }
-
-    pub fn units<'a>(&'a self) -> Box<dyn Iterator<Item = &'a ZoneConfigurationUnit> + 'a> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => match version1.units() {
-                Some(units) => Box::new(units.iter()),
-                None => Box::new(empty()),
-            },
-        }
-    }
-
-    pub fn tags<'a>(&'a self) -> Box<dyn Iterator<Item = &'a String> + 'a> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => match &version1.tags {
-                Some(tags) => Box::new(tags.iter()),
-                None => Box::new(empty()),
-            },
-        }
-    }
-
-    pub fn merged_tags(&self) -> HashSet<&String> {
-        let mut tags = HashSet::default();
-
-        for unit in self.traverser().inorder() {
-            for tag in unit.tags() {
-                tags.insert(tag);
-            }
-        }
-
-        tags
-    }
-
-    pub fn variables(&self) -> &Option<TemplateObject> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => version1.variables(),
-        }
-    }
-
-    pub fn merged_variables(&self) -> TemplateObject {
-        let mut object = TemplateObject::default();
-
-        for unit in self.traverser().inorder() {
-            if let Some(variables) = unit.variables() {
-                object.extend(variables.clone().into_iter());
-            }
-        }
-
-        object.extend(
-            self.variables()
-                .as_ref()
-                .cloned()
-                .unwrap_or_default()
-                .into_iter(),
-        );
-
-        object
-    }
-
-    pub fn volume(&self) -> Option<ZoneConfigurationVolume> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => match version1.volume() {
-                None => None,
-                Some(ZoneConfigurationVersion1VolumeUnit::Automatic) => {
-                    Some(ZoneConfigurationVolume::Automatic)
-                }
-                Some(ZoneConfigurationVersion1VolumeUnit::Zfs) => {
-                    Some(ZoneConfigurationVolume::Zfs)
-                }
-                Some(ZoneConfigurationVersion1VolumeUnit::Directory) => {
-                    Some(ZoneConfigurationVolume::Directory)
-                }
-            },
-        }
-    }
-
-    pub fn overlayed_volume(&self) -> Option<ZoneConfigurationVolume> {
-        self.volume().or_else(|| {
-            let mut volume = None;
-
-            for unit in self.traverser().inorder() {
-                volume = match unit.volume() {
-                    Some(volume) => Some(volume),
-                    None => volume,
-                };
-            }
-
-            volume
-        })
-    }
-
-    pub fn start_after_create(&self) -> Option<bool> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => *version1.start_after_create(),
-        }
-    }
-
-    pub fn overlayed_start_after_create(&self) -> Option<bool> {
-        self.start_after_create().or_else(|| {
-            for unit in self.traverser().inorder() {
-                let start_after_create = unit.start_after_create();
-                if start_after_create.is_some() {
-                    return start_after_create;
-                }
-            }
-
-            None
-        })
-    }
-
-    pub fn destroy_after_stop(&self) -> Option<bool> {
-        match &self.version {
-            ZoneConfigurationVersionUnit::Version1(version1) => *version1.destroy_after_stop(),
-        }
-    }
-
-    pub fn overlayed_destroy_after_stop(&self) -> Option<bool> {
-        self.destroy_after_stop().or_else(|| {
-            for unit in self.traverser().inorder() {
-                let destroy_after_stop = unit.destroy_after_stop();
-                if destroy_after_stop.is_some() {
-                    return destroy_after_stop;
-                }
-            }
-
-            None
-        })
-    }
-
-    pub fn traverser(&self) -> ZoneConfigurationTraverser<&Self> {
-        ZoneConfigurationTraverser::new(vec![self])
-    }
-
     pub fn transform(self) -> Result<ZoneConfigurationDirective, TransformZoneConfigurationError> {
         <Self as TransformZoneConfiguration<ZoneConfigurationDirective>>::transform(
             self,
@@ -238,13 +73,11 @@ impl TransformZoneConfiguration<ZoneConfigurationVersionDirective>
 #[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationVersion1Unit {
-    from: Option<String>,
     includes: Option<Vec<String>>,
     units: Option<Vec<ZoneConfigurationUnit>>,
     tags: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     r#type: ZoneConfigurationVersion1TypeUnit,
-    volume: Option<ZoneConfigurationVersion1VolumeUnit>,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
@@ -257,15 +90,10 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Directive>
         context: &mut TransformZoneConfigurationContext,
     ) -> Result<ZoneConfigurationVersion1Directive, TransformZoneConfigurationError> {
         Ok(ZoneConfigurationVersion1Directive::new(
-            self.from,
             self.includes,
             self.tags,
             self.variables,
             self.r#type.transform(context)?,
-            match self.volume {
-                Some(volume) => Some(volume.transform(context)?),
-                None => None,
-            },
             self.start_after_create,
             self.destroy_after_stop,
         ))
@@ -327,6 +155,8 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1TypeDirective>
 #[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationVersion1JailUnit {
+    from: Option<String>,
+    volume: Option<ZoneConfigurationVersion1VolumeUnit>,
     execute: Option<ZoneConfigurationVersion1JailExecuteUnit>,
 }
 
@@ -338,6 +168,11 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1JailDirective>
         context: &mut TransformZoneConfigurationContext,
     ) -> Result<ZoneConfigurationVersion1JailDirective, TransformZoneConfigurationError> {
         Ok(ZoneConfigurationVersion1JailDirective::new(
+            self.from,
+            match self.volume {
+                Some(volume) => Some(volume.transform(context)?),
+                None => None,
+            },
             match self.execute {
                 Some(execute) => Some(execute.transform(context)?),
                 None => None,

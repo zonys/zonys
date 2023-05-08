@@ -1,22 +1,15 @@
 use crate::{
     AcquireZoneLockError, CleanupZoneConfigurationError, CleanupZoneLockError,
-    CleanupZoneVolumeError, CreateZoneVolumeError, DestroyZoneConfigurationError,
-    DestroyZoneVolumeError, FileSystemIdentifierTryFromZoneIdentifierError, HoldZoneLockError,
-    ReadZoneConfigurationError, ReceiveZoneConfigurationError, ReceiveZoneVolumeError,
-    ReleaseZoneLockError, RenderTemplateError, SendZoneConfigurationError, SendZoneVolumeError,
-    TransformZoneConfigurationError, TriggerZoneExecutorCreateError,
-    TriggerZoneExecutorDestroyError, TriggerZoneExecutorStartError, TriggerZoneExecutorStopError,
-    WriteZoneConfigurationError, ZoneIdentifierTryFromPathError,
+    CleanupZoneTypeError, CreateZoneTypeError, DestroyZoneConfigurationError, DestroyZoneTypeError,
+    FileSystemIdentifierTryFromZoneIdentifierError, HoldZoneLockError, ReadZoneConfigurationError,
+    ReceiveZoneConfigurationError, ReceiveZoneTypeError, ReleaseZoneLockError, RenderTemplateError,
+    SendZoneConfigurationError, SendZoneTypeError, StartZoneTypeError, StopZoneTypeError,
+    TransformZoneConfigurationError, WriteZoneConfigurationError, ZoneIdentifierTryFromPathError,
 };
-use jail::{CreateJailError, DestroyJailError, TryIntoJailIdError};
 use nix::errno::Errno;
 use std::io;
 use std::path::StripPrefixError;
 use url::ParseError;
-use zfs::file_system::error::{
-    DestroyFileSystemError, OpenFileSystemError, ReceiveFileSystemError, SendFileSystemError,
-    UnmountAllFileSystemError,
-};
 use ztd::{Display, Error, From};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,9 +25,10 @@ pub enum ReadZoneStatusError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum CleanupZoneError {
-    CleanupZoneVolumeError(CleanupZoneVolumeError),
+    ReadZoneConfigurationError(ReadZoneConfigurationError),
     CleanupZoneConfigurationError(CleanupZoneConfigurationError),
     CleanupZoneLockError(CleanupZoneLockError),
+    CleanupZoneTypeError(CleanupZoneTypeError),
     CleanupZoneErrors(Vec<CleanupZoneError>),
 }
 
@@ -47,12 +41,7 @@ pub enum CreateZoneError {
     #[Display("File system is not existing")]
     FileSystemNotExisting,
     YamlError(serde_yaml::Error),
-    CreateJailError(CreateJailError),
-    DestroyJailError(DestroyJailError),
     StartZoneError(StartZoneError),
-    DestroyFileSystemError(DestroyFileSystemError),
-    UnmountAllFileSystemError(UnmountAllFileSystemError),
-    TryIntoJailIdError(TryIntoJailIdError),
     RenderTemplateError(RenderTemplateError),
     ReqwestError(reqwest::Error),
     ParseUrlError(ParseError),
@@ -64,12 +53,12 @@ pub enum CreateZoneError {
     UnsupportedExtension(String),
     ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
-    CreateZoneVolumeError(CreateZoneVolumeError),
     TransformZoneConfigurationError(TransformZoneConfigurationError),
     HoldZoneLockError(HoldZoneLockError),
     WriteZoneConfigurationError(WriteZoneConfigurationError),
     CleanupZoneError(CleanupZoneError),
-    TriggerZoneExecutorCreateError(TriggerZoneExecutorCreateError),
+    CreateZoneTypeError(CreateZoneTypeError),
+    ReadZoneConfigurationError(ReadZoneConfigurationError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,8 +69,9 @@ pub enum StartZoneError {
     #[Display("Zone is already running")]
     AlreadyRunning,
     HoldZoneLockError(HoldZoneLockError),
-    TriggerZoneExecutorStartError(TriggerZoneExecutorStartError),
     ReadZoneStatusError(ReadZoneStatusError),
+    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    StartZoneTypeError(StartZoneTypeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,10 +82,10 @@ pub enum StopZoneError {
     #[Display("Zone is not running")]
     NotRunning,
     HoldZoneLockError(HoldZoneLockError),
-    TriggerZoneExecutorStopError(TriggerZoneExecutorStopError),
     ReadZoneStatusError(ReadZoneStatusError),
     ReadZoneConfigurationError(ReadZoneConfigurationError),
     DestroyZoneError(DestroyZoneError),
+    StopZoneTypeError(StopZoneTypeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,24 +94,16 @@ pub enum StopZoneError {
 #[From(unnamed)]
 pub enum DestroyZoneError {
     OpenZoneConfigurationError(OpenZoneConfigurationError),
-    TryIntoJailIdError(TryIntoJailIdError),
     #[Display("Zone is running")]
     IsRunning,
-    CreateJailError(CreateJailError),
-    DestroyJailError(DestroyJailError),
     AcquireZoneLockError(AcquireZoneLockError),
     ReleaseZoneLockError(ReleaseZoneLockError),
     IoError(io::Error),
-    DestroyFileSystemError(DestroyFileSystemError),
-    OpenFileSystemError(OpenFileSystemError),
-    FileSystemNotExisting,
-    UnmountAllFileSystemError(UnmountAllFileSystemError),
-    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
     HoldZoneLockError(HoldZoneLockError),
     DestroyZoneConfigurationError(DestroyZoneConfigurationError),
-    DestroyZoneVolumeError(DestroyZoneVolumeError),
-    TriggerZoneExecutorDestroyError(TriggerZoneExecutorDestroyError),
     ReadZoneStatusError(ReadZoneStatusError),
+    DestroyZoneTypeError(DestroyZoneTypeError),
+    ReadZoneConfigurationError(ReadZoneConfigurationError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +111,7 @@ pub enum DestroyZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum OpenZoneError {
-    OpenFileSystemError(OpenFileSystemError),
+    __Placeholder,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,20 +148,16 @@ pub enum OpenZoneConfigurationError {
 #[From(unnamed)]
 pub enum SendZoneError {
     HoldZoneLockError(HoldZoneLockError),
-    SendFileSystemError(SendFileSystemError),
-    TryIntoJailIdError(TryIntoJailIdError),
     ZoneIsRunning,
-    OpenFileSystemError(OpenFileSystemError),
     MissingFileSystem,
     OpenZoneConfigurationError(OpenZoneConfigurationError),
     YamlError(serde_yaml::Error),
     PostcardError(postcard::Error),
     IoError(io::Error),
     Errno(Errno),
-    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
     ReadZoneConfigurationError(ReadZoneConfigurationError),
-    SendZoneVolumeError(SendZoneVolumeError),
     SendZoneConfigurationError(SendZoneConfigurationError),
+    SendZoneTypeError(SendZoneTypeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,7 +166,6 @@ pub enum SendZoneError {
 #[From(unnamed)]
 pub enum ReceiveZoneError {
     HoldZoneLockError(HoldZoneLockError),
-    ReceiveFileSystemError(ReceiveFileSystemError),
     IoError(io::Error),
     PostcardError(postcard::Error),
     YamlError(serde_yaml::Error),
@@ -198,9 +175,8 @@ pub enum ReceiveZoneError {
     #[Display("Input is empty")]
     EmptyInput,
     ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
-    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
-    ReceiveZoneVolumeError(ReceiveZoneVolumeError),
     ReceiveZoneConfigurationError(ReceiveZoneConfigurationError),
+    ReceiveZoneTypeError(ReceiveZoneTypeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

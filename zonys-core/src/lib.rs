@@ -5,24 +5,26 @@
 
 mod configuration;
 mod error;
-mod executor;
+mod handler;
 mod identifier;
 mod iterator;
 mod lock;
 mod paths;
 mod template;
 mod transmission;
+mod r#type;
 mod volume;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub use configuration::*;
 pub use error::*;
-pub use executor::*;
+pub use handler::*;
 pub use identifier::*;
 pub use iterator::*;
 pub use lock::*;
 pub use paths::*;
+pub use r#type::*;
 pub use template::*;
 pub use transmission::*;
 pub use volume::*;
@@ -32,18 +34,12 @@ pub use volume::*;
 use crate::template::TemplateEngine;
 use byteorder::{ReadBytesExt, WriteBytesExt};
 use regex::Regex;
-use reqwest::blocking::get;
 use std::fmt::Debug;
-use std::fs::{read_dir, File};
-use std::io::Seek;
+use std::fs::read_dir;
 use std::os::unix::io::AsRawFd;
 use std::panic::{catch_unwind, resume_unwind};
-use std::path::{Path, PathBuf};
-use tar::Archive;
-use tempfile::tempfile;
-use url::{ParseError, Url};
+use std::path::Path;
 use uuid::Uuid;
-use xz2::read::XzDecoder;
 use ztd::{Constructor, Method};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,91 +85,12 @@ impl Zone {
         Ok(ZoneStatus::new(false))
     }
 
-    pub fn volume(&self) -> ZoneVolume<&Self> {
-        ZoneVolume::new(self)
-    }
-
-    fn executor(&self) -> ZoneExecutor<&Self> {
-        ZoneExecutor::new(self)
+    pub fn r#type(&self) -> Result<ZoneType<&Self>, ReadZoneConfigurationError> {
+        ZoneType::new(self)
     }
 }
 
 impl Zone {
-    fn handle_create_from_path(
-        &self,
-        path: &Path,
-        overwritten_extension: Option<&str>,
-    ) -> Result<(), CreateZoneError> {
-        if path.is_file() {
-            self.handle_create_from_local_file(
-                File::open(path)?,
-                overwritten_extension
-                    .or(path
-                        .extension()
-                        .map(|extension| extension.to_str())
-                        .flatten())
-                    .unwrap_or(""),
-            )
-        } else {
-            todo!()
-        }
-    }
-
-    fn handle_create_from_local_file(
-        &self,
-        file: File,
-        extension: &str,
-    ) -> Result<(), CreateZoneError> {
-        match extension {
-            "txz" => {
-                let mut archive = Archive::new(XzDecoder::new(file));
-
-                archive
-                    .unpack(self.paths().root_directory())
-                    .map_err(CreateZoneError::from)
-            }
-            extension => Err(CreateZoneError::UnsupportedExtension(String::from(
-                extension,
-            ))),
-        }
-    }
-
-    fn handle_create_from_remote_file(&self, url: &Url) -> Result<(), CreateZoneError> {
-        match url.scheme() {
-            "http" | "https" => {
-                let mut response = get(url.to_string())?;
-                let mut file = tempfile()?;
-                response.copy_to(&mut file)?;
-                file.sync_all()?;
-                file.rewind()?;
-
-                let path = PathBuf::from(url.path());
-
-                self.handle_create_from_local_file(
-                    file,
-                    path.extension()
-                        .map(|extension| extension.to_str())
-                        .flatten()
-                        .unwrap_or(""),
-                )
-            }
-            scheme => Err(CreateZoneError::UnsupportedScheme(String::from(scheme))),
-        }
-    }
-
-    fn handle_create_handle_from(&self, from: &str) -> Result<(), CreateZoneError> {
-        match Url::parse(from) {
-            Ok(url) if matches!(url.scheme(), "" | "file") => {
-                self.handle_create_from_path(&PathBuf::from(url.path()), None)
-            }
-            Ok(url) => self.handle_create_from_remote_file(&url),
-            Err(ParseError::RelativeUrlWithoutBase) => {
-                self.handle_create_from_path(&PathBuf::from(from), None)
-            }
-            Err(error) => Err(CreateZoneError::from(error)),
-        }
-    }
-
     fn handle_create(
         &self,
         configuration_path: &Path,
@@ -191,19 +108,10 @@ impl Zone {
             ))?;
 
         self.configuration().set_unit(&configuration_unit)?;
+        let reader = self.configuration().reader()?;
+        self.r#type()?.create()?;
 
-        self.volume().create(&configuration_unit)?;
-
-        if let Some(from) = configuration_unit.overlayed_from() {
-            self.handle_create_handle_from(&from)?;
-        }
-
-        self.executor().trigger_create()?;
-
-        if configuration_unit
-            .overlayed_start_after_create()
-            .unwrap_or(false)
-        {
+        if reader.start_after_create() {
             self.handle_start()?;
         }
 
@@ -215,7 +123,7 @@ impl Zone {
             return Err(StartZoneError::AlreadyRunning);
         }
 
-        self.executor().trigger_start()?;
+        self.r#type()?.start()?;
 
         Ok(())
     }
@@ -225,14 +133,11 @@ impl Zone {
             return Err(StopZoneError::NotRunning);
         }
 
-        self.executor().trigger_stop()?;
+        self.r#type()?.stop()?;
 
-        if self
-            .configuration()
-            .unit()?
-            .overlayed_destroy_after_stop()
-            .unwrap_or(false)
-        {
+        let reader = self.configuration().reader()?;
+
+        if reader.destroy_after_stop() {
             self.handle_destroy()?;
             return Ok(true);
         };
@@ -245,9 +150,8 @@ impl Zone {
             return Err(DestroyZoneError::IsRunning);
         }
 
-        self.executor().trigger_destroy()?;
+        self.r#type()?.destroy()?;
         self.configuration().destroy()?;
-        self.volume().destroy()?;
 
         Ok(())
     }
@@ -260,7 +164,7 @@ impl Zone {
         writer.write_u64::<ZoneTransmissionEndian>(ZONE_TRANSMISSION_MAGIC_NUMBER)?;
 
         self.configuration().send(&mut writer)?;
-        self.volume().send(&mut writer)?;
+        self.r#type()?.send(&mut writer)?;
 
         Ok(())
     }
@@ -278,8 +182,8 @@ impl Zone {
             return Err(ReceiveZoneError::MissingMagicNumber);
         }
 
-        self.configuration().receive(&mut reader)?;
-        self.volume().receive(&mut reader)?;
+        ZoneConfiguration::receive(self, &mut reader)?;
+        ZoneType::receive(self, &mut reader)?;
 
         Ok(())
     }
@@ -287,11 +191,11 @@ impl Zone {
     fn cleanup(&self) -> Result<(), CleanupZoneError> {
         let mut cleanup_errors = Vec::default();
 
-        if let Err(error) = self.configuration().cleanup() {
+        if let Err(error) = self.r#type()?.cleanup() {
             cleanup_errors.push(CleanupZoneError::from(error));
         }
 
-        if let Err(error) = self.volume().cleanup() {
+        if let Err(error) = self.configuration().cleanup() {
             cleanup_errors.push(CleanupZoneError::from(error));
         }
 

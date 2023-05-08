@@ -91,13 +91,11 @@ impl TransformZoneConfiguration<ZoneConfigurationVersionUnit>
 #[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationVersion1Directive {
-    from: Option<String>,
     includes: Option<Vec<String>>,
     tags: Option<Vec<String>>,
     variables: Option<TemplateObject>,
     #[serde(flatten)]
     r#type: ZoneConfigurationVersion1TypeDirective,
-    volume: Option<ZoneConfigurationVersion1VolumeDirective>,
     start_after_create: Option<bool>,
     destroy_after_stop: Option<bool>,
 }
@@ -160,7 +158,6 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Unit>
         context: &mut TransformZoneConfigurationContext,
     ) -> Result<ZoneConfigurationVersion1Unit, TransformZoneConfigurationError> {
         Ok(ZoneConfigurationVersion1Unit::new(
-            self.from,
             self.includes.clone(),
             match self.includes {
                 Some(includes) => {
@@ -182,10 +179,6 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1Unit>
             self.tags,
             self.variables,
             self.r#type.transform(context)?,
-            match self.volume {
-                Some(volume) => Some(volume.transform(context)?),
-                None => None,
-            },
             self.start_after_create,
             self.destroy_after_stop,
         ))
@@ -254,6 +247,8 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1TypeUnit>
 #[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationVersion1JailDirective {
+    from: Option<String>,
+    volume: Option<ZoneConfigurationVersion1VolumeDirective>,
     execute: Option<ZoneConfigurationVersion1JailExecuteDirective>,
 }
 
@@ -264,10 +259,17 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1JailUnit>
         self,
         context: &mut TransformZoneConfigurationContext,
     ) -> Result<ZoneConfigurationVersion1JailUnit, TransformZoneConfigurationError> {
-        Ok(ZoneConfigurationVersion1JailUnit::new(match self.execute {
-            Some(execute) => Some(execute.transform(context)?),
-            None => None,
-        }))
+        Ok(ZoneConfigurationVersion1JailUnit::new(
+            self.from,
+            match self.volume {
+                Some(volume) => Some(volume.transform(context)?),
+                None => None,
+            },
+            match self.execute {
+                Some(execute) => Some(execute.transform(context)?),
+                None => None,
+            },
+        ))
     }
 }
 
