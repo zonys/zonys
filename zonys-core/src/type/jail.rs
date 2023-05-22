@@ -234,6 +234,8 @@ impl<'a> JailZone<&'a Zone> {
             self.execute::<StopJailZoneError>(&handle, &step)?;
         }
 
+        handle.destroy()?;
+
         Ok(())
     }
 

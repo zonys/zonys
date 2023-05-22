@@ -119,20 +119,12 @@ impl Zone {
     }
 
     fn handle_start(&self) -> Result<(), StartZoneError> {
-        if self.status()?.running() {
-            return Err(StartZoneError::AlreadyRunning);
-        }
-
         self.r#type()?.start()?;
 
         Ok(())
     }
 
     fn handle_stop(&self) -> Result<bool, StopZoneError> {
-        if !self.status()?.running() {
-            return Err(StopZoneError::NotRunning);
-        }
-
         self.r#type()?.stop()?;
 
         let reader = self.configuration().reader()?;
