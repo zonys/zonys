@@ -34,7 +34,7 @@ impl FromHandler {
         root_directory_path: &Path,
     ) -> Result<(), FromHandlerError> {
         match from.extension().and_then(|x| x.to_str()) {
-            Some(".txz") => {
+            Some("txz") => {
                 let mut archive = Archive::new(XzDecoder::new(file));
 
                 archive.unpack(root_directory_path)?;
