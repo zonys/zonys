@@ -1,7 +1,7 @@
 use crate::{
     CleanupZoneVolumeError, CreateZoneVolumeError, DestroyZoneVolumeError, FromHandlerError,
-    ReadZoneConfigurationError, ReceiveZoneVolumeError, SendZoneVolumeError, Zone,
-    ZoneTransmissionReader, ZoneTransmissionWriter, ZoneVolume,
+    OpenZoneVolumeError, ReadZoneConfigurationError, ReceiveZoneVolumeError, SendZoneVolumeError,
+    Zone, ZoneTransmissionReader, ZoneTransmissionWriter, ZoneVolume,
 };
 use ztd::{Constructor, Display, Error, From};
 
@@ -36,7 +36,9 @@ pub enum StopChrootZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum DestroyChrootZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
+    #[Display("Volume does not exist")]
+    VolumeNotExisting,
     DestroyZoneVolumeError(DestroyZoneVolumeError),
 }
 
@@ -45,7 +47,9 @@ pub enum DestroyChrootZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum SendChrootZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
+    #[Display("Volume does not exist")]
+    VolumeNotExisting,
     SendZoneVolumeError(SendZoneVolumeError),
 }
 
@@ -54,7 +58,6 @@ pub enum SendChrootZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum ReceiveChrootZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
     ReceiveZoneVolumeError(ReceiveZoneVolumeError),
 }
 
@@ -63,8 +66,8 @@ pub enum ReceiveChrootZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum CleanupChrootZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
     CleanupZoneVolumeError(CleanupZoneVolumeError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,17 +75,15 @@ pub enum CleanupChrootZoneError {
 #[derive(Constructor, Debug)]
 #[Constructor(visibility = pub(super))]
 pub struct ChrootZone<T> {
-    _zone: T,
+    zone: T,
 }
 
 impl<'a> ChrootZone<&'a Zone> {
-    pub(crate) fn volume(&self) -> Result<ZoneVolume<&Zone>, ReadZoneConfigurationError> {
-        unimplemented!()
+    pub(super) fn volume(&self) -> Result<Option<ZoneVolume<&Zone>>, OpenZoneVolumeError> {
+        ZoneVolume::open(self.zone)
     }
 
     pub(crate) fn create(&self) -> Result<(), CreateChrootZoneError> {
-        self.volume()?.create()?;
-
         Ok(())
     }
 
@@ -95,7 +96,12 @@ impl<'a> ChrootZone<&'a Zone> {
     }
 
     pub(crate) fn destroy(&self) -> Result<(), DestroyChrootZoneError> {
-        self.volume()?.destroy()?;
+        let volume = match self.volume()? {
+            None => return Err(DestroyChrootZoneError::VolumeNotExisting),
+            Some(volume) => volume,
+        };
+
+        volume.destroy()?;
 
         Ok(())
     }
@@ -104,7 +110,12 @@ impl<'a> ChrootZone<&'a Zone> {
         &self,
         writer: &mut ZoneTransmissionWriter,
     ) -> Result<(), SendChrootZoneError> {
-        self.volume()?.send(writer)?;
+        let volume = match self.volume()? {
+            None => return Err(SendChrootZoneError::VolumeNotExisting),
+            Some(volume) => volume,
+        };
+
+        volume.send(writer)?;
 
         Ok(())
     }
@@ -119,7 +130,9 @@ impl<'a> ChrootZone<&'a Zone> {
     }
 
     pub(crate) fn cleanup(&self) -> Result<(), CleanupChrootZoneError> {
-        self.volume()?.cleanup()?;
+        if let Some(volume) = self.volume()? {
+            volume.cleanup()?;
+        }
 
         Ok(())
     }

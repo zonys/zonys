@@ -59,8 +59,16 @@ impl<'a> ZoneDirectoryVolume<&'a Zone> {
         self.zone.paths().root_directory()
     }
 
-    pub(super) fn create(&self) -> Result<(), CreateZoneDirectoryVolumeError> {
-        create_dir_all(self.root_directory_path())?;
+    pub(super) fn open(zone: &'a Zone) -> Option<Self> {
+        if !zone.paths().root_directory().exists() {
+            return None;
+        }
+
+        Some(Self::new(zone))
+    }
+
+    pub(super) fn create(zone: &'a Zone) -> Result<(), CreateZoneDirectoryVolumeError> {
+        create_dir_all(zone.paths().root_directory())?;
 
         Ok(())
     }

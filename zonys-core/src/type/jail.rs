@@ -1,9 +1,8 @@
 use crate::{
     CleanupZoneVolumeError, CreateZoneVolumeError, DestroyZoneVolumeError, FromHandler,
-    FromHandlerError, JailZoneConfigurationStep, JailZoneConfigurationVolumeType,
-    ReadZoneConfigurationError, ReceiveZoneVolumeError, SendZoneVolumeError, Zone,
-    ZoneConfigurationTypeReader, ZoneDirectoryVolume, ZoneTransmissionReader,
-    ZoneTransmissionWriter, ZoneVolume, ZoneZfsVolume,
+    FromHandlerError, JailZoneConfigurationStep, OpenZoneVolumeError, ReadZoneConfigurationError,
+    ReceiveZoneVolumeError, SendZoneVolumeError, Zone, ZoneConfigurationTypeReader,
+    ZoneTransmissionReader, ZoneTransmissionWriter, ZoneVolume,
 };
 use jail::{
     CreateJailError, DestroyJailError, ExecuteJailError, Jail, JailId, JailName, JailParameter,
@@ -23,6 +22,9 @@ pub enum CreateJailZoneError {
     CreateJailError(CreateJailError),
     DestroyJailError(DestroyJailError),
     ExecuteJailError(ExecuteJailError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
+    #[Display("Volume does not exist")]
+    VolumeNotExisting,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -64,6 +66,9 @@ pub enum DestroyJailZoneError {
     #[Display("Jail is running")]
     Running,
     TryIntoJailIdError(TryIntoJailIdError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
+    #[Display("Volume does not exist")]
+    VolumeNotExisting,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +76,9 @@ pub enum DestroyJailZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum SendJailZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
+    #[Display("Volume does not exist")]
+    VolumeNotExisting,
     SendZoneVolumeError(SendZoneVolumeError),
 }
 
@@ -80,7 +87,6 @@ pub enum SendJailZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum ReceiveJailZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
     ReceiveZoneVolumeError(ReceiveZoneVolumeError),
 }
 
@@ -89,7 +95,7 @@ pub enum ReceiveJailZoneError {
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum CleanupJailZoneError {
-    ReadZoneConfigurationError(ReadZoneConfigurationError),
+    OpenZoneVolumeError(OpenZoneVolumeError),
     CleanupZoneVolumeError(CleanupZoneVolumeError),
 }
 
@@ -152,7 +158,11 @@ impl<'a> JailZone<&'a Zone> {
         Ok(())
     }
 
-    pub(super) fn volume(&self) -> Result<ZoneVolume<&Zone>, ReadZoneConfigurationError> {
+    pub(super) fn volume(&self) -> Result<Option<ZoneVolume<&Zone>>, OpenZoneVolumeError> {
+        ZoneVolume::open(self.zone)
+    }
+
+    pub(super) fn create(&self) -> Result<(), CreateJailZoneError> {
         let reader = self.zone.configuration().reader()?;
 
         let jail = match reader.r#type() {
@@ -160,28 +170,10 @@ impl<'a> JailZone<&'a Zone> {
             ZoneConfigurationTypeReader::Chroot(_chroot) => unreachable!(),
         };
 
-        match jail.volume() {
-            JailZoneConfigurationVolumeType::Automatic => {
-                todo!()
-            }
-            JailZoneConfigurationVolumeType::Zfs => {
-                Ok(ZoneVolume::Zfs(ZoneZfsVolume::new(self.zone)))
-            }
-            JailZoneConfigurationVolumeType::Directory => {
-                Ok(ZoneVolume::Directory(ZoneDirectoryVolume::new(self.zone)))
-            }
-        }
-    }
-
-    pub(super) fn create(&self) -> Result<(), CreateJailZoneError> {
-        let volume = self.volume()?;
-        volume.create()?;
-
-        let reader = self.zone.configuration().reader()?;
-
-        let jail = match reader.r#type() {
-            ZoneConfigurationTypeReader::Jail(jail) => jail,
-            ZoneConfigurationTypeReader::Chroot(_chroot) => unreachable!(),
+        ZoneVolume::create(self.zone, jail.volume())?;
+        let volume = match self.volume()? {
+            None => return Err(CreateJailZoneError::VolumeNotExisting),
+            Some(volume) => volume,
         };
 
         if let Some(from) = jail.from() {
@@ -250,7 +242,10 @@ impl<'a> JailZone<&'a Zone> {
             return Err(DestroyJailZoneError::Running);
         }
 
-        let volume = self.volume()?;
+        let volume = match self.volume()? {
+            None => return Err(DestroyJailZoneError::VolumeNotExisting),
+            Some(volume) => volume,
+        };
 
         let reader = self.zone.configuration().reader()?;
 
@@ -276,7 +271,12 @@ impl<'a> JailZone<&'a Zone> {
         &self,
         writer: &mut ZoneTransmissionWriter,
     ) -> Result<(), SendJailZoneError> {
-        self.volume()?.send(writer)?;
+        let volume = match self.volume()? {
+            None => return Err(SendJailZoneError::VolumeNotExisting),
+            Some(volume) => volume,
+        };
+
+        volume.send(writer)?;
 
         Ok(())
     }
@@ -291,7 +291,9 @@ impl<'a> JailZone<&'a Zone> {
     }
 
     pub(super) fn cleanup(&self) -> Result<(), CleanupJailZoneError> {
-        self.volume()?.cleanup()?;
+        if let Some(volume) = self.volume()? {
+            volume.cleanup()?;
+        }
 
         Ok(())
     }

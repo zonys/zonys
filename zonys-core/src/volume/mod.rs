@@ -23,9 +23,18 @@ use ztd::{Display, Error, From};
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
 pub enum CreateZoneVolumeError {
+    CheckZoneZfsVolumeSupportError(CheckZoneZfsVolumeSupportError),
     CreateZoneDirectoryVolumeError(CreateZoneDirectoryVolumeError),
     #[cfg(target_os = "freebsd")]
     CreateZoneZfsVolumeError(CreateZoneZfsVolumeError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum OpenZoneVolumeError {
+    OpenZoneZfsVolumeError(OpenZoneZfsVolumeError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,6 +83,15 @@ pub enum CleanupZoneVolumeError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
+pub enum ZoneVolumeType {
+    Automatic,
+    Directory,
+    Zfs,
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Debug, Display, Deserialize, Serialize)]
 pub enum ZoneVolumeTransmissionVersion1Type {
     #[Display("ZFS")]
@@ -109,12 +127,41 @@ impl<'a> ZoneVolume<&'a Zone> {
         }
     }
 
-    pub(crate) fn create(&self) -> Result<(), CreateZoneVolumeError> {
-        match self {
-            Self::Directory(directory) => Ok(directory.create()?),
-            #[cfg(target_os = "freebsd")]
-            Self::Zfs(zfs) => Ok(zfs.create()?),
+    pub(crate) fn open(zone: &'a Zone) -> Result<Option<Self>, OpenZoneVolumeError> {
+        match ZoneZfsVolume::open(zone)? {
+            None => {}
+            Some(volume) => return Ok(Some(Self::Zfs(volume))),
+        };
+
+        match ZoneDirectoryVolume::open(zone) {
+            None => {}
+            Some(volume) => return Ok(Some(Self::Directory(volume))),
         }
+
+        Ok(None)
+    }
+
+    pub(crate) fn create(
+        zone: &'a Zone,
+        r#type: ZoneVolumeType,
+    ) -> Result<(), CreateZoneVolumeError> {
+        match r#type {
+            ZoneVolumeType::Automatic => {
+                if ZoneZfsVolume::is_supported(zone)? {
+                    ZoneZfsVolume::create(zone)?;
+                } else {
+                    ZoneDirectoryVolume::create(zone)?;
+                }
+            }
+            ZoneVolumeType::Directory => {
+                ZoneDirectoryVolume::create(zone)?;
+            }
+            ZoneVolumeType::Zfs => {
+                ZoneZfsVolume::create(zone)?;
+            }
+        }
+
+        Ok(())
     }
 
     pub(crate) fn destroy(&self) -> Result<(), DestroyZoneVolumeError> {

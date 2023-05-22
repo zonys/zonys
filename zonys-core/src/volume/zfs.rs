@@ -18,6 +18,24 @@ use ztd::{Constructor, Display, Error, From};
 
 #[derive(Debug, Display, Error, From)]
 #[From(unnamed)]
+pub enum CheckZoneZfsVolumeSupportError {
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
+    OpenFileSystemError(OpenFileSystemError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
+pub enum OpenZoneZfsVolumeError {
+    FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
+    OpenFileSystemError(OpenFileSystemError),
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Display, Error, From)]
+#[From(unnamed)]
 pub enum CreateZoneZfsVolumeError {
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
     #[Display("Created file system does not exist")]
@@ -89,9 +107,35 @@ impl<'a> ZoneZfsVolume<&'a Zone> {
         self.zone.paths().root_directory()
     }
 
-    pub(super) fn create(&self) -> Result<(), CreateZoneZfsVolumeError> {
-        let file_system_identifier =
-            FileSystemIdentifier::try_from(self.zone.identifier().clone())?;
+    pub(super) fn is_supported(zone: &'a Zone) -> Result<bool, CheckZoneZfsVolumeSupportError> {
+        let mut file_system_identifier = FileSystemIdentifier::try_from(zone.identifier().clone())?;
+
+        loop {
+            file_system_identifier = file_system_identifier.parent();
+
+            if FileSystem::open(&file_system_identifier)?.is_some() {
+                return Ok(true);
+            }
+
+            if file_system_identifier.components().is_empty() {
+                break;
+            }
+        }
+
+        Ok(false)
+    }
+
+    pub(super) fn open(zone: &'a Zone) -> Result<Option<Self>, OpenZoneZfsVolumeError> {
+        let file_system_identifier = FileSystemIdentifier::try_from(zone.identifier().clone())?;
+
+        match FileSystem::open(&file_system_identifier)? {
+            None => Ok(None),
+            Some(_file_system) => Ok(Some(Self::new(zone))),
+        }
+    }
+
+    pub(super) fn create(zone: &'a Zone) -> Result<(), CreateZoneZfsVolumeError> {
+        let file_system_identifier = FileSystemIdentifier::try_from(zone.identifier().clone())?;
         FileSystem::create(&file_system_identifier)?;
         let mut file_system = FileSystem::open(&file_system_identifier)?
             .ok_or(CreateZoneZfsVolumeError::FileSystemNotExisting)?;

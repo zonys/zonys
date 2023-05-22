@@ -1,7 +1,7 @@
 use crate::{
     ZoneConfigurationReaderTraverser, ZoneConfigurationUnit,
     ZoneConfigurationVersion1JailProgramUnit, ZoneConfigurationVersion1TypeUnit,
-    ZoneConfigurationVersion1VolumeUnit, ZoneConfigurationVersionUnit,
+    ZoneConfigurationVersion1VolumeUnit, ZoneConfigurationVersionUnit, ZoneVolumeType,
 };
 use std::collections::HashMap;
 use std::iter::empty;
@@ -30,14 +30,6 @@ impl<'a> From<&'a ZoneConfigurationVersion1JailProgramUnit> for JailZoneConfigur
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub enum JailZoneConfigurationVolumeType {
-    Automatic,
-    Directory,
-    Zfs,
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #[derive(Constructor, Debug)]
 #[Constructor(visibility = pub(crate))]
 pub struct JailZoneConfigurationReader<'a> {
@@ -45,7 +37,7 @@ pub struct JailZoneConfigurationReader<'a> {
 }
 
 impl<'a> JailZoneConfigurationReader<'a> {
-    pub fn volume(&self) -> JailZoneConfigurationVolumeType {
+    pub fn volume(&self) -> ZoneVolumeType {
         for unit in ZoneConfigurationReaderTraverser::new(vec![self.unit]).inorder() {
             match unit.version() {
                 ZoneConfigurationVersionUnit::Version1(version1) => {
@@ -56,21 +48,19 @@ impl<'a> JailZoneConfigurationReader<'a> {
                     if let Some(volume) = jail.volume() {
                         return match volume {
                             ZoneConfigurationVersion1VolumeUnit::Automatic => {
-                                JailZoneConfigurationVolumeType::Automatic
+                                ZoneVolumeType::Automatic
                             }
                             ZoneConfigurationVersion1VolumeUnit::Directory => {
-                                JailZoneConfigurationVolumeType::Directory
+                                ZoneVolumeType::Directory
                             }
-                            ZoneConfigurationVersion1VolumeUnit::Zfs => {
-                                JailZoneConfigurationVolumeType::Zfs
-                            }
+                            ZoneConfigurationVersion1VolumeUnit::Zfs => ZoneVolumeType::Zfs,
                         };
                     }
                 }
             }
         }
 
-        JailZoneConfigurationVolumeType::Automatic
+        ZoneVolumeType::Automatic
     }
 
     pub fn from(&self) -> Option<&String> {

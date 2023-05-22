@@ -62,6 +62,12 @@ impl FileSystemIdentifier {
     pub fn name(&self) -> FileSystemIdentifierComponent {
         self.components.join(FILE_SYSTEM_IDENTIFIER_SEPARATOR)
     }
+
+    pub fn parent(mut self) -> Self {
+        self.components.pop();
+
+        Self::new(self.pool_identifier, self.components)
+    }
 }
 
 impl Display for FileSystemIdentifier {
