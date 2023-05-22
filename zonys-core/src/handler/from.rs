@@ -67,7 +67,7 @@ impl FromHandler {
                 file.sync_all()?;
                 file.rewind()?;
 
-                Self::handle_local_path(&PathBuf::from(from.path()), root_directory_path)
+                Self::handle_local_file(&PathBuf::from(from.path()), &file, root_directory_path)
             }
             scheme => Err(FromHandlerError::UnsupportedScheme(scheme.to_string())),
         }
