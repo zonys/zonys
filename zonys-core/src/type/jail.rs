@@ -1,13 +1,15 @@
 use crate::{
     CleanupZoneVolumeError, CreateZoneVolumeError, DestroyZoneVolumeError, FromHandler,
     FromHandlerError, JailZoneConfigurationStep, OpenZoneVolumeError, ReadZoneConfigurationError,
-    ReceiveZoneVolumeError, SendZoneVolumeError, Zone, ZoneConfigurationTypeReader,
-    ZoneTransmissionReader, ZoneTransmissionWriter, ZoneVolume,
+    ReceiveZoneVolumeError, RenderTemplateError, SendZoneVolumeError, TemplateEngine,
+    TemplateObject, Zone, ZoneConfigurationTypeReader, ZoneTransmissionReader,
+    ZoneTransmissionWriter, ZoneVolume,
 };
 use jail::{
     CreateJailError, DestroyJailError, ExecuteJailError, Jail, JailId, JailName, JailParameter,
     TryIntoJailIdError,
 };
+use std::collections::HashMap;
 use std::path::PathBuf;
 use ztd::{Constructor, Display, Error, From};
 
@@ -25,6 +27,7 @@ pub enum CreateJailZoneError {
     OpenZoneVolumeError(OpenZoneVolumeError),
     #[Display("Volume does not exist")]
     VolumeNotExisting,
+    RenderTemplateError(RenderTemplateError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,6 +41,7 @@ pub enum StartJailZoneError {
     #[Display("Jail is already running")]
     AlreadyRunning,
     TryIntoJailIdError(TryIntoJailIdError),
+    RenderTemplateError(RenderTemplateError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -51,6 +55,7 @@ pub enum StopJailZoneError {
     #[Display("Jail is not running")]
     NotRunning,
     TryIntoJailIdError(TryIntoJailIdError),
+    RenderTemplateError(RenderTemplateError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +74,7 @@ pub enum DestroyJailZoneError {
     OpenZoneVolumeError(OpenZoneVolumeError),
     #[Display("Volume does not exist")]
     VolumeNotExisting,
+    RenderTemplateError(RenderTemplateError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,17 +148,38 @@ impl<'a> JailZone<&'a Zone> {
         result
     }
 
-    fn execute<E>(&self, jail: &Jail, step: &JailZoneConfigurationStep<'a>) -> Result<(), E>
+    fn execute<E>(
+        &self,
+        jail: &Jail,
+        step: &JailZoneConfigurationStep<'a>,
+        template_engine: &TemplateEngine,
+        variables: &TemplateObject,
+    ) -> Result<(), E>
     where
-        E: From<ExecuteJailError>,
+        E: From<ExecuteJailError> + From<RenderTemplateError>,
     {
         jail.execute(
-            step.program(),
-            &step.arguments().as_ref().cloned().unwrap_or_default(),
+            &template_engine.render(&variables, step.program())?,
+            &step
+                .arguments()
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .map(|argument| template_engine.render(&variables, &argument))
+                .collect::<Result<Vec<String>, RenderTemplateError>>()?,
             step.environment_variables()
                 .as_ref()
                 .cloned()
-                .unwrap_or_default(),
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(key, value)| {
+                    Ok((
+                        template_engine.render(&variables, &key)?,
+                        template_engine.render(&variables, &value)?,
+                    ))
+                })
+                .collect::<Result<HashMap<String, String>, RenderTemplateError>>()?,
         )?;
 
         Ok(())
@@ -176,13 +203,19 @@ impl<'a> JailZone<&'a Zone> {
             Some(volume) => volume,
         };
 
+        let engine = TemplateEngine::default();
+        let variables = reader.variables();
+
         if let Some(from) = jail.from() {
-            FromHandler::handle(from, &volume.root_directory_path())?;
+            FromHandler::handle(
+                &engine.render(&variables, &from)?,
+                &volume.root_directory_path(),
+            )?;
         }
 
         self.hold_jail::<_, CreateJailZoneError>(|handle| {
             for step in jail.create_steps() {
-                self.execute::<CreateJailZoneError>(handle, &step)?;
+                self.execute::<CreateJailZoneError>(handle, &step, &engine, &variables)?;
             }
 
             Ok(())
@@ -203,10 +236,13 @@ impl<'a> JailZone<&'a Zone> {
             ZoneConfigurationTypeReader::Chroot(_chroot) => unreachable!(),
         };
 
+        let engine = TemplateEngine::default();
+        let variables = reader.variables();
+
         let handle = Jail::create(self.jail_parameters())?;
 
         for step in jail.start_steps() {
-            self.execute::<StartJailZoneError>(&handle, &step)?;
+            self.execute::<StartJailZoneError>(&handle, &step, &engine, &variables)?;
         }
 
         Ok(())
@@ -230,8 +266,11 @@ impl<'a> JailZone<&'a Zone> {
             ZoneConfigurationTypeReader::Chroot(_chroot) => unreachable!(),
         };
 
+        let engine = TemplateEngine::default();
+        let variables = reader.variables();
+
         for step in jail.stop_steps() {
-            self.execute::<StopJailZoneError>(&handle, &step)?;
+            self.execute::<StopJailZoneError>(&handle, &step, &engine, &variables)?;
         }
 
         handle.destroy()?;
@@ -256,9 +295,12 @@ impl<'a> JailZone<&'a Zone> {
             ZoneConfigurationTypeReader::Chroot(_chroot) => unreachable!(),
         };
 
+        let engine = TemplateEngine::default();
+        let variables = reader.variables();
+
         self.hold_jail::<_, DestroyJailZoneError>(|handle| {
             for step in jail.destroy_steps() {
-                self.execute::<DestroyJailZoneError>(handle, &step)?;
+                self.execute::<DestroyJailZoneError>(handle, &step, &engine, &variables)?;
             }
 
             Ok(())
