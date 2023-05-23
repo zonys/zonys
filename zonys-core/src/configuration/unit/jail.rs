@@ -39,6 +39,7 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1VolumeDirective>
 #[Method(all)]
 pub struct ZoneConfigurationVersion1JailUnit {
     from: Option<String>,
+    from_work_path: Option<String>,
     volume: Option<ZoneConfigurationVersion1VolumeUnit>,
     execute: Option<ZoneConfigurationVersion1JailExecuteUnit>,
 }

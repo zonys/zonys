@@ -28,6 +28,10 @@ impl TransformZoneConfiguration<ZoneConfigurationVersion1JailUnit>
     ) -> Result<ZoneConfigurationVersion1JailUnit, TransformZoneConfigurationError> {
         Ok(ZoneConfigurationVersion1JailUnit::new(
             self.from,
+            context
+                .work_paths()
+                .last()
+                .map(|path| path.display().to_string()),
             match self.volume {
                 Some(volume) => Some(volume.transform(context)?),
                 None => None,

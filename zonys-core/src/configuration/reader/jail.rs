@@ -81,6 +81,24 @@ impl<'a> JailZoneConfigurationReader<'a> {
         None
     }
 
+    pub fn from_work_path(&self) -> Option<&String> {
+        for unit in ZoneConfigurationReaderTraverser::new(vec![self.unit]).inorder() {
+            match unit.version() {
+                ZoneConfigurationVersionUnit::Version1(version1) => {
+                    let jail = match version1.r#type() {
+                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                    };
+
+                    if jail.from().is_some() {
+                        return jail.from_work_path().as_ref();
+                    }
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn create_steps(&self) -> impl Iterator<Item = JailZoneConfigurationStep<'a>> {
         ZoneConfigurationReaderTraverser::new(vec![self.unit])
             .inorder()

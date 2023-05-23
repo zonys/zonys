@@ -11,6 +11,7 @@ use jail::{
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
+use url::{ParseError, Url};
 use ztd::{Constructor, Display, Error, From};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,6 +29,8 @@ pub enum CreateJailZoneError {
     #[Display("Volume does not exist")]
     VolumeNotExisting,
     RenderTemplateError(RenderTemplateError),
+    UnsupportedScheme(String),
+    UrlParseError(ParseError),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -207,10 +210,40 @@ impl<'a> JailZone<&'a Zone> {
         let variables = reader.variables();
 
         if let Some(from) = jail.from() {
-            FromHandler::handle(
-                &engine.render(&variables, &from)?,
-                &volume.root_directory_path(),
-            )?;
+            let from = &engine.render(&variables, from)?;
+
+            let from = match Url::parse(from) {
+                Ok(url) if url.scheme() == "" || url.scheme() == "file" => {
+                    let url_path = PathBuf::from(url.path());
+                    if url_path.is_relative() {
+                        jail.from_work_path()
+                            .map(PathBuf::from)
+                            .unwrap_or_default()
+                            .join(url_path)
+                            .display()
+                            .to_string()
+                    } else {
+                        url_path.display().to_string()
+                    }
+                }
+                Ok(_url) => from.clone(),
+                Err(ParseError::RelativeUrlWithoutBase) => {
+                    let url_path = PathBuf::from(from);
+                    if url_path.is_relative() {
+                        jail.from_work_path()
+                            .map(PathBuf::from)
+                            .unwrap_or_default()
+                            .join(url_path)
+                            .display()
+                            .to_string()
+                    } else {
+                        url_path.display().to_string()
+                    }
+                }
+                Err(error) => return Err(CreateJailZoneError::from(error)),
+            };
+
+            FromHandler::handle(&from, &volume.root_directory_path())?;
         }
 
         self.hold_jail::<_, CreateJailZoneError>(|handle| {
