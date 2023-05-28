@@ -3,16 +3,15 @@ use freebsd_sys::{
     DEVFS_MAGIC,
 };
 use nix::errno::Errno;
-use nix::fcntl::open;
-use nix::fcntl::OFlag;
+use nix::fcntl::{open, OFlag};
+use nix::mount::{unmount, MntFlags, Nmount, NmountError};
 use nix::sys::stat::Mode;
 use nix::unistd::close;
 use std::cmp::min;
 use std::ffi::CString;
 use std::os::fd::RawFd;
-use std::path::Path;
-use std::ptr::addr_of_mut;
-use std::ptr::copy_nonoverlapping;
+use std::path::{Path, PathBuf};
+use std::ptr::{addr_of_mut, copy_nonoverlapping};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -113,6 +112,7 @@ impl<'a> DeviceFileSystemRules<'a> {
 pub struct DeviceFileSystem {
     closed: bool,
     fd: RawFd,
+    path: PathBuf,
 }
 
 impl Drop for DeviceFileSystem {
@@ -124,6 +124,20 @@ impl Drop for DeviceFileSystem {
 }
 
 impl DeviceFileSystem {
+    pub fn mount<T>(path: T) -> Result<(), NmountError>
+    where
+        T: AsRef<Path>,
+    {
+        Nmount::new()
+            .str_opt_owned("fstype", "devfs")
+            .str_opt_owned("fspath", path.as_ref())
+            .nmount(MntFlags::empty())
+    }
+
+    pub fn unmount(self) -> Result<(), Errno> {
+        unmount(&self.path, MntFlags::MNT_FORCE)
+    }
+
     pub fn open<T>(path: T) -> Result<Self, Errno>
     where
         T: AsRef<Path>,
@@ -131,6 +145,7 @@ impl DeviceFileSystem {
         Ok(Self {
             fd: open(path.as_ref(), OFlag::O_RDONLY, Mode::empty())?,
             closed: false,
+            path: PathBuf::from(path.as_ref()),
         })
     }
 
