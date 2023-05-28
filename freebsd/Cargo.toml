@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 byteorder = "1"
 freebsd-sys = { path = "../freebsd-sys" }
-nix = "0.25"
+nix = "0.26"

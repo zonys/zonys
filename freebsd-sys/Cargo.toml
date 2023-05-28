@@ -9,4 +9,4 @@ edition = "2021"
 nix = { version = "0.26", features = [ "ioctl" ] }
 
 [build-dependencies]
-bindgen = { version = "0.60" }
+bindgen = { version = "0.65" }
