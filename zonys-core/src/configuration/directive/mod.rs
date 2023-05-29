@@ -66,7 +66,7 @@ impl ZoneConfigurationDirective {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "version")]
 pub enum ZoneConfigurationVersionDirective {
-    #[serde(rename = "latest")]
+    #[serde(rename = "experimental")]
     Version1(ZoneConfigurationVersion1Directive),
 }
 
