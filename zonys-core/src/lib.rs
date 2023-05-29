@@ -183,9 +183,11 @@ impl Zone {
     fn cleanup(&self) -> Result<(), CleanupZoneError> {
         let mut cleanup_errors = Vec::default();
 
-        if let Err(error) = self.r#type()?.cleanup() {
-            cleanup_errors.push(CleanupZoneError::from(error));
-        }
+        if let Ok(r#type) = self.r#type() {
+            if let Err(error) = r#type.cleanup() {
+                cleanup_errors.push(CleanupZoneError::from(error));
+            }
+        };
 
         if let Err(error) = self.configuration().cleanup() {
             cleanup_errors.push(CleanupZoneError::from(error));
