@@ -137,20 +137,6 @@ impl<'a> JailZone<&'a Zone> {
         ]
     }
 
-    fn hold_jail<F, E>(&self, function: F) -> Result<(), E>
-    where
-        F: FnOnce(&Jail) -> Result<(), E>,
-        E: From<CreateJailError> + From<DestroyJailError>,
-    {
-        let jail = Jail::create(self.jail_parameters())?;
-
-        let result = function(&jail);
-
-        jail.destroy()?;
-
-        result
-    }
-
     fn execute<E>(
         &self,
         jail: &Jail,
@@ -246,13 +232,16 @@ impl<'a> JailZone<&'a Zone> {
             FromHandler::handle(&from, &volume.root_directory_path())?;
         }
 
-        self.hold_jail::<_, CreateJailZoneError>(|handle| {
-            for step in jail.create_steps() {
-                self.execute::<CreateJailZoneError>(handle, &step, &engine, &variables)?;
-            }
+        let handle = Jail::create(self.jail_parameters())?;
 
-            Ok(())
-        })?;
+        for step in jail.create_steps() {
+            if let Err(error) = self.execute::<CreateJailZoneError>(&handle, &step, &engine, &variables) {
+                handle.destroy()?;
+                return Err(error);
+            }
+        }
+
+        handle.destroy()?;
 
         Ok(())
     }
@@ -331,13 +320,16 @@ impl<'a> JailZone<&'a Zone> {
         let engine = TemplateEngine::default();
         let variables = reader.variables();
 
-        self.hold_jail::<_, DestroyJailZoneError>(|handle| {
-            for step in jail.destroy_steps() {
-                self.execute::<DestroyJailZoneError>(handle, &step, &engine, &variables)?;
-            }
+        let handle = Jail::create(self.jail_parameters())?;
 
-            Ok(())
-        })?;
+        for step in jail.destroy_steps() {
+            if let Err(error) = self.execute::<DestroyJailZoneError>(&handle, &step, &engine, &variables) {
+                handle.destroy()?;
+                return Err(error);
+            }
+        }
+
+        handle.destroy()?;
 
         volume.destroy()?;
 
