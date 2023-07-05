@@ -91,12 +91,6 @@ impl ZoneConfigurationDirective {
         }
     }
 
-    pub fn transform_with_default_context(
-        self,
-    ) -> Result<ZoneConfigurationDirective, ProcessZoneConfigurationError> {
-        self.process(&mut ProcessZoneConfigurationContext::default())
-    }
-
     pub fn process(
         self,
         context: &mut ProcessZoneConfigurationContext,

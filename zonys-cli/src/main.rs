@@ -235,7 +235,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 let configuration = zone
                     .configuration()
                     .directive()?
-                    .transform_with_default_context()?;
+                    .process(&mut ProcessZoneConfigurationContext::default())?;
 
                 let zone = if zone.status()?.running() {
                     match zone.stop()? {
@@ -309,7 +309,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 let configuration = zone
                     .configuration()
                     .directive()?
-                    .transform_with_default_context()?;
+                    .process(&mut ProcessZoneConfigurationContext::default())?;
 
                 if zone.status()?.running() {
                     match zone.stop()? {
