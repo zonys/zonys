@@ -9,7 +9,6 @@ pub use chroot::*;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use crate::TemplateObject;
-use crate::ZoneConfigurationReaderTraverser;
 use crate::{RenderTemplateError, TemplateEngine};
 use serde::{Deserialize, Serialize};
 use serde_yaml::from_reader;
@@ -18,18 +17,6 @@ use std::io::{self, BufReader};
 use std::path::{Path, PathBuf};
 use url::{ParseError, Url};
 use ztd::{Constructor, Display, Error, From, Method};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Display, Error, From)]
-#[From(unnamed)]
-pub enum TransformZoneConfigurationError {
-    ReadZoneConfigurationDirectiveError(ReadZoneConfigurationDirectiveError),
-    ParseUrlParse(ParseError),
-    #[From(skip)]
-    UnsupportedScheme(String),
-    RenderTemplateError(RenderTemplateError),
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -65,10 +52,6 @@ pub enum ReadZoneConfigurationDirectiveError {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub type ZoneConfigurationDirectiveTraverser<'a> = ZoneConfigurationReaderTraverser<'a>;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 #[derive(Clone, Constructor, Default, Debug, Deserialize, Method, Serialize)]
 #[Method(all)]
 pub struct ZoneConfigurationDirective {
@@ -77,10 +60,6 @@ pub struct ZoneConfigurationDirective {
 }
 
 impl ZoneConfigurationDirective {
-    pub fn traverser(&self) -> ZoneConfigurationDirectiveTraverser<'_> {
-        ZoneConfigurationDirectiveTraverser::new(vec![self])
-    }
-
     pub fn read_from_path(path: &Path) -> Result<Self, ReadZoneConfigurationDirectiveError> {
         Ok(from_reader(BufReader::new(File::open(path)?))?)
     }
