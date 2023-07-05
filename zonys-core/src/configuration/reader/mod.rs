@@ -7,8 +7,8 @@ pub use crate::configuration::reader::jail::*;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 use crate::{
-    TemplateObject, ZoneConfigurationUnit, ZoneConfigurationVersion1TypeUnit,
-    ZoneConfigurationVersionUnit,
+    TemplateObject, ZoneConfigurationDirective, ZoneConfigurationVersion1TypeDirective,
+    ZoneConfigurationVersionDirective,
 };
 use std::collections::HashSet;
 use ztd::Constructor;
@@ -16,27 +16,27 @@ use ztd::Constructor;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Constructor, Debug)]
-#[Constructor(visibility = pub(self))]
+#[Constructor(visibility = pub(crate))]
 pub struct ZoneConfigurationReaderTraverser<'a> {
-    units: Vec<&'a ZoneConfigurationUnit>,
+    directives: Vec<&'a ZoneConfigurationDirective>,
 }
 
 impl<'a> ZoneConfigurationReaderTraverser<'a> {
     pub fn inorder(self) -> ZoneConfigurationReaderInorderTraverser<'a> {
-        ZoneConfigurationReaderInorderTraverser::new(self.units)
+        ZoneConfigurationReaderInorderTraverser::new(self.directives)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Constructor, Debug)]
-#[Constructor(visibility = pub(self))]
+#[Constructor(visibility = pub(crate))]
 pub struct ZoneConfigurationReaderInorderTraverser<'a> {
-    todo: Vec<&'a ZoneConfigurationUnit>,
+    todo: Vec<&'a ZoneConfigurationDirective>,
 }
 
 impl<'a> Iterator for ZoneConfigurationReaderInorderTraverser<'a> {
-    type Item = &'a ZoneConfigurationUnit;
+    type Item = &'a ZoneConfigurationDirective;
 
     fn next(&mut self) -> Option<Self::Item> {
         let top = match self.todo.pop() {
@@ -45,10 +45,9 @@ impl<'a> Iterator for ZoneConfigurationReaderInorderTraverser<'a> {
         };
 
         match top.version() {
-            ZoneConfigurationVersionUnit::Version1(version1) => match version1.units() {
-                Some(units) => self.todo.extend(units.iter().clone()),
-                None => {}
-            },
+            ZoneConfigurationVersionDirective::Version1(version1) => self
+                .todo
+                .extend(version1.children().iter().map(|x| x.directive()).clone()),
         };
 
         Some(top)
@@ -60,7 +59,7 @@ impl<'a> Iterator for ZoneConfigurationReaderInorderTraverser<'a> {
 #[derive(Constructor, Debug)]
 #[Constructor(visibility = pub(crate))]
 pub struct ChrootZoneConfigurationReader<'a> {
-    _unit: &'a ZoneConfigurationUnit,
+    _directive: &'a ZoneConfigurationDirective,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,28 +75,28 @@ pub enum ZoneConfigurationTypeReader<'a> {
 #[derive(Constructor, Debug)]
 #[Constructor(visibility = pub(super))]
 pub struct ZoneConfigurationReader {
-    unit: ZoneConfigurationUnit,
+    directive: ZoneConfigurationDirective,
 }
 
 impl ZoneConfigurationReader {
     pub fn traverser(&self) -> ZoneConfigurationReaderTraverser<'_> {
-        ZoneConfigurationReaderTraverser::new(vec![&self.unit])
+        ZoneConfigurationReaderTraverser::new(vec![&self.directive])
     }
 
     pub fn tags(&self) -> HashSet<&String> {
         let mut tags = HashSet::default();
 
-        for unit in self.traverser().inorder() {
-            let unit_tags = match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => version1.tags(),
+        for directive in self.traverser().inorder() {
+            let directive_tags = match directive.version() {
+                ZoneConfigurationVersionDirective::Version1(version1) => version1.tags(),
             };
 
-            let unit_tags = match unit_tags {
-                Some(unit_tags) => unit_tags,
+            let directive_tags = match directive_tags {
+                Some(directive_tags) => directive_tags,
                 None => continue,
             };
 
-            for tag in unit_tags {
+            for tag in directive_tags {
                 tags.insert(tag);
             }
         }
@@ -108,9 +107,9 @@ impl ZoneConfigurationReader {
     pub fn variables(&self) -> TemplateObject {
         let mut object = TemplateObject::default();
 
-        for unit in self.traverser().inorder() {
-            let variables = match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => version1.variables(),
+        for directive in self.traverser().inorder() {
+            let variables = match directive.version() {
+                ZoneConfigurationVersionDirective::Version1(version1) => version1.variables(),
             };
 
             if let Some(variables) = variables {
@@ -122,19 +121,21 @@ impl ZoneConfigurationReader {
     }
 
     pub fn r#type(&self) -> ZoneConfigurationTypeReader<'_> {
-        match self.unit.version() {
-            ZoneConfigurationVersionUnit::Version1(version1) => match version1.r#type() {
-                ZoneConfigurationVersion1TypeUnit::Jail(_jail) => {
-                    ZoneConfigurationTypeReader::Jail(JailZoneConfigurationReader::new(&self.unit))
+        match self.directive.version() {
+            ZoneConfigurationVersionDirective::Version1(version1) => match version1.r#type() {
+                ZoneConfigurationVersion1TypeDirective::Jail(_jail) => {
+                    ZoneConfigurationTypeReader::Jail(JailZoneConfigurationReader::new(
+                        &self.directive,
+                    ))
                 }
             },
         }
     }
 
     pub fn start_after_create(&self) -> bool {
-        for unit in self.traverser().inorder() {
-            match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+        for directive in self.traverser().inorder() {
+            match directive.version() {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     if let Some(start_after_create) = version1.start_after_create() {
                         return *start_after_create;
                     }
@@ -146,9 +147,9 @@ impl ZoneConfigurationReader {
     }
 
     pub fn destroy_after_stop(&self) -> bool {
-        for unit in self.traverser().inorder() {
-            match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+        for directive in self.traverser().inorder() {
+            match directive.version() {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     if let Some(destroy_after_stop) = version1.destroy_after_stop() {
                         return *destroy_after_stop;
                     }

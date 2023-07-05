@@ -100,14 +100,15 @@ impl Zone {
             .variables()
             .clone()
             .unwrap_or_default();
-        let configuration_unit =
-            configuration_directive.transform(&mut TransformZoneConfigurationContext::new(
+        let configuration_directive =
+            configuration_directive.process(&mut ProcessZoneConfigurationContext::new(
                 TemplateEngine::default(),
                 variables,
                 vec![configuration_path.to_path_buf()],
             ))?;
 
-        self.configuration().set_unit(&configuration_unit)?;
+        self.configuration()
+            .set_directive(&configuration_directive)?;
         let reader = self.configuration().reader()?;
         self.r#type()?.create()?;
 

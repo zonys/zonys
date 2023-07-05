@@ -1,14 +1,10 @@
 mod directive;
 mod reader;
-mod transform;
-mod unit;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub use directive::*;
 pub use reader::*;
-pub use transform::*;
-pub use unit::*;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,16 +83,16 @@ impl<'a> ZoneConfiguration<&'a Zone> {
     }
 
     pub fn reader(&self) -> Result<ZoneConfigurationReader, ReadZoneConfigurationError> {
-        Ok(ZoneConfigurationReader::new(self.unit()?))
+        Ok(ZoneConfigurationReader::new(self.directive()?))
     }
 
-    pub fn unit(&self) -> Result<ZoneConfigurationUnit, ReadZoneConfigurationError> {
+    pub fn directive(&self) -> Result<ZoneConfigurationDirective, ReadZoneConfigurationError> {
         Ok(from_reader(BufReader::new(File::open(self.file_path())?))?)
     }
 
-    pub fn set_unit(
+    pub fn set_directive(
         &self,
-        persistence: &ZoneConfigurationUnit,
+        persistence: &ZoneConfigurationDirective,
     ) -> Result<(), WriteZoneConfigurationError> {
         Ok(to_writer(
             BufWriter::new(File::create(self.file_path())?),
@@ -123,7 +119,7 @@ impl<'a> ZoneConfiguration<&'a Zone> {
         &self,
         writer: &mut ZoneTransmissionWriter,
     ) -> Result<(), SendZoneConfigurationError> {
-        writer.serialize(&self.unit()?)?;
+        writer.serialize(&self.directive()?)?;
 
         Ok(())
     }
@@ -133,7 +129,7 @@ impl<'a> ZoneConfiguration<&'a Zone> {
         reader: &mut ZoneTransmissionReader,
     ) -> Result<Self, ReceiveZoneConfigurationError> {
         let configuration = Self::new(zone);
-        configuration.set_unit(&reader.deserialize::<ZoneConfigurationUnit>()?)?;
+        configuration.set_directive(&reader.deserialize()?)?;
 
         Ok(configuration)
     }

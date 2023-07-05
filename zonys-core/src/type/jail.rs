@@ -235,7 +235,9 @@ impl<'a> JailZone<&'a Zone> {
         let handle = Jail::create(self.jail_parameters())?;
 
         for step in jail.create_steps() {
-            if let Err(error) = self.execute::<CreateJailZoneError>(&handle, &step, &engine, &variables) {
+            if let Err(error) =
+                self.execute::<CreateJailZoneError>(&handle, &step, &engine, &variables)
+            {
                 handle.destroy()?;
                 return Err(error);
             }
@@ -323,7 +325,9 @@ impl<'a> JailZone<&'a Zone> {
         let handle = Jail::create(self.jail_parameters())?;
 
         for step in jail.destroy_steps() {
-            if let Err(error) = self.execute::<DestroyJailZoneError>(&handle, &step, &engine, &variables) {
+            if let Err(error) =
+                self.execute::<DestroyJailZoneError>(&handle, &step, &engine, &variables)
+            {
                 handle.destroy()?;
                 return Err(error);
             }

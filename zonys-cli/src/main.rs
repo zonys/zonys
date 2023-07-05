@@ -9,8 +9,8 @@ use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
 use std::path::PathBuf;
 use zonys_core::{
-    ReceiveZoneError, Zone, ZoneConfigurationDirective, ZoneConfigurationVersionDirective,
-    ZoneConfigurationVersionUnit,
+    ProcessZoneConfigurationContext, ReceiveZoneError, Zone, ZoneConfigurationDirective,
+    ZoneConfigurationVersionDirective,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +132,9 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 let new_zone = Zone::create(
                     &arguments.base_path,
                     &current_dir()?,
-                    zone.configuration().unit()?.transform()?,
+                    zone.configuration()
+                        .directive()?
+                        .process(&mut ProcessZoneConfigurationContext::default())?,
                 )?;
 
                 zone.destroy()?;
@@ -164,16 +166,16 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let mut configuration = zone.configuration().unit()?;
+                let mut configuration = zone.configuration().directive()?;
                 let destroy_after_stop = match configuration.version_mut() {
-                    ZoneConfigurationVersionUnit::Version1(version1) => {
-                        let destroy_after_stop = version1.destroy_after_stop().clone();
+                    ZoneConfigurationVersionDirective::Version1(version1) => {
+                        let destroy_after_stop = *version1.destroy_after_stop();
                         version1.set_destroy_after_stop(Some(false));
 
                         destroy_after_stop
                     }
                 };
-                zone.configuration().set_unit(&configuration)?;
+                zone.configuration().set_directive(&configuration)?;
 
                 let zone = match zone.stop()? {
                     Some(mut zone) => {
@@ -186,13 +188,13 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                     }
                 };
 
-                let mut configuration = zone.configuration().unit()?;
+                let mut configuration = zone.configuration().directive()?;
                 match configuration.version_mut() {
-                    ZoneConfigurationVersionUnit::Version1(version1) => {
+                    ZoneConfigurationVersionDirective::Version1(version1) => {
                         version1.set_destroy_after_stop(destroy_after_stop);
                     }
                 };
-                zone.configuration().set_unit(&configuration)?;
+                zone.configuration().set_directive(&configuration)?;
 
                 println!("{}", zone.identifier().uuid().to_string());
             }
@@ -230,7 +232,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
-                let configuration = zone.configuration().unit()?.transform()?;
+                let configuration = zone
+                    .configuration()
+                    .directive()?
+                    .transform_with_default_context()?;
 
                 let zone = if zone.status()?.running() {
                     match zone.stop()? {
@@ -301,7 +306,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let configuration = zone.configuration().unit()?.transform()?;
+                let configuration = zone
+                    .configuration()
+                    .directive()?
+                    .transform_with_default_context()?;
 
                 if zone.status()?.running() {
                     match zone.stop()? {

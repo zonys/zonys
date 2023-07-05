@@ -1,7 +1,7 @@
 use crate::{
-    ZoneConfigurationReaderTraverser, ZoneConfigurationUnit,
-    ZoneConfigurationVersion1JailProgramUnit, ZoneConfigurationVersion1TypeUnit,
-    ZoneConfigurationVersion1VolumeUnit, ZoneConfigurationVersionUnit, ZoneVolumeType,
+    ZoneConfigurationDirective, ZoneConfigurationReaderTraverser,
+    ZoneConfigurationVersion1JailProgramDirective, ZoneConfigurationVersion1TypeDirective,
+    ZoneConfigurationVersion1VolumeDirective, ZoneConfigurationVersionDirective, ZoneVolumeType,
 };
 use std::collections::HashMap;
 use std::iter::empty;
@@ -18,8 +18,8 @@ pub struct JailZoneConfigurationStep<'a> {
     environment_variables: &'a Option<HashMap<String, String>>,
 }
 
-impl<'a> From<&'a ZoneConfigurationVersion1JailProgramUnit> for JailZoneConfigurationStep<'a> {
-    fn from(unit: &'a ZoneConfigurationVersion1JailProgramUnit) -> Self {
+impl<'a> From<&'a ZoneConfigurationVersion1JailProgramDirective> for JailZoneConfigurationStep<'a> {
+    fn from(unit: &'a ZoneConfigurationVersion1JailProgramDirective) -> Self {
         Self::new(
             unit.program(),
             unit.arguments(),
@@ -33,27 +33,27 @@ impl<'a> From<&'a ZoneConfigurationVersion1JailProgramUnit> for JailZoneConfigur
 #[derive(Constructor, Debug)]
 #[Constructor(visibility = pub(crate))]
 pub struct JailZoneConfigurationReader<'a> {
-    unit: &'a ZoneConfigurationUnit,
+    unit: &'a ZoneConfigurationDirective,
 }
 
 impl<'a> JailZoneConfigurationReader<'a> {
     pub fn volume(&self) -> ZoneVolumeType {
         for unit in ZoneConfigurationReaderTraverser::new(vec![self.unit]).inorder() {
             match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     if let Some(volume) = jail.volume() {
                         return match volume {
-                            ZoneConfigurationVersion1VolumeUnit::Automatic => {
+                            ZoneConfigurationVersion1VolumeDirective::Automatic => {
                                 ZoneVolumeType::Automatic
                             }
-                            ZoneConfigurationVersion1VolumeUnit::Directory => {
+                            ZoneConfigurationVersion1VolumeDirective::Directory => {
                                 ZoneVolumeType::Directory
                             }
-                            ZoneConfigurationVersion1VolumeUnit::Zfs => ZoneVolumeType::Zfs,
+                            ZoneConfigurationVersion1VolumeDirective::Zfs => ZoneVolumeType::Zfs,
                         };
                     }
                 }
@@ -66,9 +66,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
     pub fn from(&self) -> Option<&String> {
         for unit in ZoneConfigurationReaderTraverser::new(vec![self.unit]).inorder() {
             match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     if jail.from().is_some() {
@@ -84,9 +84,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
     pub fn from_work_path(&self) -> Option<&String> {
         for unit in ZoneConfigurationReaderTraverser::new(vec![self.unit]).inorder() {
             match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     if jail.from().is_some() {
@@ -103,9 +103,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
         ZoneConfigurationReaderTraverser::new(vec![self.unit])
             .inorder()
             .flat_map(|unit| match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     let execute = match jail.execute() {
@@ -150,9 +150,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
         ZoneConfigurationReaderTraverser::new(vec![self.unit])
             .inorder()
             .flat_map(|unit| match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     let execute = match jail.execute() {
@@ -208,9 +208,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
         ZoneConfigurationReaderTraverser::new(vec![self.unit])
             .inorder()
             .flat_map(|unit| match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     let execute = match jail.execute() {
@@ -266,9 +266,9 @@ impl<'a> JailZoneConfigurationReader<'a> {
         ZoneConfigurationReaderTraverser::new(vec![self.unit])
             .inorder()
             .flat_map(|unit| match unit.version() {
-                ZoneConfigurationVersionUnit::Version1(version1) => {
+                ZoneConfigurationVersionDirective::Version1(version1) => {
                     let jail = match version1.r#type() {
-                        ZoneConfigurationVersion1TypeUnit::Jail(jail) => jail,
+                        ZoneConfigurationVersion1TypeDirective::Jail(jail) => jail,
                     };
 
                     let execute = match jail.execute() {
