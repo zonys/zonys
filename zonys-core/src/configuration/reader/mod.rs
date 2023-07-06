@@ -39,18 +39,12 @@ impl<'a> Iterator for ZoneConfigurationReaderInorderTraverser<'a> {
     type Item = &'a ZoneConfigurationDirective;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let top = match self.todo.pop() {
+        let _top = match self.todo.pop() {
             None => return None,
             Some(top) => top,
         };
 
-        match top.version() {
-            ZoneConfigurationVersionDirective::Version1(version1) => self
-                .todo
-                .extend(version1.children().iter().map(|x| x.directive()).clone()),
-        };
-
-        Some(top)
+        None
     }
 }
 

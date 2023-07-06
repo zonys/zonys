@@ -7,10 +7,9 @@ use std::env::current_dir;
 use std::error;
 use std::fmt::Debug;
 use std::io::{stdin as io_stdin, stdout, ErrorKind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use zonys_core::{
-    ProcessZoneConfigurationContext, ReceiveZoneError, Zone, ZoneConfigurationDirective,
-    ZoneConfigurationVersionDirective,
+    ReceiveZoneError, Zone, ZoneConfigurationDirective, ZoneConfigurationVersionDirective,
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,10 +100,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         MainCommand::Create { include } => {
             let mut configuration = ZoneConfigurationDirective::default();
 
-            match &mut configuration.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(version1) => {
-                    version1.set_includes(include);
-                }
+            for include in include.unwrap_or_default() {
+                configuration = configuration.merge(ZoneConfigurationDirective::read_from_path(
+                    Path::new(&include),
+                )?)?;
             }
 
             println!(
@@ -132,9 +131,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 let new_zone = Zone::create(
                     &arguments.base_path,
                     &current_dir()?,
-                    zone.configuration()
-                        .directive()?
-                        .process(&mut ProcessZoneConfigurationContext::default())?,
+                    zone.configuration().directive()?,
                 )?;
 
                 zone.destroy()?;
@@ -232,10 +229,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for mut zone in matched_zones {
-                let configuration = zone
-                    .configuration()
-                    .directive()?
-                    .process(&mut ProcessZoneConfigurationContext::default())?;
+                let configuration = zone.configuration().directive()?;
 
                 let zone = if zone.status()?.running() {
                     match zone.stop()? {
@@ -267,10 +261,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         MainCommand::Deploy { include } => {
             let mut configuration = ZoneConfigurationDirective::default();
 
-            match &mut configuration.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(version1) => {
-                    version1.set_includes(include);
-                }
+            for include in include.unwrap_or_default() {
+                configuration = configuration.merge(ZoneConfigurationDirective::read_from_path(
+                    Path::new(&include),
+                )?)?;
             }
 
             let zone_identifier =
@@ -306,10 +300,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .collect::<Result<Vec<_>, _>>()?;
 
             for zone in matched_zones {
-                let configuration = zone
-                    .configuration()
-                    .directive()?
-                    .process(&mut ProcessZoneConfigurationContext::default())?;
+                let configuration = zone.configuration().directive()?;
 
                 if zone.status()?.running() {
                     match zone.stop()? {
@@ -360,12 +351,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         MainCommand::Run { include } => {
             let mut configuration = ZoneConfigurationDirective::default();
 
-            match &mut configuration.version_mut() {
-                ZoneConfigurationVersionDirective::Version1(version1) => {
-                    version1.set_start_after_create(Some(true));
-                    version1.set_destroy_after_stop(Some(true));
-                    version1.set_includes(include);
-                }
+            for include in include.unwrap_or_default() {
+                configuration = configuration.merge(ZoneConfigurationDirective::read_from_path(
+                    Path::new(&include),
+                )?)?;
             }
 
             println!(

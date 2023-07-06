@@ -93,19 +93,13 @@ impl Zone {
 impl Zone {
     fn handle_create(
         &self,
-        configuration_path: &Path,
+        _configuration_path: &Path,
         configuration_directive: ZoneConfigurationDirective,
     ) -> Result<(), CreateZoneError> {
-        let variables = configuration_directive
-            .variables()
-            .clone()
-            .unwrap_or_default();
-        let configuration_directive =
-            configuration_directive.process(&mut ProcessZoneConfigurationContext::new(
-                TemplateEngine::default(),
-                variables,
-                vec![configuration_path.to_path_buf()],
-            ))?;
+        /*let variables = configuration_directive
+        .variables()
+        .clone()
+        .unwrap_or_default();*/
 
         self.configuration()
             .set_directive(&configuration_directive)?;

@@ -1,11 +1,10 @@
 use crate::{
     AcquireZoneLockError, CleanupZoneConfigurationError, CleanupZoneLockError,
     CleanupZoneTypeError, CreateZoneTypeError, DestroyZoneConfigurationError, DestroyZoneTypeError,
-    FileSystemIdentifierTryFromZoneIdentifierError, HoldZoneLockError,
-    ProcessZoneConfigurationError, ReadZoneConfigurationError, ReceiveZoneConfigurationError,
-    ReceiveZoneTypeError, ReleaseZoneLockError, RenderTemplateError, SendZoneConfigurationError,
-    SendZoneTypeError, StartZoneTypeError, StopZoneTypeError, WriteZoneConfigurationError,
-    ZoneIdentifierTryFromPathError,
+    FileSystemIdentifierTryFromZoneIdentifierError, HoldZoneLockError, ReadZoneConfigurationError,
+    ReceiveZoneConfigurationError, ReceiveZoneTypeError, ReleaseZoneLockError, RenderTemplateError,
+    SendZoneConfigurationError, SendZoneTypeError, StartZoneTypeError, StopZoneTypeError,
+    WriteZoneConfigurationError, ZoneIdentifierTryFromPathError,
 };
 use nix::errno::Errno;
 use std::io;
@@ -54,7 +53,6 @@ pub enum CreateZoneError {
     UnsupportedExtension(String),
     ZoneIdentifierTryFromPathError(ZoneIdentifierTryFromPathError),
     FileSystemIdentifierTryFromZoneIdentifierError(FileSystemIdentifierTryFromZoneIdentifierError),
-    ProcessZoneConfigurationError(ProcessZoneConfigurationError),
     HoldZoneLockError(HoldZoneLockError),
     WriteZoneConfigurationError(WriteZoneConfigurationError),
     CleanupZoneError(CleanupZoneError),
